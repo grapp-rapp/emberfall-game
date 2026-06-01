@@ -56,7 +56,7 @@
   .floater { position: absolute; font-weight: bold; font-size: 18px; text-shadow: 0 1px 3px #000; animation: floatUp 1s ease-out forwards; }
   @keyframes floatUp { from { transform: translateY(0); opacity:1; } to { transform: translateY(-50px); opacity:0; } }
 
-  .overlay-screen { position: fixed; inset: 0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:10; text-align:center; padding:20px; }
+  .overlay-screen { position: fixed; inset: 0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:10; text-align:center; padding:20px; overflow-y: auto; touch-action: pan-y; }
   .overlay-screen.hidden { display:none !important; }
   
   #overlay { background: radial-gradient(circle at 50% 40%, rgba(40,20,60,.9), rgba(5,5,12,.98)); z-index: 300; }
@@ -64,6 +64,16 @@
   #overlay p { max-width: 600px; margin: 14px 0; opacity:.9; line-height:1.5; font-size: 17px; }
   #overlay .keys { font-size:14px; opacity:.9; margin: 12px 0 30px; line-height:2.0; max-width:600px; background: rgba(0,0,0,0.5); padding: 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); text-align: left;}
   #overlay .keys b { color:#ffd56b; display:inline-block; width: 110px;}
+  .mobile-keys { display: none; }
+  body.mobile .pc-keys { display: none; }
+  body.mobile .mobile-keys { display: block; color: #8be0ff; }
+
+  @media (max-height: 450px) {
+    .overlay-screen { justify-content: flex-start; padding-top: 40px; }
+    #overlay h1 { font-size: 36px; margin-bottom: 5px; }
+    #overlay p { font-size: 14px; margin: 8px 0; line-height: 1.4; }
+    #overlay .keys { margin: 10px 0 20px; padding: 12px; }
+  }
 
   #pauseMenu { background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); z-index: 250;}
   #pauseMenu h2 { font-size: 50px; color: #ffb347; letter-spacing: 4px; text-shadow: 0 0 20px rgba(255,150,40,0.5); margin-bottom: 20px;}
@@ -223,14 +233,19 @@
   <h1>EMBERFALL</h1>
   <p>The world has grown vast. Beware <b style="color:#ff5555">Mimics</b> — they disguise themselves as trees, rocks, even cave mouths, and lunge the moment you draw near. Shelter in lamp-lit caves, fort up in tunnels, climb trees, and command your artillery ship.</p>
   <div class="keys">
-    <b>Mouse</b> Look around (drag if your browser won't lock the pointer)<br>
-    <b>WASD</b> Move &nbsp;&nbsp;&nbsp; <b>Shift</b> Dash<br>
-    <b>Left-Click</b> Melee &nbsp;&nbsp;&nbsp; <b>Right-Click</b> Magic Bolt<br>
-    <b>T</b> Dig Tunnel &nbsp;&nbsp;&nbsp; <b>F</b> Enter/Travel Tunnels (dig 2+ to link them underground)<br>
-    <b>B</b> Board/Leave Ship (the ship has its own health — keep it alive!)<br>
-    <b>E</b> Climb Tree (Safe from ground foes)<br>
-    <b>TAB</b> Open Upgrades Shop (Pauses Game)<br>
-    <br><b style="color:#8be0ff">Mobile</b> Left half of screen to Move, Right half to Look.<br>
+    <div class="pc-keys">
+      <b>Mouse</b> Look around (drag if your browser won't lock the pointer)<br>
+      <b>WASD</b> Move &nbsp;&nbsp;&nbsp; <b>Shift</b> Dash<br>
+      <b>Left-Click</b> Melee &nbsp;&nbsp;&nbsp; <b>Right-Click</b> Magic Bolt<br>
+      <b>T</b> Dig Tunnel &nbsp;&nbsp;&nbsp; <b>F</b> Enter/Travel Tunnels (dig 2+ to link them underground)<br>
+      <b>B</b> Board/Leave Ship (the ship has its own health — keep it alive!)<br>
+      <b>E</b> Climb Tree (Safe from ground foes)<br>
+      <b>TAB</b> Open Upgrades Shop (Pauses Game)<br>
+    </div>
+    <div class="mobile-keys">
+      <b>Mobile</b> Left half of screen to Move, Right half to Look.<br>
+      Tap the on-screen buttons to Attack, Cast, Dash, Dig, and Interact.
+    </div>
   </div>
   <button class="btn" id="startBtn">ENTER THE FRAY</button>
   <div class="credit">A game by <b>Noam Rapp</b></div>

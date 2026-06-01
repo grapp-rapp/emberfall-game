@@ -2,22 +2,19 @@
 <!--
   EMBERFALL — a 3D action RPG
   © 2026 Noam Rapp. All Rights Reserved.
-  This game and its source code are the original work of Noam Rapp.
-  Unauthorized copying, distribution, or modification is prohibited.
 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <meta name="author" content="Noam Rapp" />
-<meta name="copyright" content="© 2026 Noam Rapp. All Rights Reserved." />
-<title>Emberfall™ — by Noam Rapp</title>
+<title>Emberfall™ — Complete Edition</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a12; font-family: 'Trebuchet MS', system-ui, sans-serif; color: #fff; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a12; font-family: 'Trebuchet MS', system-ui, sans-serif; color: #fff; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
   #game { display: block; width: 100%; height: 100%; cursor: crosshair; }
 
-  #hud { position: fixed; inset: 0; pointer-events: none; user-select: none; }
+  #hud { position: fixed; inset: 0; pointer-events: none; user-select: none; z-index: 20; }
   .panel { position: absolute; background: rgba(0,0,0,.65); border: 1px solid rgba(255,255,255,.15); border-radius: 8px; backdrop-filter: blur(4px); }
 
   #vitals { top: 16px; left: 16px; width: 280px; padding: 10px; }
@@ -33,14 +30,20 @@
   #stats div { margin: 4px 0; font-size: 14px; }
   #stats .num { color:#ffd56b; font-weight:bold; }
   
-  #upgrades { bottom: 16px; right: 16px; padding: 12px; font-size: 13px; pointer-events: auto; }
-  #upgrades h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 4px;}
-  .upg-btn { display: flex; justify-content: space-between; gap: 16px; background: rgba(255,255,255,0.05); padding: 6px 10px; margin-bottom: 4px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;}
+  #upgrades { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 340px; padding: 24px; font-size: 14px; pointer-events: auto; z-index: 200; border: 1px solid #8be0ff; box-shadow: 0 10px 50px rgba(0,0,0,0.8); background: rgba(15,20,30,0.95); border-radius: 12px; }
+  #upgrades.show { display: block; }
+  #upgrades h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #ffd56b; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px;}
+  .upg-btn { display: flex; justify-content: space-between; gap: 16px; background: rgba(255,255,255,0.05); padding: 10px 12px; margin-bottom: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: background 0.1s;}
   .upg-btn:hover { background: rgba(255,255,255,0.15); }
+  .upg-btn:active { transform: scale(0.98); }
   .upg-btn b { color: #8be0ff; }
-  .upg-btn .cost { color: #ffd56b; }
+  .upg-btn .cost { color: #ffd56b; font-weight: bold; }
+  
+  #closeShopBtn { position: absolute; top: -12px; right: -12px; width: 34px; height: 34px; background: #ff3b3b; color: #fff; border: 2px solid #fff; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+  #shopBtnDesktop { bottom: 16px; right: 16px; padding: 12px 20px; font-weight: bold; color: #ffd56b; cursor: pointer; border-color: rgba(255,213,107,0.4); pointer-events: auto; transition: background 0.1s; }
+  #shopBtnDesktop:hover { background: rgba(255,213,107,0.15); }
 
-  #hint { bottom: 16px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.7); padding: 8px 18px; border-radius: 20px; font-size: 13px; opacity:.9; text-align:center; max-width:60vw; border: 1px solid rgba(255,255,255,0.2); }
+  #hint { bottom: 16px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.7); padding: 8px 18px; border-radius: 20px; font-size: 13px; opacity:.9; text-align:center; max-width:60vw; border: 1px solid rgba(255,255,255,0.2); pointer-events: auto; }
   #hint b { color:#ffd56b; }
 
   #toast { position: absolute; top: 22%; left: 50%; transform: translateX(-50%); text-align:center; font-size: 32px; font-weight: bold; text-shadow: 0 2px 12px #000; opacity:0; transition: opacity .3s; pointer-events: none; z-index: 90;}
@@ -50,11 +53,10 @@
   .floater { position: absolute; font-weight: bold; font-size: 18px; text-shadow: 0 1px 3px #000; animation: floatUp 1s ease-out forwards; }
   @keyframes floatUp { from { transform: translateY(0); opacity:1; } to { transform: translateY(-50px); opacity:0; } }
 
-  /* OVERLAYS */
   .overlay-screen { position: fixed; inset: 0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:10; text-align:center; padding:20px; }
   .overlay-screen.hidden { display:none !important; }
   
-  #overlay { background: radial-gradient(circle at 50% 40%, rgba(40,20,60,.9), rgba(5,5,12,.98)); z-index: 300;}
+  #overlay { background: radial-gradient(circle at 50% 40%, rgba(40,20,60,.9), rgba(5,5,12,.98)); z-index: 300; }
   #overlay h1 { font-size: 60px; background: linear-gradient(90deg,#ffb347,#ff5e62,#ffb347); -webkit-background-clip:text; background-clip:text; color:transparent; letter-spacing: 3px; text-shadow: 0 0 40px rgba(255,120,40,.3); margin-bottom: 10px; }
   #overlay p { max-width: 600px; margin: 14px 0; opacity:.9; line-height:1.5; font-size: 17px; }
   #overlay .keys { font-size:14px; opacity:.9; margin: 12px 0 30px; line-height:2.0; max-width:600px; background: rgba(0,0,0,0.5); padding: 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); text-align: left;}
@@ -70,14 +72,18 @@
   #prompt { position:fixed; bottom:100px; left:50%; transform:translateX(-50%); background:rgba(20,30,60,.9); border:1px solid #8be0ff; padding:10px 24px; border-radius:8px; font-size:16px; font-weight: bold; opacity:0; transition:opacity .2s; box-shadow: 0 4px 16px rgba(0,0,0,0.5); z-index: 90;}
   #prompt.show { opacity:1; }
 
-  #closeShop { display: none; }
+  #landscapeWarning { display: none; position: fixed; inset: 0; background: #0a0a12; z-index: 9999; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  #landscapeWarning .icon { font-size: 60px; margin-bottom: 20px; animation: tilt 2s infinite ease-in-out; }
+  @keyframes tilt { 0% { transform: rotate(0deg); } 50% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }
+  
+  @media (max-width: 850px) and (orientation: portrait) {
+      #landscapeWarning { display: flex; }
+  }
 
-  /* ---------- Touch / mobile controls ---------- */
-  html, body { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
   #touch { position: fixed; inset: 0; z-index: 30; pointer-events: none; display: none; }
   body.mobile #touch { display: block; }
+  body.mobile #shopBtnDesktop { display: none; }
 
-  /* floating movement joystick (left half is the touch zone) */
   #joyZone { position: absolute; left: 0; top: 0; width: 46%; height: 100%; pointer-events: auto; touch-action: none; }
   #joyBase { position: absolute; left: 80px; top: 80px; width: 132px; height: 132px; border-radius: 50%; margin: -66px 0 0 -66px;
              background: radial-gradient(circle, rgba(255,255,255,.12), rgba(255,255,255,.03)); border: 2px solid rgba(255,255,255,.28);
@@ -86,40 +92,32 @@
   #joyKnob { position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; border-radius: 50%;
              transform: translate(-50%,-50%); background: radial-gradient(circle at 35% 35%, #8be0ff, #2a6cc4); box-shadow: 0 2px 10px rgba(0,0,0,.5); }
 
-  /* action buttons */
-  .tbtn { position: absolute; pointer-events: auto; touch-action: none; display:flex; align-items:center; justify-content:center;
+  .tbtn { position: absolute; pointer-events: auto; touch-action: none; display:flex; flex-direction:column; align-items:center; justify-content:center;
           border: 2px solid rgba(255,255,255,.3); border-radius: 50%; color:#fff; font-size: 22px; font-weight:bold;
-          background: rgba(20,24,40,.75); box-shadow: 0 3px 10px rgba(0,0,0,.45); flex-direction: column; }
+          background: rgba(20,24,40,.75); box-shadow: 0 3px 10px rgba(0,0,0,.45); }
   .tbtn:active { transform: scale(.92); filter: brightness(1.3); }
   .tbtn small { font-size: 10px; opacity:.8; margin-top: 2px; }
   
-  /* Desktop defaults (hidden anyway), overridden in .mobile */
   #bAtk  { background: linear-gradient(135deg,#ff7a18,#ff3b3b); }
   #bMag  { background: linear-gradient(135deg,#4f9dff,#8b5cf6); }
 
-  /* aim reticle (center) */
   #reticle { position: fixed; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; z-index: 25; pointer-events: none; display: none; }
   #reticle::before, #reticle::after { content:''; position:absolute; background: rgba(255,255,255,.7); box-shadow: 0 0 3px rgba(0,0,0,.8); }
   #reticle::before { left: 11px; top: 0; width: 4px; height: 26px; }
   #reticle::after  { top: 11px; left: 0; height: 4px; width: 26px; }
   #reticle.show { display: block; }
 
-  /* home-screen credit + copyright */
   .credit { margin-top: 18px; font-size: 16px; letter-spacing: 1px; opacity: .92; }
   .credit b { color: #ffd56b; }
   .copyright { margin-top: 6px; font-size: 11px; letter-spacing: 1px; opacity: .55; }
   .btn-quit { background: linear-gradient(135deg,#555,#333); margin-top: 14px; font-size: 17px; padding: 12px 38px; }
 
-  /* ================== MOBILE NATIVE UI LAYOUT ================== */
-  
-  /* HUD scale & positions */
   body.mobile #hint { display: none; }
   body.mobile #vitals { width: 180px; top: max(12px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left)); padding: 8px; }
   body.mobile #vitals #lvlBadge { font-size: 11px; margin-bottom: 5px; }
   body.mobile #vitals .bar-bg { height: 10px; }
   body.mobile #vitals .bar-label { font-size: 9px; }
   
-  /* Move stats to top right, just under the pause button */
   body.mobile #stats { 
       top: calc(max(12px, env(safe-area-inset-top)) + 54px); 
       right: max(12px, env(safe-area-inset-right)); 
@@ -127,25 +125,21 @@
   }
   body.mobile #stats div { margin: 2px 0; }
   
-  /* Pause Button */
   body.mobile #bPause { 
       position: absolute; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); 
       width: 44px; height: 44px; font-size: 20px; transform: none; 
   }
 
-  /* Ergonomic Action Buttons (Bottom Right Arc) */
   body.mobile #bAtk  { right: max(20px, env(safe-area-inset-right)); bottom: max(30px, env(safe-area-inset-bottom)); width: 76px; height: 76px; font-size: 32px; }
   body.mobile #bMag  { right: max(110px, env(safe-area-inset-right)); bottom: max(30px, env(safe-area-inset-bottom)); width: 56px; height: 56px; font-size: 24px; }
   body.mobile #bDash { right: max(26px, env(safe-area-inset-right)); bottom: max(120px, env(safe-area-inset-bottom)); width: 56px; height: 56px; font-size: 24px; }
 
-  /* Utility Row (Bottom Center) - Clears the screen for look-dragging */
   body.mobile #tcol { 
       position: absolute; left: 50%; bottom: max(20px, env(safe-area-inset-bottom)); top: auto; right: auto; 
       transform: translateX(-50%); display: flex; flex-direction: row; gap: 12px; 
   }
   body.mobile #tcol .tbtn { position: static; width: 52px; height: 52px; font-size: 20px; }
 
-  /* Shop Modal (Centered Pop-Up instead of squished side-panel) */
   body.mobile #upgrades { 
       position: fixed; top: 50%; left: 50%; right: auto; bottom: auto;
       transform: translate(-50%, -50%); width: 85%; max-width: 320px; 
@@ -154,18 +148,12 @@
       box-shadow: 0 10px 50px rgba(0,0,0,0.8); border: 1px solid rgba(139, 224, 255, 0.3);
   }
   body.mobile #upgrades.show { display: block; }
-  body.mobile #upgrades h3 { font-size: 14px; margin-bottom: 12px; }
+  body.mobile #upgrades h3 { font-size: 14px; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px;}
   body.mobile #upgrades .upg-btn { padding: 12px; font-size: 13px; margin-bottom: 8px; }
   
-  /* Modal Close Button */
-  #closeShop { display: none; position: absolute; top: -12px; right: -12px; width: 34px; height: 34px; background: #ff3b3b; font-size: 14px; border: 2px solid #fff; cursor: pointer; }
-  body.mobile #closeShop { display: flex; }
-
-  /* Floating Texts - Moved away from thumbs */
   body.mobile #prompt { top: max(90px, env(safe-area-inset-top)); bottom: auto; max-width: 80%; border-radius: 30px; font-size: 14px; padding: 10px 20px; background: rgba(0,0,0,0.8); }
   body.mobile #toast { top: 140px; font-size: 20px; width: 90%; }
   
-  /* Scale down overlay text */
   body.mobile #overlay h1 { font-size: 40px; }
   body.mobile #overlay p { font-size: 14px; }
   body.mobile #overlay .keys { font-size: 12px; line-height: 1.7; padding: 12px; }
@@ -173,6 +161,13 @@
 </style>
 </head>
 <body>
+
+<div id="landscapeWarning">
+  <div class="icon">📱 <span>↻</span></div>
+  <h2>Rotate Device</h2>
+  <p>Please turn your phone horizontally<br>for the best experience.</p>
+</div>
+
 <canvas id="game"></canvas>
 
 <div id="hud">
@@ -196,22 +191,24 @@
     <div>⛏️ Tunnels <span class="num" id="tunStat">3</span></div>
     <div>🚢 Ship <span class="num" id="shipStat">300/300</span></div>
   </div>
+  
+  <div id="shopBtnDesktop" class="panel">🛒 OPEN SHOP [TAB]</div>
 
-  <div id="upgrades" class="panel">
-    <div id="closeShop" class="tbtn">✕</div>
-    <h3>Upgrades (Cost reduced!)</h3>
-    <div class="upg-btn" onclick="buyUpgrade(1)"><span><b>[1]</b> Sword: <span id="uWeap">Steel</span></span> <span class="cost" id="cWeap">25g</span></div>
-    <div class="upg-btn" onclick="buyUpgrade(2)"><span><b>[2]</b> Magic: <span id="uMag">Adept</span></span> <span class="cost" id="cMag">20g</span></div>
-    <div class="upg-btn" onclick="buyUpgrade(3)"><span><b>[3]</b> Tunnel: <span id="uTun">Reinforced</span></span> <span class="cost" id="cTun">30g</span></div>
-    <div class="upg-btn" onclick="repairShip()"><span><b>[4]</b> Repair Ship</span> <span class="cost" id="cRepair">-</span></div>
-  </div>
-
-  <div id="toast"></div>
   <div id="hint">
     <b>Mouse</b> Look · <b>WASD</b> Move · <b>Click</b> Sword · <b>R-Click</b> Magic · <b>T</b> Dig · <b>F</b> Tunnel · <b>E</b> Tree · <b>B</b> Boat · <b>ESC</b> Pause
   </div>
 </div>
 
+<div id="upgrades">
+  <div id="closeShopBtn">✕</div>
+  <h3>Blacksmith & Upgrades</h3>
+  <div class="upg-btn" onclick="buyUpgrade(1)"><span><b>[1]</b> Sword: <span id="uWeap">Steel</span></span> <span class="cost" id="cWeap">25g</span></div>
+  <div class="upg-btn" onclick="buyUpgrade(2)"><span><b>[2]</b> Magic: <span id="uMag">Adept</span></span> <span class="cost" id="cMag">20g</span></div>
+  <div class="upg-btn" onclick="buyUpgrade(3)"><span><b>[3]</b> Tunnel: <span id="uTun">Reinforced</span></span> <span class="cost" id="cTun">30g</span></div>
+  <div class="upg-btn" onclick="repairShip()"><span><b>[4]</b> Repair Ship</span> <span class="cost" id="cRepair">-</span></div>
+</div>
+
+<div id="toast"></div>
 <div id="reticle"></div>
 
 <div id="touch">
@@ -225,7 +222,7 @@
     <div id="bTun"  class="tbtn">🚇<small>Tun</small></div>
     <div id="bShip" class="tbtn">⛵<small>Ship</small></div>
     <div id="bTree" class="tbtn">🌲<small>Tree</small></div>
-    <div id="bShop" class="tbtn" style="background: rgba(60,40,20,0.85); border-color: #ffd56b;">🛒<small>Shop</small></div>
+    <div id="bShop" class="tbtn" style="background: rgba(60,40,20,0.8); border-color:#ffd56b;">🛒<small>Shop</small></div>
   </div>
   <div id="bPause" class="tbtn">⏸️</div>
 </div>
@@ -251,8 +248,7 @@
     <b>T</b> Dig Tunnel &nbsp;&nbsp;&nbsp; <b>F</b> Enter/Travel Tunnels (dig 2+ to link them underground)<br>
     <b>B</b> Board/Leave Ship (the ship has its own health — keep it alive!)<br>
     <b>E</b> Climb Tree (Safe from ground foes)<br>
-    <b>ESC</b> Pause Game<br>
-    <b>1, 2, 3</b> Buy Upgrades (Sword, Magic, Tunnels) &nbsp;&nbsp; <b>4</b> Repair / Summon Ship<br>
+    <b>TAB</b> Open Upgrades Shop (Pauses Game)<br>
   </div>
   <button class="btn" id="startBtn">ENTER THE FRAY</button>
   <div class="credit">A game by <b>Noam Rapp</b></div>
@@ -262,9 +258,84 @@
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 
 <script type="module">
 import * as THREE from 'three';
+
+let audioCtxStarted = false;
+const sfx = {};
+
+function initAudio() {
+    if(audioCtxStarted) return;
+    Tone.start();
+    audioCtxStarted = true;
+    const masterVol = new Tone.Volume(-8).toDestination();
+
+    sfx.swing = new Tone.NoiseSynth({
+        noise: { type: 'pink' },
+        envelope: { attack: 0.01, decay: 0.15, sustain: 0 }
+    }).connect(new Tone.Filter(1200, "lowpass").connect(masterVol));
+
+    sfx.hit = new Tone.MembraneSynth({
+        pitchDecay: 0.05, octaves: 2,
+        envelope: { attack: 0.01, decay: 0.1, sustain: 0 }
+    }).connect(masterVol);
+
+    sfx.magic = new Tone.FMSynth({
+        harmonicity: 3, modulationIndex: 5,
+        oscillator: { type: "sine" }, modulation: { type: "triangle" },
+        envelope: { attack: 0.01, decay: 0.2, sustain: 0 }
+    }).connect(masterVol);
+
+    sfx.cannon = new Tone.MembraneSynth({
+        pitchDecay: 0.1, octaves: 4,
+        envelope: { attack: 0.01, decay: 0.6, sustain: 0 }
+    }).connect(masterVol);
+
+    sfx.coin = new Tone.Synth({
+        oscillator: { type: 'sine' },
+        envelope: { attack: 0.01, decay: 0.4, sustain: 0 }
+    }).connect(masterVol);
+
+    sfx.heal = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'triangle' },
+        envelope: { attack: 0.05, decay: 0.4, sustain: 0.2, release: 0.5 }
+    }).connect(masterVol);
+
+    sfx.levelUp = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'square' },
+        envelope: { attack: 0.05, decay: 0.2, sustain: 0.2, release: 1 }
+    }).connect(masterVol);
+
+    sfx.dig = new Tone.NoiseSynth({
+        noise: { type: 'brown' },
+        envelope: { attack: 0.05, decay: 0.2, sustain: 0 }
+    }).connect(masterVol);
+
+    // Dark medieval ambient background
+    const droneFilter = new Tone.Filter(300, "lowpass").connect(masterVol);
+    const drone = new Tone.Oscillator("D2", "sawtooth").connect(droneFilter);
+    drone.volume.value = -20;
+    drone.start();
+    
+    const lute = new Tone.Synth({
+        oscillator: { type: 'triangle' },
+        envelope: { attack: 0.02, decay: 1.5, sustain: 0 }
+    }).connect(masterVol);
+    lute.volume.value = -10;
+
+    const arpNotes = ["D3", "F3", "A3", "C4", "A3", "G3", "F3", "E3"];
+    let step = 0;
+    Tone.Transport.scheduleRepeat((time) => {
+        // Only play lute notes if game is active
+        if (started && !paused && player.alive) {
+            lute.triggerAttackRelease(arpNotes[step % arpNotes.length], "8n", time);
+        }
+        step++;
+    }, "4n");
+    Tone.Transport.start();
+}
 
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -297,14 +368,13 @@ const trees = [];
 const caveLamps = [];
 
 // ---- Underground tunnel network ----
-const UG_Y = -12;                         // depth of the underground level
+const UG_Y = -12;
 const ugRoot = new THREE.Group(); scene.add(ugRoot);
 const ugFloorMat = new THREE.MeshStandardMaterial({ color: 0x3a2e20, roughness: 1 });
 const ugBigFloor = new THREE.Mesh(new THREE.PlaneGeometry(WORLD*2, WORLD*2),
   new THREE.MeshStandardMaterial({ color: 0x0d0b08, roughness: 1 }));
 ugBigFloor.rotation.x = -Math.PI/2; ugBigFloor.position.y = UG_Y - 0.1; scene.add(ugBigFloor);
-const ugAmbient = new THREE.AmbientLight(0x6a6280, 0.0); scene.add(ugAmbient); // lit only when underground
-// A small fixed pool of point lights that follow the nearest tunnels — keeps light count bounded no matter how many tunnels you dig.
+const ugAmbient = new THREE.AmbientLight(0x6a6280, 0.0); scene.add(ugAmbient);
 const ugLightPool = [];
 for (let i=0;i<3;i++){ const L=new THREE.PointLight(0xffbb55, 0, 38, 2); ugRoot.add(L); ugLightPool.push(L); }
 
@@ -333,11 +403,9 @@ const water = new THREE.Mesh(
 );
 water.rotation.x = -Math.PI/2; water.position.set(LAKE.x, 0.12, LAKE.z); water.receiveShadow = true; scene.add(water);
 
-// Lake Shore ring
 const shore = new THREE.Mesh(new THREE.RingGeometry(LAKE.r, LAKE.r+2.5, 64), new THREE.MeshStandardMaterial({color:0xb8a06a, roughness:1}));
 shore.rotation.x=-Math.PI/2; shore.position.set(LAKE.x,0.05,LAKE.z); scene.add(shore);
 
-// Island mesh
 const islandMesh = new THREE.Mesh(
   new THREE.CircleGeometry(ISLAND.r, 32),
   new THREE.MeshStandardMaterial({ color: 0x3a5a3a, roughness: 1 })
@@ -345,7 +413,6 @@ const islandMesh = new THREE.Mesh(
 islandMesh.rotation.x = -Math.PI/2; islandMesh.position.set(ISLAND.x, 0.15, ISLAND.z); 
 islandMesh.receiveShadow = true; scene.add(islandMesh);
 
-// Island Shore ring
 const islandShore = new THREE.Mesh(new THREE.RingGeometry(ISLAND.r-1.5, ISLAND.r, 32), new THREE.MeshStandardMaterial({color:0xb8a06a, roughness:1}));
 islandShore.rotation.x=-Math.PI/2; islandShore.position.set(ISLAND.x,0.16,ISLAND.z); scene.add(islandShore);
 
@@ -373,13 +440,11 @@ function makeRock(x,z){
   r.rotation.set(Math.random(),Math.random(),Math.random()); scene.add(r);
 }
 
-// Generate scenery
 for (let i=0;i<680;i++){
   const x=(Math.random()-0.5)*WORLD*1.9, z=(Math.random()-0.5)*WORLD*1.9;
   if (Math.hypot(x,z) < 12 || isWater(x,z)) continue;
   Math.random()<0.65 ? makeTree(x,z) : makeRock(x,z);
 }
-// Force some trees on the island
 for(let i=0;i<8;i++){
   const a = Math.random()*Math.PI*2, r = Math.random()*(ISLAND.r-4);
   makeTree(ISLAND.x + Math.cos(a)*r, ISLAND.z + Math.sin(a)*r, 1.3);
@@ -420,8 +485,6 @@ function makeHouse(cx, cz){
   enemyZones.push({ x:cx, z:cz, r:H+1.4 });
 }
 
-// Builds the visual group for a rocky cave with an open mouth + glowing lamp.
-// Centered at local origin so it can be placed anywhere (caves AND cave-mimics use it).
 const CAVE_R = 6.5;
 function buildCaveVisual(faceAngle = 0){
   const r = CAVE_R;
@@ -429,18 +492,16 @@ function buildCaveVisual(faceAngle = 0){
   const rockMat = new THREE.MeshStandardMaterial({ color: 0x5a5a66, roughness: 1, flatShading: true });
   const darkRock = new THREE.MeshStandardMaterial({ color: 0x3a3a44, roughness: 1, flatShading: true });
 
-  // Ring of craggy boulders forming the walls, leaving a gap (the opening) at faceAngle.
   for (let i=0;i<16;i++){
     const a = (i/16)*Math.PI*2;
     const diff = Math.abs(((a-faceAngle+Math.PI)%(Math.PI*2))-Math.PI);
-    if (diff < 0.85) continue; // mouth / opening
+    if (diff < 0.85) continue;
     const br = 1.6 + Math.random()*1.9;
     const b = new THREE.Mesh(new THREE.DodecahedronGeometry(br,0), rockMat);
     b.position.set(Math.sin(a)*r, br*0.55, Math.cos(a)*r);
     b.rotation.set(Math.random()*3, Math.random()*3, Math.random()*3);
     b.castShadow = true; b.receiveShadow = true; g.add(b);
   }
-  // Craggy roof dome resting on the walls
   const dome = new THREE.Mesh(
     new THREE.SphereGeometry(r+0.6, 9, 7, 0, Math.PI*2, 0, Math.PI/2),
     new THREE.MeshStandardMaterial({ color: 0x44444f, roughness: 1, flatShading: true, side: THREE.DoubleSide })
@@ -454,7 +515,6 @@ function buildCaveVisual(faceAngle = 0){
   const floor = new THREE.Mesh(new THREE.CircleGeometry(r-0.5, 24), new THREE.MeshStandardMaterial({color:0x17140f, roughness:1}));
   floor.rotation.x = -Math.PI/2; floor.position.y = 0.06; floor.receiveShadow = true; g.add(floor);
 
-  // Lamp inside, toward the back wall (opposite the opening)
   const lx = -Math.sin(faceAngle)*2.6, lz = -Math.cos(faceAngle)*2.6;
   const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.09,2.3,6), new THREE.MeshStandardMaterial({color:0x2a2a30, roughness:.8}));
   post.position.set(lx,1.15,lz); g.add(post);
@@ -468,7 +528,6 @@ function buildCaveVisual(faceAngle = 0){
   return g;
 }
 
-// A real cave: visual + safe-zone (enemies can't enter).
 function makeCave(cx, cz, faceAngle = 0){
   const g = buildCaveVisual(faceAngle);
   g.position.set(cx, 0, cz);
@@ -476,25 +535,12 @@ function makeCave(cx, cz, faceAngle = 0){
   enemyZones.push({ x:cx, z:cz, r:CAVE_R + 1 });
 }
 
-makeHouse(30, -15);
-makeHouse(-35, -45);
-makeHouse(55, 45);
-makeHouse(10, 80);
-makeHouse(-130, 70);
-makeHouse(150, -100);
-makeHouse(-100, -150);
-makeHouse(130, 140);
+makeHouse(30, -15); makeHouse(-35, -45); makeHouse(55, 45); makeHouse(10, 80);
+makeHouse(-130, 70); makeHouse(150, -100); makeHouse(-100, -150); makeHouse(130, 140);
 
-// Caves spread across the larger map; opening faces toward the map center.
 function placeCave(x,z){ makeCave(x, z, Math.atan2(-x,-z)); }
-placeCave(-50, 40);
-placeCave(0, -60);
-placeCave(70, -20);
-placeCave(-20, 60);
-placeCave(-160, -40);
-placeCave(170, 60);
-placeCave(50, -160);
-placeCave(-120, 150);
+placeCave(-50, 40); placeCave(0, -60); placeCave(70, -20); placeCave(-20, 60);
+placeCave(-160, -40); placeCave(170, 60); placeCave(50, -160); placeCave(-120, 150);
 
 const weaponTiers = [
   { name: 'Iron Sword', cost: 0, atkBonus: 0, color: 0xdfe8ff, glow: 0x223366, scale: 1.0 },
@@ -565,7 +611,7 @@ function buildShip() {
   g.userData={cannon};
   return g;
 }
-// Floating enemy health bar (billboarded; drawn over the world). Created lazily per enemy.
+
 function makeHpBar(){
   const g = new THREE.Group();
   const W = 1.7;
@@ -590,8 +636,8 @@ const enemies = [], pickups = [], projectiles = [], effects = [], activeTunnels 
 function buildSlime(type, scale, color){
   const g = new THREE.Group();
   let geo;
-  if(type==='breaker' || type==='stalker') geo = new THREE.DodecahedronGeometry(0.8*scale, 0); // Spiky
-  else if(type==='water') geo = new THREE.TorusKnotGeometry(0.4*scale, 0.15*scale, 32, 8); // Snakey
+  if(type==='breaker' || type==='stalker') geo = new THREE.DodecahedronGeometry(0.8*scale, 0);
+  else if(type==='water') geo = new THREE.TorusKnotGeometry(0.4*scale, 0.15*scale, 32, 8);
   else geo = new THREE.IcosahedronGeometry(0.8*scale, 1);
   
   const body = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color, flatShading:true, roughness:.6, emissive:color, emissiveIntensity: (type==='toxic'||type==='stalker')?0.4:0.15}));
@@ -607,7 +653,6 @@ function buildSlime(type, scale, color){
   g.userData.body = body; return g;
 }
 
-// A small standalone tree mesh, used as a Mimic disguise.
 function buildTreeMesh(){
   const grp = new THREE.Group();
   const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.45,2.2,6), new THREE.MeshStandardMaterial({color:0x6b4a2b, roughness:1}));
@@ -618,12 +663,10 @@ function buildTreeMesh(){
   grp.add(trunk, leaves, leaves2); return grp;
 }
 
-// Mimic: hides as scenery (tree / rock / cave), then transforms and attacks.
 function buildMimic(scale, disguiseType){
   const g = new THREE.Group();
   let disguise;
   if (disguiseType === 'rock'){
-    // a cluster of boulders so it blends with real rocks
     disguise = new THREE.Group();
     const rockMat = new THREE.MeshStandardMaterial({color:0x777788, flatShading:true, roughness:1});
     const main = new THREE.Mesh(new THREE.DodecahedronGeometry(1.4,0), rockMat);
@@ -635,14 +678,12 @@ function buildMimic(scale, disguiseType){
       b.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3); b.castShadow=true; disguise.add(b);
     }
   } else if (disguiseType === 'cave'){
-    // a full, real-looking cave (same size as actual caves)
     disguise = buildCaveVisual(Math.random()*Math.PI*2);
   } else {
     disguise = buildTreeMesh();
   }
   g.add(disguise);
 
-  // Hidden monster form
   const monster = new THREE.Group();
   const body = new THREE.Mesh(new THREE.DodecahedronGeometry(0.95*scale,0),
     new THREE.MeshStandardMaterial({color:0x3a0f2a, flatShading:true, roughness:.5, emissive:0xff1133, emissiveIntensity:0.45}));
@@ -652,7 +693,6 @@ function buildMimic(scale, disguiseType){
     const eye = new THREE.Mesh(new THREE.SphereGeometry(0.17*scale,8,8), eyeMat);
     eye.position.set(dx*scale, 1.1*scale, 0.62*scale); monster.add(eye);
   }
-  // jagged teeth around a gaping mouth
   const toothMat = new THREE.MeshStandardMaterial({color:0xf2f2f2, roughness:.4});
   for (let i=0;i<10;i++){
     const a = (i/10)*Math.PI*2;
@@ -677,7 +717,6 @@ function spawnEnemy(type, x, z){
   else if (type==='stalker') { e.scale=1.1; e.hp=40*powerMult; e.atk=20; e.speed=5.2; e.xp=55; e.gold=25; e.color=0x2a1a3a; }
   else if (type==='mimic') {
     e.disguise=['tree','rock','cave'][Math.floor(Math.random()*3)]; e.revealed=false;
-    // Mimics are brutally tanky — a true boss-fight ambush.
     if (e.disguise==='cave'){ e.scale=2.6; e.hp=900*powerMult; e.atk=30; e.speed=4.2; e.xp=300; e.gold=250; }
     else { e.scale=1.7; e.hp=550*powerMult; e.atk=26; e.speed=5.0; e.xp=160; e.gold=130; }
     e.color=0x3a0f2a;
@@ -699,7 +738,6 @@ function spawnWave(n){
   
   for (let i=0;i<n;i++){
     let x,z,tries=0, type;
-    // 25% chance for water enemy if map allows
     if (Math.random() < 0.25) {
       do { const a=Math.random()*Math.PI*2, r=ISLAND.r+5+Math.random()*(LAKE.r-ISLAND.r-10); x=LAKE.x+Math.cos(a)*r; z=LAKE.z+Math.sin(a)*r; tries++; }
       while (Math.hypot(x-ship.pos.x,z-ship.pos.z)<20 && tries<30);
@@ -713,7 +751,6 @@ function spawnWave(n){
   }
 }
 
-// Scatter disguised mimics around the world; they sit as scenery until you get close.
 function spawnMimics(count){
   for (let i=0;i<count;i++){
     let x,z,tries=0;
@@ -737,29 +774,23 @@ function createPuddle(pos){
   puddles.push({obj: m, life: 10, pos: pos.clone()});
 }
 
-// Builds the underground room + shaft at a tunnel, returns its group.
 function buildTunnelRoom(x, z, r){
   const g = new THREE.Group(); g.position.set(x, UG_Y, z); ugRoot.add(g);
-  // room floor
   const floor = new THREE.Mesh(new THREE.CircleGeometry(r+1.5, 24), ugFloorMat);
   floor.rotation.x = -Math.PI/2; floor.position.y = 0.02; g.add(floor);
-  // vertical shaft connecting up to the surface hole
   const shaft = new THREE.Mesh(
     new THREE.CylinderGeometry(r*0.55, r*0.55, -UG_Y, 18, 1, true),
     new THREE.MeshStandardMaterial({ color:0x1a1610, side:THREE.DoubleSide, roughness:1 }));
   shaft.position.y = (-UG_Y)/2; g.add(shaft);
-  // glowing ring marking the climb point
   const ring = new THREE.Mesh(new THREE.TorusGeometry(r*0.55, 0.18, 8, 20),
     new THREE.MeshStandardMaterial({ color:0x66ff88, emissive:0x33cc55, emissiveIntensity:0.9 }));
   ring.rotation.x = Math.PI/2; ring.position.y = 0.12; g.add(ring);
-  // wall lantern (emissive only — real lighting comes from the shared pool)
   const lantern = new THREE.Mesh(new THREE.IcosahedronGeometry(0.42,0),
     new THREE.MeshStandardMaterial({ color:0xffcc66, emissive:0xffaa33, emissiveIntensity:1.6, roughness:.3 }));
   lantern.position.set((r+1)*0.8, 2.6, 0); g.add(lantern);
   return g;
 }
 
-// Draws an underground corridor floor between two tunnel nodes.
 function buildCorridor(ax, az, bx, bz){
   const dx = bx-ax, dz = bz-az, len = Math.hypot(dx,dz);
   if (len < 2) return null;
@@ -776,6 +807,8 @@ function digTunnel() {
   if (player.onShip || player.inTree || player.underground || !player.alive || player.tunnels<=0 || player.tunnelCd>0 || isWater(player.pos.x,player.pos.z)) return;
   player.tunnels--; player.tunnelCd=1.5;
 
+  if (audioCtxStarted) sfx.dig.triggerAttackRelease("8n");
+
   const tier = tunnelTiers[tunIdx];
   const x=player.pos.x, z=player.pos.z, r=tier.r;
   const g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
@@ -787,7 +820,6 @@ function digTunnel() {
   const rim=new THREE.Mesh(new THREE.TorusGeometry(r,0.35,8,24), rimMat);
   rim.rotation.x=Math.PI/2; rim.position.y=0.1; g.add(rim);
 
-  // Underground room + connect it to the previous tunnel with a corridor.
   const ugGroup = buildTunnelRoom(x, z, r);
   let corridor = null;
   if (activeTunnels.length > 0){
@@ -803,7 +835,6 @@ function digTunnel() {
   showToast(activeTunnels.length>1 ? 'Tunnel dug — linked underground! Press [F] to enter' : 'Tunnel dug — press [F] to go underground','#d8b070');
 }
 
-// Descend / surface through tunnels, and travel the connected network underground.
 function toggleUnderground(){
   if (!started || !player.alive || paused) return;
   if (player.underground){
@@ -825,7 +856,370 @@ function toggleUnderground(){
   }
 }
 
-// ---- Ship health ----
+// Pause & Shop State logic
+let paused = false, menuPaused = false, shopPaused = false;
+function checkPause() {
+  paused = menuPaused || shopPaused;
+  setReticle(!paused);
+  if (paused && document.pointerLockElement === canvas) {
+    document.exitPointerLock();
+  } else if (!paused && started && player.alive && !isTouch) {
+    try { canvas.requestPointerLock(); } catch(_){}
+  }
+}
+
+function togglePause(){
+  if (!started || !player.alive || shopPaused) return;
+  menuPaused = !menuPaused;
+  $('pauseMenu').classList.toggle('hidden', !menuPaused);
+  checkPause();
+}
+
+function toggleShop(){
+  if (!started || !player.alive || menuPaused) return;
+  shopPaused = !shopPaused;
+  $('upgrades').classList.toggle('show', shopPaused);
+  if (shopPaused) updateHUD();
+  checkPause();
+}
+$('closeShopBtn').onclick = toggleShop;
+$('shopBtnDesktop').onclick = toggleShop;
+
+window.buyUpgrade = function(type){
+  if (!player.alive) return;
+  if (type === 1 && wepIdx < weaponTiers.length-1) {
+    const nxt = weaponTiers[wepIdx+1];
+    if (player.gold >= nxt.cost) {
+      player.gold -= nxt.cost; wepIdx++; player.atk += nxt.atkBonus;
+      const blade = hero.userData.sword.children[0];
+      blade.material.color.setHex(nxt.color); blade.material.emissive.setHex(nxt.glow);
+      blade.scale.set(1, nxt.scale, nxt.scale);
+      if (audioCtxStarted) sfx.levelUp.triggerAttackRelease(["C4", "E4", "G4"], "8n");
+      addEffect(player.pos.clone(), 3.5, nxt.color); floatText(player.pos, 'SWORD UPGRADED!', '#'+nxt.color.toString(16), 26);
+    } else showToast('Not enough gold!', '#ff7a7a');
+  }
+  else if (type === 2 && magIdx < magicTiers.length-1) {
+    const nxt = magicTiers[magIdx+1];
+    if (player.gold >= nxt.cost) {
+      player.gold -= nxt.cost; magIdx++; player.magAtk += nxt.dmgBonus;
+      if (audioCtxStarted) sfx.levelUp.triggerAttackRelease(["C4", "E4", "G4"], "8n");
+      addEffect(player.pos.clone(), 3.5, nxt.color); floatText(player.pos, 'MAGIC UPGRADED!', '#'+nxt.color.toString(16), 26);
+    } else showToast('Not enough gold!', '#ff7a7a');
+  }
+  else if (type === 3 && tunIdx < tunnelTiers.length-1) {
+    const nxt = tunnelTiers[tunIdx+1];
+    if (player.gold >= nxt.cost) {
+      player.gold -= nxt.cost; tunIdx++;
+      if (audioCtxStarted) sfx.levelUp.triggerAttackRelease(["C4", "E4", "G4"], "8n");
+      addEffect(player.pos.clone(), 3.5, 0xd8b070); floatText(player.pos, 'TUNNELS UPGRADED!', '#d8b070', 26);
+    } else showToast('Not enough gold!', '#ff7a7a');
+  }
+  updateHUD();
+};
+
+window.repairShip = function(){
+  if (!player.alive) return;
+  const cost = repairCost();
+  if (ship.destroyed){
+    if (player.gold < cost){ showToast('Need '+cost+'g to summon a new ship','#ff7a7a'); return; }
+    player.gold -= cost;
+    ship.destroyed=false; ship.hp=ship.maxHp; ship.dmgCd=0;
+    const dx=0-LAKE.x, dz=0-LAKE.z, dl=Math.hypot(dx,dz);
+    ship.pos.set(LAKE.x+dx/dl*(LAKE.r-5), 0, LAKE.z+dz/dl*(LAKE.r-5));
+    ship.facing=Math.atan2(-dx,-dz); ship.obj.position.copy(ship.pos); ship.obj.visible=true;
+    showToast('New ship summoned to the dock!','#8be0ff');
+  } else {
+    if (ship.hp >= ship.maxHp){ showToast('Ship already at full health','#8be0ff'); return; }
+    if (player.gold < cost){ showToast('Not enough gold to repair','#ff7a7a'); return; }
+    player.gold -= cost; ship.hp=ship.maxHp; ship.dmgCd=0;
+    addEffect(ship.pos.clone().add(new THREE.Vector3(0,1.6,0)), 3.5, 0x66ccff);
+    showToast('Ship fully repaired!','#8be0ff');
+  }
+  updateHUD();
+};
+
+const keys = {};
+const touchInput = { fwd: 0, right: 0 };
+const forceTouch = /[?&](touch|mobile)/i.test(location.search);
+const isTouch = forceTouch || (matchMedia && matchMedia('(pointer: coarse)').matches) || ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+let started = false, spawnTimer = 2, waveSize = 5;
+
+addEventListener('keydown', e=>{
+  keys[e.code]=true;
+  if (e.code==='Space'){ e.preventDefault(); primaryAttack(); }
+  if (e.code==='KeyT') digTunnel();
+  if (e.code==='KeyF') toggleUnderground();
+  if (e.code==='KeyB') toggleShip();
+  if (e.code==='Digit1') window.buyUpgrade(1);
+  if (e.code==='Digit2') window.buyUpgrade(2);
+  if (e.code==='Digit3') window.buyUpgrade(3);
+  if (e.code==='Digit4') window.repairShip();
+  if (e.code==='Escape') togglePause();
+  if (e.code==='Tab') { e.preventDefault(); toggleShop(); }
+  if (e.code==='KeyE') toggleTree();
+});
+addEventListener('keyup', e=>{ keys[e.code]=false; });
+
+function toggleTree(){
+  if (!started || !player.alive || paused) return;
+  if (player.inTree) {
+    player.inTree = false;
+    showToast("Jumped down from tree", "#ccc");
+  } else if (!player.onShip && !player.underground) {
+    for (const t of trees) {
+      if (Math.hypot(player.pos.x - t.x, player.pos.z - t.z) < 2.5) {
+        player.inTree = true;
+        player.treePos = t;
+        player.pos.set(t.x, 0, t.z);
+        showToast("Climbed tree! Safe from ground foes.", "#8be0ff");
+        break;
+      }
+    }
+  }
+}
+
+let camYaw = 0.6, camPitch = 0.5, camDist = 18;
+canvas.addEventListener('contextmenu', e=>e.preventDefault());
+
+addEventListener('mousemove', e=>{
+  if (!started || paused || !player.alive) return;
+  let mx = e.movementX, my = e.movementY;
+  if (document.pointerLockElement === canvas){
+    camYaw -= mx * 0.0035; camPitch += my * 0.0035;
+  } else if (e.buttons & 1 || e.buttons & 2){
+    camYaw -= mx * 0.005; camPitch += my * 0.005;
+  } else return;
+  camPitch = Math.max(0.05, Math.min(1.4, camPitch));
+});
+canvas.addEventListener('wheel', e=>{ camDist=Math.max(8,Math.min(45,camDist+e.deltaY*0.02)); e.preventDefault(); }, {passive:false});
+
+canvas.addEventListener('mousedown', e=>{
+  if (!started || paused || !player.alive) return;
+  if (!isTouch && document.pointerLockElement !== canvas){ try { canvas.requestPointerLock(); } catch(_){} }
+  if (e.button===0) primaryAttack();
+  else if (e.button===2) secondaryAttack();
+});
+
+if (isTouch){
+  document.body.classList.add('mobile');
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  sun.shadow.mapSize.set(1024, 1024);
+  if (sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map = null; }
+  scene.fog.far = 210;
+
+  function buzz(ms){ if (navigator.vibrate) navigator.vibrate(ms); }
+
+  const joyZone = $('joyZone'), joyBase = $('joyBase'), joyKnob = $('joyKnob');
+  let joyId = null, joyCx = 0, joyCy = 0; const JOY_MAX = 58;
+  function setKnob(dx,dy){ joyKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`; }
+  function joyUpdate(x,y){
+    let dx=x-joyCx, dy=y-joyCy; const d=Math.hypot(dx,dy);
+    if (d>JOY_MAX){ dx=dx/d*JOY_MAX; dy=dy/d*JOY_MAX; }
+    touchInput.right = dx/JOY_MAX; touchInput.fwd = -dy/JOY_MAX; setKnob(dx,dy);
+  }
+  function joyEnd(){ joyId=null; touchInput.fwd=0; touchInput.right=0; setKnob(0,0); joyBase.classList.remove('active'); }
+  joyZone.addEventListener('touchstart', e=>{ e.preventDefault(); if(joyId!==null) return; const t=e.changedTouches[0];
+    joyId=t.identifier; joyCx=t.clientX; joyCy=t.clientY;
+    joyBase.style.left=joyCx+'px'; joyBase.style.top=joyCy+'px'; joyBase.classList.add('active'); setKnob(0,0); }, {passive:false});
+  window.addEventListener('touchmove', e=>{ if(joyId===null) return; for(const t of e.changedTouches){ if(t.identifier===joyId){ e.preventDefault(); joyUpdate(t.clientX,t.clientY); } } }, {passive:false});
+  window.addEventListener('touchend', e=>{ for(const t of e.changedTouches){ if(t.identifier===joyId) joyEnd(); } });
+  window.addEventListener('touchcancel', e=>{ for(const t of e.changedTouches){ if(t.identifier===joyId) joyEnd(); } });
+
+  const ct = [];
+  const cdist = ()=> Math.hypot(ct[0].x-ct[1].x, ct[0].y-ct[1].y);
+  let pinch = null;
+  canvas.addEventListener('touchstart', e=>{
+    for(const t of e.changedTouches) ct.push({id:t.identifier, x:t.clientX, y:t.clientY, dx:0, dy:0});
+    if (ct.length>=2) pinch = cdist();
+  }, {passive:false});
+  canvas.addEventListener('touchmove', e=>{
+    e.preventDefault();
+    for(const t of e.changedTouches){ const c=ct.find(c=>c.id===t.identifier); if(c){ c.dx=t.clientX-c.x; c.dy=t.clientY-c.y; c.x=t.clientX; c.y=t.clientY; } }
+    if (ct.length>=2){
+      const nd=cdist();
+      if (pinch!=null) camDist = Math.max(8, Math.min(45, camDist - (nd-pinch)*0.05));
+      pinch = nd;
+    } else if (ct.length===1){
+      const c=ct[0];
+      camYaw -= c.dx*0.007; camPitch += c.dy*0.007;
+      camPitch = Math.max(0.05, Math.min(1.4, camPitch));
+      c.dx=0; c.dy=0;
+    }
+  }, {passive:false});
+  function ctEnd(e){ for(const t of e.changedTouches){ const i=ct.findIndex(c=>c.id===t.identifier); if(i>=0) ct.splice(i,1); } if(ct.length<2) pinch=null; }
+  canvas.addEventListener('touchend', ctEnd, {passive:false});
+  canvas.addEventListener('touchcancel', e=>{ ct.length=0; pinch=null; });
+
+  function hold(id, fn, repeat){
+    const el=$(id); if(!el) return;
+    let iv=null;
+    el.addEventListener('touchstart', e=>{ e.stopPropagation(); e.preventDefault(); buzz(12); fn(); if(repeat){ iv=setInterval(fn, 170); } }, {passive:false});
+    const stop=()=>{ if(iv){ clearInterval(iv); iv=null; } };
+    el.addEventListener('touchend', e=>{ e.stopPropagation(); e.preventDefault(); stop(); }, {passive:false});
+    el.addEventListener('touchcancel', stop);
+  }
+  hold('bAtk', primaryAttack, true);
+  hold('bMag', secondaryAttack, true);
+  hold('bDash', ()=>{ keys['ShiftLeft']=true; setTimeout(()=>keys['ShiftLeft']=false, 60); });
+  hold('bDig', digTunnel);
+  hold('bTun', toggleUnderground);
+  hold('bShip', toggleShip);
+  hold('bTree', toggleTree);
+  hold('bShop', toggleShop);
+  hold('bPause', togglePause);
+}
+
+$('resumeBtn').onclick = togglePause;
+$('quitBtn').onclick = () => { location.reload(); };
+
+function faceNearestEnemy(maxDist){
+  let best=null, bd=maxDist*maxDist;
+  for (const e of enemies){
+    if (e.hp<=0) continue;
+    if (e.type==='mimic' && !e.revealed) continue;
+    const dx=e.pos.x-player.pos.x, dz=e.pos.z-player.pos.z, d2=dx*dx+dz*dz;
+    if (d2<bd){ bd=d2; best=e; }
+  }
+  if (best){ player.facing = Math.atan2(best.pos.x-player.pos.x, best.pos.z-player.pos.z); }
+}
+
+function primaryAttack() {
+  if (!started || !player.alive || paused) return;
+  if (player.onShip) return fireCannon();
+  if (player.attackCooldown>0) return;
+  if (isTouch) faceNearestEnemy(4.5);
+  player.attackTimer=0.28; player.attackCooldown=0.42;
+
+  if (audioCtxStarted) sfx.swing.triggerAttackRelease("16n");
+
+  const wScale = weaponTiers[wepIdx].scale;
+  const reach = 3.2 * wScale, arc = Math.cos(Math.PI/2.8);
+  const fwd = new THREE.Vector3(Math.sin(player.facing),0,Math.cos(player.facing));
+  
+  for (const e of enemies){
+    if (e.hp<=0) continue;
+    if (e.type==='mimic' && !e.revealed) continue;
+    const dist3D = Math.hypot(e.pos.x - player.pos.x, (e.obj.position.y||0) - player.obj.position.y, e.pos.z - player.pos.z);
+    if (dist3D > reach + e.scale*0.8) continue;
+    
+    const to = e.pos.clone().sub(player.pos); to.y=0; to.normalize();
+    if (fwd.dot(to)<arc) continue;
+    
+    const dmg = player.atk + Math.round(Math.random()*8);
+    e.hp-=dmg; e.flash=0.15; e.obj.position.addScaledVector(to, 1.2 * wScale);
+    if (audioCtxStarted) sfx.hit.triggerAttackRelease("C2", "8n");
+    floatText(e.pos,'-'+dmg,'#ffffff',20);
+    if (e.hp<=0) killEnemy(e);
+  }
+}
+
+function shootBolt(isEnemy=false, startPos, dirVec, dmg, color, glow, speed){
+  if (audioCtxStarted && !isEnemy) sfx.magic.triggerAttackRelease("E5", "16n");
+  const m=new THREE.Mesh(new THREE.SphereGeometry(isEnemy?0.4:0.35,10,10), new THREE.MeshStandardMaterial({color:color,emissive:glow,emissiveIntensity:1.5,roughness:.3}));
+  m.position.copy(startPos); scene.add(m);
+  projectiles.push({obj:m, vel:dirVec.clone().multiplyScalar(speed), life: 1.5, dmg, r: 0.6, aoe:false, isEnemy});
+}
+
+function secondaryAttack(){
+  if (!started || !player.alive || player.onShip || paused) return;
+  const tier = magicTiers[magIdx];
+  if (player.shootCooldown>0) return;
+  if (isTouch) faceNearestEnemy(40);
+  player.shootCooldown=tier.cd;
+  const dir=new THREE.Vector3(Math.sin(player.facing),0,Math.cos(player.facing));
+  const startY = player.inTree ? 4.8 : 1.4;
+  shootBolt(false, player.pos.clone().add(new THREE.Vector3(0,startY,0)).addScaledVector(dir,1), dir, player.magAtk, tier.color, tier.glow, tier.speed);
+}
+
+function fireCannon(){
+  if (ship.fireCd>0) return; ship.fireCd=1.2;
+  const power = 45;
+  const flatDir = new THREE.Vector3(Math.sin(ship.facing), 0, Math.cos(ship.facing));
+  const angle = Math.max(0.1, Math.min(Math.PI/3, camPitch + 0.2)); 
+  
+  const vel = flatDir.clone().multiplyScalar(power * Math.cos(angle));
+  vel.y = power * Math.sin(angle);
+
+  const m=new THREE.Mesh(new THREE.SphereGeometry(0.6,12,12), new THREE.MeshStandardMaterial({color:0x222228,emissive:0x884400,emissiveIntensity:.5,metalness:.5,roughness:.4}));
+  m.position.copy(ship.pos).add(new THREE.Vector3(0,2.2,0)).addScaledVector(flatDir,3.2); scene.add(m);
+  
+  if (audioCtxStarted) sfx.cannon.triggerAttackRelease("G1", "4n");
+  projectiles.push({obj:m, vel:vel, life:4.0, dmg:Math.round(player.atk*4), r:1.0, aoe:true, aoeR:6.5, gravity:true, isEnemy:false});
+  addEffect(m.position.clone(), 2.5, 0x884400);  
+  ship.obj.userData.cannon.rotation.x = Math.PI/2 - angle;
+}
+
+function explode(pos,dmg,radius, isEnemy){
+  if (audioCtxStarted) sfx.cannon.triggerAttackRelease("C1", "2n");
+  if (!isEnemy) {
+    for (const e of enemies){
+      if (e.hp<=0) continue;
+      const d=Math.hypot(e.pos.x-pos.x, e.pos.z-pos.z);
+      if (d<radius+e.scale*0.8){
+        e.hp-=dmg; e.flash=0.15;
+        const k=e.pos.clone().sub(pos); k.y=0; k.normalize(); e.obj.position.addScaledVector(k,2.5);
+        floatText(e.pos,'-'+dmg,'#ffcc66',24);
+        if (e.hp<=0) killEnemy(e);
+      }
+    }
+  } else {
+    const pY = player.inTree ? 3.5 : 0;
+    if (Math.hypot(player.pos.x-pos.x, pY-pos.y, player.pos.z-pos.z) < radius+PLAYER_R) hurtPlayer(dmg);
+  }
+  addEffect(pos.clone(),radius, isEnemy?0x5555ff:0xffaa33);
+}
+
+function addEffect(pos,maxR,color){
+  const m=new THREE.Mesh(new THREE.SphereGeometry(1,16,16), new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:1,transparent:true,opacity:.8}));
+  m.position.copy(pos); m.position.y=Math.max(0.5,pos.y); scene.add(m);
+  effects.push({obj:m,age:0,life:0.4,maxR});
+}
+
+function killEnemy(e){
+  if (e.dead) return; e.dead=true;
+  if (audioCtxStarted) sfx.hit.triggerAttackRelease("E1", "8n");
+  gainXp(e.xp); player.gold+=e.gold; player.kills++;
+  
+  if (e.type === 'toxic') createPuddle(e.pos);
+  
+  spawnPickup(e.pos.x,e.pos.z,'gold');
+  if (Math.random()<0.3) spawnPickup(e.pos.x+1,e.pos.z,'health');
+  floatText(e.pos,'+'+e.xp+' XP','#8be0ff',18);
+  e.obj.userData.dying=0.0001;
+}
+
+function gainXp(a){
+  player.xp+=a;
+  while (player.xp>=player.xpNext){
+    player.xp-=player.xpNext; player.level++;
+    player.xpNext=Math.round(player.xpNext*1.45);
+    player.maxHp += 30; player.hp = player.maxHp; 
+    player.atk += 8; player.magAtk += 5; player.tunnels++; player.speed += 0.15; 
+    if (audioCtxStarted) sfx.levelUp.triggerAttackRelease(["C4", "E4", "G4", "C5"], "2n");
+    addEffect(player.pos.clone(), 5.0, 0xffd56b); 
+    showToast('LEVEL UP! Fully Healed!','#ffd56b');
+    floatText(player.pos,'LEVEL UP!','#ffd56b',32);
+  }
+}
+
+function hurtPlayer(dmg){
+  if (player.invuln>0||!player.alive) return;
+  if (audioCtxStarted) sfx.hit.triggerAttackRelease("A1", "8n");
+  player.hp-=dmg; player.invuln=0.6; floatText(player.pos,'-'+dmg,'#ff5555',24);
+  if (player.hp<=0){ player.hp=0; die(); }
+}
+
+function die(){
+  player.alive=false;
+  setReticle(false);
+  if (document.pointerLockElement === canvas) document.exitPointerLock();
+  const ov=document.getElementById('overlay'); ov.classList.remove('hidden');
+  ov.querySelector('h1').textContent='YOU FELL';
+  ov.querySelector('p').textContent=`Level ${player.level} | ${player.kills} Slain | ${player.gold} Gold`;
+  ov.querySelector('.keys').style.display='none';
+  const btn=document.getElementById('startBtn'); btn.textContent='RISE AGAIN'; btn.onclick=()=>location.reload();
+}
+
 function damageShip(dmg){
   if (ship.destroyed) return;
   ship.hp -= dmg; ship.dmgCd = 3.0;
@@ -850,353 +1244,6 @@ function repairCost(){
   if (ship.hp >= ship.maxHp) return 0;
   return Math.ceil((ship.maxHp - ship.hp) * 0.4);
 }
-window.repairShip = function(){
-  if (!player.alive) return;
-  const cost = repairCost();
-  if (ship.destroyed){
-    if (player.gold < cost){ showToast('Need '+cost+'g to summon a new ship','#ff7a7a'); return; }
-    player.gold -= cost;
-    ship.destroyed=false; ship.hp=ship.maxHp; ship.dmgCd=0;
-    const dx=0-LAKE.x, dz=0-LAKE.z, dl=Math.hypot(dx,dz);
-    ship.pos.set(LAKE.x+dx/dl*(LAKE.r-5), 0, LAKE.z+dz/dl*(LAKE.r-5));
-    ship.facing=Math.atan2(-dx,-dz); ship.obj.position.copy(ship.pos); ship.obj.visible=true;
-    showToast('New ship summoned to the dock!','#8be0ff');
-    return;
-  }
-  if (ship.hp >= ship.maxHp){ showToast('Ship already at full health','#8be0ff'); return; }
-  if (player.gold < cost){ showToast('Not enough gold to repair','#ff7a7a'); return; }
-  player.gold -= cost; ship.hp=ship.maxHp; ship.dmgCd=0;
-  addEffect(ship.pos.clone().add(new THREE.Vector3(0,1.6,0)), 3.5, 0x66ccff);
-  showToast('Ship fully repaired!','#8be0ff');
-};
-
-window.buyUpgrade = function(type){
-  if (!player.alive) return;
-  if (type === 1 && wepIdx < weaponTiers.length-1) {
-    const nxt = weaponTiers[wepIdx+1];
-    if (player.gold >= nxt.cost) {
-      player.gold -= nxt.cost; wepIdx++; player.atk += nxt.atkBonus;
-      const blade = hero.userData.sword.children[0];
-      blade.material.color.setHex(nxt.color); blade.material.emissive.setHex(nxt.glow);
-      blade.scale.set(1, nxt.scale, nxt.scale);
-      addEffect(player.pos.clone(), 3.5, nxt.color); floatText(player.pos, 'SWORD UPGRADED!', '#'+nxt.color.toString(16), 26);
-    } else showToast('Not enough gold!', '#ff7a7a');
-  }
-  else if (type === 2 && magIdx < magicTiers.length-1) {
-    const nxt = magicTiers[magIdx+1];
-    if (player.gold >= nxt.cost) {
-      player.gold -= nxt.cost; magIdx++; player.magAtk += nxt.dmgBonus;
-      addEffect(player.pos.clone(), 3.5, nxt.color); floatText(player.pos, 'MAGIC UPGRADED!', '#'+nxt.color.toString(16), 26);
-    } else showToast('Not enough gold!', '#ff7a7a');
-  }
-  else if (type === 3 && tunIdx < tunnelTiers.length-1) {
-    const nxt = tunnelTiers[tunIdx+1];
-    if (player.gold >= nxt.cost) {
-      player.gold -= nxt.cost; tunIdx++;
-      addEffect(player.pos.clone(), 3.5, 0xd8b070); floatText(player.pos, 'TUNNELS UPGRADED!', '#d8b070', 26);
-    } else showToast('Not enough gold!', '#ff7a7a');
-  }
-};
-
-const keys = {};
-const touchInput = { fwd: 0, right: 0 };   // analog movement from the on-screen joystick
-const forceTouch = /[?&](touch|mobile)/i.test(location.search); // ?mobile to preview/QA touch UI on desktop
-const isTouch = forceTouch || (matchMedia && matchMedia('(pointer: coarse)').matches) || ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
-let started = false, spawnTimer = 2, waveSize = 5, paused = false;
-
-addEventListener('keydown', e=>{
-  keys[e.code]=true;
-  if (e.code==='Space'){ e.preventDefault(); primaryAttack(); }
-  if (e.code==='KeyT') digTunnel();
-  if (e.code==='KeyF') toggleUnderground();
-  if (e.code==='KeyB') toggleShip();
-  if (e.code==='Digit1') window.buyUpgrade(1);
-  if (e.code==='Digit2') window.buyUpgrade(2);
-  if (e.code==='Digit3') window.buyUpgrade(3);
-  if (e.code==='Digit4') window.repairShip();
-  if (e.code==='Escape') togglePause();
-  if (e.code==='KeyE') toggleTree();
-});
-function toggleTree(){
-  if (!started || !player.alive) return;
-  if (player.inTree) {
-    player.inTree = false;
-    showToast("Jumped down from tree", "#ccc");
-  } else if (!player.onShip && !player.underground) {
-    for (const t of trees) {
-      if (Math.hypot(player.pos.x - t.x, player.pos.z - t.z) < 2.5) {
-        player.inTree = true;
-        player.treePos = t;
-        player.pos.set(t.x, 0, t.z);
-        showToast("Climbed tree! Safe from ground foes.", "#8be0ff");
-        break;
-      }
-    }
-  }
-}
-addEventListener('keyup', e=>{ keys[e.code]=false; });
-
-let camYaw = 0.6, camPitch = 0.5, camDist = 18;
-canvas.addEventListener('contextmenu', e=>e.preventDefault());
-
-// Mouse-look: smooth via Pointer Lock when available, otherwise drag-to-look (hold a mouse button).
-// Pointer lock is OPTIONAL — the game never depends on it, so it works in any browser or preview pane.
-addEventListener('mousemove', e=>{
-  if (!started || paused || !player.alive) return;
-  let mx = e.movementX, my = e.movementY;
-  if (document.pointerLockElement === canvas){
-    camYaw -= mx * 0.0035; camPitch += my * 0.0035;
-  } else if (e.buttons & 1 || e.buttons & 2){ // dragging with a button held
-    camYaw -= mx * 0.005; camPitch += my * 0.005;
-  } else return;
-  camPitch = Math.max(0.05, Math.min(1.4, camPitch));
-});
-canvas.addEventListener('wheel', e=>{ camDist=Math.max(8,Math.min(45,camDist+e.deltaY*0.02)); e.preventDefault(); }, {passive:false});
-
-canvas.addEventListener('mousedown', e=>{
-  if (!started || paused || !player.alive) return;
-  // try to lock the pointer for smoother aiming, but don't require it (never on touch devices)
-  if (!isTouch && document.pointerLockElement !== canvas){ try { canvas.requestPointerLock(); } catch(_){} }
-  if (e.button===0) primaryAttack();
-  else if (e.button===2) secondaryAttack();
-});
-
-// ================= TOUCH CONTROLS =================
-if (isTouch){
-  document.body.classList.add('mobile');
-
-  // Stop propagating touches on the upgrades panel so dragging here doesn't move the camera
-  $('upgrades').addEventListener('touchstart', e => e.stopPropagation(), {passive:false});
-  $('upgrades').addEventListener('touchmove', e => e.stopPropagation(), {passive:false});
-
-  // --- mobile performance mode: lighter pixel ratio, smaller shadows, nearer fog ---
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
-  sun.shadow.mapSize.set(1024, 1024);
-  if (sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map = null; }
-  scene.fog.far = 210;
-
-  function buzz(ms){ if (navigator.vibrate) navigator.vibrate(ms); }
-
-  // --- floating movement joystick (anchors wherever you press in the left zone) ---
-  const joyZone = $('joyZone'), joyBase = $('joyBase'), joyKnob = $('joyKnob');
-  let joyId = null, joyCx = 0, joyCy = 0; const JOY_MAX = 58;
-  function setKnob(dx,dy){ joyKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`; }
-  function joyUpdate(x,y){
-    let dx=x-joyCx, dy=y-joyCy; const d=Math.hypot(dx,dy);
-    if (d>JOY_MAX){ dx=dx/d*JOY_MAX; dy=dy/d*JOY_MAX; }
-    touchInput.right = dx/JOY_MAX; touchInput.fwd = -dy/JOY_MAX; setKnob(dx,dy);
-  }
-  function joyEnd(){ joyId=null; touchInput.fwd=0; touchInput.right=0; setKnob(0,0); joyBase.classList.remove('active'); }
-  joyZone.addEventListener('touchstart', e=>{ e.preventDefault(); if(joyId!==null) return; const t=e.changedTouches[0];
-    joyId=t.identifier; joyCx=t.clientX; joyCy=t.clientY;
-    joyBase.style.left=joyCx+'px'; joyBase.style.top=joyCy+'px'; joyBase.classList.add('active'); setKnob(0,0); }, {passive:false});
-  window.addEventListener('touchmove', e=>{ if(joyId===null) return; for(const t of e.changedTouches){ if(t.identifier===joyId){ e.preventDefault(); joyUpdate(t.clientX,t.clientY); } } }, {passive:false});
-  window.addEventListener('touchend', e=>{ for(const t of e.changedTouches){ if(t.identifier===joyId) joyEnd(); } });
-  window.addEventListener('touchcancel', e=>{ for(const t of e.changedTouches){ if(t.identifier===joyId) joyEnd(); } });
-
-  // --- canvas: 1 finger = drag-look, 2 fingers = pinch-zoom camera ---
-  const ct = []; // active canvas touches: {id,x,y,dx,dy}
-  const cdist = ()=> Math.hypot(ct[0].x-ct[1].x, ct[0].y-ct[1].y);
-  let pinch = null;
-  canvas.addEventListener('touchstart', e=>{
-    for(const t of e.changedTouches) ct.push({id:t.identifier, x:t.clientX, y:t.clientY, dx:0, dy:0});
-    if (ct.length>=2) pinch = cdist();
-  }, {passive:false});
-  canvas.addEventListener('touchmove', e=>{
-    e.preventDefault();
-    for(const t of e.changedTouches){ const c=ct.find(c=>c.id===t.identifier); if(c){ c.dx=t.clientX-c.x; c.dy=t.clientY-c.y; c.x=t.clientX; c.y=t.clientY; } }
-    if (ct.length>=2){
-      const nd=cdist();
-      if (pinch!=null) camDist = Math.max(8, Math.min(45, camDist - (nd-pinch)*0.05));
-      pinch = nd;
-    } else if (ct.length===1){
-      const c=ct[0];
-      camYaw -= c.dx*0.007; camPitch += c.dy*0.007; // Increased sensitivity slightly for better mobile feel
-      camPitch = Math.max(0.05, Math.min(1.4, camPitch));
-      c.dx=0; c.dy=0;
-    }
-  }, {passive:false});
-  function ctEnd(e){ for(const t of e.changedTouches){ const i=ct.findIndex(c=>c.id===t.identifier); if(i>=0) ct.splice(i,1); } if(ct.length<2) pinch=null; }
-  canvas.addEventListener('touchend', ctEnd, {passive:false});
-  canvas.addEventListener('touchcancel', e=>{ ct.length=0; pinch=null; });
-
-  // --- action buttons ---
-  function hold(id, fn, repeat){
-    const el=$(id); if(!el) return;
-    let iv=null;
-    el.addEventListener('touchstart', e=>{ e.stopPropagation(); e.preventDefault(); buzz(12); fn(); if(repeat){ iv=setInterval(fn, 170); } }, {passive:false});
-    const stop=()=>{ if(iv){ clearInterval(iv); iv=null; } };
-    el.addEventListener('touchend', e=>{ e.stopPropagation(); e.preventDefault(); stop(); }, {passive:false});
-    el.addEventListener('touchcancel', stop);
-  }
-  hold('bAtk', primaryAttack, true);     // tap or hold to keep swinging
-  hold('bMag', secondaryAttack, true);   // tap or hold to keep casting
-  hold('bDash', ()=>{ keys['ShiftLeft']=true; setTimeout(()=>keys['ShiftLeft']=false, 60); });
-  hold('bDig', digTunnel);
-  hold('bTun', toggleUnderground);
-  hold('bShip', toggleShip);
-  hold('bTree', toggleTree);
-  hold('bPause', togglePause);
-  
-  // Mobile shop modal toggles
-  hold('bShop', () => { $('upgrades').classList.add('show'); });
-  $('closeShop').onclick = (e) => { e.preventDefault(); e.stopPropagation(); $('upgrades').classList.remove('show'); };
-}
-
-function setReticle(on){ $('reticle').classList.toggle('show', !!on); }
-
-function togglePause(){
-  if (!started || !player.alive) return;
-  paused = !paused;
-  $('pauseMenu').classList.toggle('hidden', !paused);
-  setReticle(!paused);
-  if (!paused && !isTouch && document.pointerLockElement !== canvas){ try { canvas.requestPointerLock(); } catch(_){} }
-}
-// If the browser drops pointer lock (alt-tab, Esc), just fall back to drag-look — never auto-pause.
-$('resumeBtn').onclick = () => { paused=false; $('pauseMenu').classList.add('hidden'); setReticle(true); if(!isTouch){ try { canvas.requestPointerLock(); } catch(_){} } };
-$('quitBtn').onclick = () => { location.reload(); }; // return to the home/title screen
-
-// Turn the hero toward the nearest valid enemy within range (used on touch to ease aiming).
-function faceNearestEnemy(maxDist){
-  let best=null, bd=maxDist*maxDist;
-  for (const e of enemies){
-    if (e.hp<=0) continue;
-    if (e.type==='mimic' && !e.revealed) continue;
-    const dx=e.pos.x-player.pos.x, dz=e.pos.z-player.pos.z, d2=dx*dx+dz*dz;
-    if (d2<bd){ bd=d2; best=e; }
-  }
-  if (best){ player.facing = Math.atan2(best.pos.x-player.pos.x, best.pos.z-player.pos.z); }
-}
-
-function primaryAttack() {
-  if (!started || !player.alive || paused) return;
-  if (player.onShip) return fireCannon();
-  if (player.attackCooldown>0) return;
-  if (isTouch) faceNearestEnemy(4.5); // auto-aim melee on mobile
-  player.attackTimer=0.28; player.attackCooldown=0.42;
-
-  const wScale = weaponTiers[wepIdx].scale;
-  const reach = 3.2 * wScale, arc = Math.cos(Math.PI/2.8);
-  const fwd = new THREE.Vector3(Math.sin(player.facing),0,Math.cos(player.facing));
-  
-  for (const e of enemies){
-    if (e.hp<=0) continue;
-    if (e.type==='mimic' && !e.revealed) continue; // can't be hit while disguised
-    // 3D Distance check so player can't easily melee ground enemies from trees
-    const dist3D = Math.hypot(e.pos.x - player.pos.x, (e.obj.position.y||0) - player.obj.position.y, e.pos.z - player.pos.z);
-    if (dist3D > reach + e.scale*0.8) continue;
-    
-    const to = e.pos.clone().sub(player.pos); to.y=0; to.normalize();
-    if (fwd.dot(to)<arc) continue;
-    
-    const dmg = player.atk + Math.round(Math.random()*8);
-    e.hp-=dmg; e.flash=0.15; e.obj.position.addScaledVector(to, 1.2 * wScale);
-    floatText(e.pos,'-'+dmg,'#ffffff',20);
-    if (e.hp<=0) killEnemy(e);
-  }
-}
-
-function shootBolt(isEnemy=false, startPos, dirVec, dmg, color, glow, speed){
-  const m=new THREE.Mesh(new THREE.SphereGeometry(isEnemy?0.4:0.35,10,10), new THREE.MeshStandardMaterial({color:color,emissive:glow,emissiveIntensity:1.5,roughness:.3}));
-  m.position.copy(startPos); scene.add(m);
-  projectiles.push({obj:m, vel:dirVec.clone().multiplyScalar(speed), life: 1.5, dmg, r: 0.6, aoe:false, isEnemy});
-}
-
-function secondaryAttack(){
-  if (!started || !player.alive || player.onShip || paused) return;
-  const tier = magicTiers[magIdx];
-  if (player.shootCooldown>0) return;
-  if (isTouch) faceNearestEnemy(40); // auto-aim magic at the nearest foe on mobile
-  player.shootCooldown=tier.cd;
-  const dir=new THREE.Vector3(Math.sin(player.facing),0,Math.cos(player.facing));
-  const startY = player.inTree ? 4.8 : 1.4; // Shoot from higher up if in tree
-  shootBolt(false, player.pos.clone().add(new THREE.Vector3(0,startY,0)).addScaledVector(dir,1), dir, player.magAtk, tier.color, tier.glow, tier.speed);
-}
-
-function fireCannon(){
-  if (ship.fireCd>0) return; ship.fireCd=1.2;
-  const power = 45;
-  const flatDir = new THREE.Vector3(Math.sin(ship.facing), 0, Math.cos(ship.facing));
-  const angle = Math.max(0.1, Math.min(Math.PI/3, camPitch + 0.2)); 
-  
-  const vel = flatDir.clone().multiplyScalar(power * Math.cos(angle));
-  vel.y = power * Math.sin(angle);
-
-  const m=new THREE.Mesh(new THREE.SphereGeometry(0.6,12,12), new THREE.MeshStandardMaterial({color:0x222228,emissive:0x884400,emissiveIntensity:.5,metalness:.5,roughness:.4}));
-  m.position.copy(ship.pos).add(new THREE.Vector3(0,2.2,0)).addScaledVector(flatDir,3.2); scene.add(m);
-  
-  projectiles.push({obj:m, vel:vel, life:4.0, dmg:Math.round(player.atk*4), r:1.0, aoe:true, aoeR:6.5, gravity:true, isEnemy:false});
-  addEffect(m.position.clone(), 2.5, 0x884400);  
-  ship.obj.userData.cannon.rotation.x = Math.PI/2 - angle; // visually aim cannon
-}
-
-function explode(pos,dmg,radius, isEnemy){
-  if (!isEnemy) {
-    for (const e of enemies){
-      if (e.hp<=0) continue;
-      const d=Math.hypot(e.pos.x-pos.x, e.pos.z-pos.z);
-      if (d<radius+e.scale*0.8){
-        e.hp-=dmg; e.flash=0.15;
-        const k=e.pos.clone().sub(pos); k.y=0; k.normalize(); e.obj.position.addScaledVector(k,2.5);
-        floatText(e.pos,'-'+dmg,'#ffcc66',24);
-        if (e.hp<=0) killEnemy(e);
-      }
-    }
-  } else {
-    // Enemy explosion hits player
-    const pY = player.inTree ? 3.5 : 0;
-    if (Math.hypot(player.pos.x-pos.x, pY-pos.y, player.pos.z-pos.z) < radius+PLAYER_R) hurtPlayer(dmg);
-  }
-  addEffect(pos.clone(),radius, isEnemy?0x5555ff:0xffaa33);
-}
-
-function addEffect(pos,maxR,color){
-  const m=new THREE.Mesh(new THREE.SphereGeometry(1,16,16), new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:1,transparent:true,opacity:.8}));
-  m.position.copy(pos); m.position.y=Math.max(0.5,pos.y); scene.add(m);
-  effects.push({obj:m,age:0,life:0.4,maxR});
-}
-
-function killEnemy(e){
-  if (e.dead) return; e.dead=true;
-  gainXp(e.xp); player.gold+=e.gold; player.kills++;
-  
-  if (e.type === 'toxic') createPuddle(e.pos);
-  
-  spawnPickup(e.pos.x,e.pos.z,'gold');
-  if (Math.random()<0.3) spawnPickup(e.pos.x+1,e.pos.z,'health');
-  floatText(e.pos,'+'+e.xp+' XP','#8be0ff',18);
-  e.obj.userData.dying=0.0001;
-}
-
-function gainXp(a){
-  player.xp+=a;
-  while (player.xp>=player.xpNext){
-    player.xp-=player.xpNext; player.level++;
-    player.xpNext=Math.round(player.xpNext*1.45);
-    player.maxHp += 30; player.hp = player.maxHp; 
-    player.atk += 8; player.magAtk += 5; player.tunnels++; player.speed += 0.15; 
-    addEffect(player.pos.clone(), 5.0, 0xffd56b); 
-    showToast('LEVEL UP! Fully Healed!','#ffd56b');
-    floatText(player.pos,'LEVEL UP!','#ffd56b',32);
-  }
-}
-
-function hurtPlayer(dmg){
-  if (player.invuln>0||!player.alive) return;
-  player.hp-=dmg; player.invuln=0.6; floatText(player.pos,'-'+dmg,'#ff5555',24);
-  if (player.hp<=0){ player.hp=0; die(); }
-}
-
-function die(){
-  player.alive=false;
-  setReticle(false);
-  if (document.pointerLockElement === canvas) document.exitPointerLock();
-  const ov=document.getElementById('overlay'); ov.classList.remove('hidden');
-  ov.querySelector('h1').textContent='YOU FELL';
-  ov.querySelector('p').textContent=`Level ${player.level} | ${player.kills} Slain | ${player.gold} Gold`;
-  ov.querySelector('.keys').style.display='none';
-  const btn=document.getElementById('startBtn'); btn.textContent='RISE AGAIN'; btn.onclick=()=>location.reload();
-}
 
 function toggleShip(){
   if (!started||!player.alive||paused||player.inTree||player.underground) return;
@@ -1206,7 +1253,6 @@ function toggleShip(){
       player.onShip=true; hero.visible=false; showToast('⚓ Aboard! (Cannon affected by Camera Pitch)','#8be0ff');
     }
   } else {
-    // Only disembark if near shores
     const dLake = Math.hypot(ship.pos.x-LAKE.x, ship.pos.z-LAKE.z);
     const dIsl = Math.hypot(ship.pos.x-ISLAND.x, ship.pos.z-ISLAND.z);
     
@@ -1319,11 +1365,9 @@ function update(dt){
   ship.fireCd=Math.max(0,ship.fireCd-dt);
   ship.dmgCd=Math.max(0,ship.dmgCd-dt);
 
-  // Underground lighting / fog
   ugAmbient.intensity += ((player.underground ? 0.85 : 0.0) - ugAmbient.intensity) * Math.min(1, dt*6);
   if (player.underground){
     scene.fog.near=6; scene.fog.far=75;
-    // light the 3 tunnel rooms nearest the player
     const sorted = activeTunnels.slice().sort((a,b)=>
       (Math.hypot(player.pos.x-a.x,player.pos.z-a.z)) - (Math.hypot(player.pos.x-b.x,player.pos.z-b.z)));
     const flick = 1 + Math.sin(performance.now()*0.006)*0.1;
@@ -1337,7 +1381,6 @@ function update(dt){
     for (const L of ugLightPool) L.intensity = 0;
   }
 
-  // Ship health: regen when undamaged, or respawn after being sunk
   if (ship.destroyed){
     ship.respawnTimer-=dt;
     if (ship.respawnTimer<=0){
@@ -1359,14 +1402,12 @@ function update(dt){
     if (keys['KeyS']) move.add(f);
     if (keys['KeyD']) move.add(r);
     if (keys['KeyA']) move.sub(r);
-    // on-screen joystick (forward = -f like W, right = +r like D)
     if (touchInput.fwd !== 0 || touchInput.right !== 0){
       move.addScaledVector(f, -touchInput.fwd);
       move.addScaledVector(r, touchInput.right);
     }
   }
 
-  // ---- Movement & Prompts ----
   if (player.onShip){
     if (move.lengthSq()>0){
       move.normalize(); ship.facing=Math.atan2(move.x,move.z);
@@ -1385,7 +1426,6 @@ function update(dt){
     const dIsl = Math.hypot(ship.pos.x-ISLAND.x, ship.pos.z-ISLAND.z);
     setPrompt((dLake > LAKE.r-7 || dIsl < ISLAND.r+7) ? 'Press [B] to step ashore' : '');
   } else if (player.alive && player.underground){
-    // ---- Underground travel through the connected tunnel network ----
     let speed=player.speed;
     if (move.lengthSq()>0){
       move.normalize(); player.facing=Math.atan2(move.x,move.z);
@@ -1402,7 +1442,6 @@ function update(dt){
   } else if (player.alive){
 
     if (player.inTree) {
-       // Tree Climbing Visual Lerp
        player.obj.position.y += (3.5 - player.obj.position.y) * dt * 8;
        player.obj.position.x = player.treePos.x;
        player.obj.position.z = player.treePos.z;
@@ -1410,7 +1449,6 @@ function update(dt){
        player.walkPhase *= 0.8;
        setPrompt('Press [E] to jump down');
     } else {
-       // On Ground
        player.obj.position.y += (0 - player.obj.position.y) * dt * 8;
        if(player.obj.position.y < 0.01) player.obj.position.y = 0;
        
@@ -1433,7 +1471,6 @@ function update(dt){
        const lim=WORLD-2; p.x=Math.max(-lim,Math.min(lim,p.x)); p.z=Math.max(-lim,Math.min(lim,p.z));
        player.pos.copy(p);
 
-       // Interact Prompts
        let nearTree = false;
        for(const t of trees) {
           if (Math.hypot(p.x - t.x, p.z - t.z) < 2.5) { nearTree = true; setPrompt('Press [E] to climb tree'); break; }
@@ -1449,7 +1486,6 @@ function update(dt){
     }
   }
 
-  // ---- Hero Animation ----
   const ud=player.obj.userData;
   const sw=Math.sin(player.walkPhase)*0.6;
   ud.legL.rotation.x=sw; ud.legR.rotation.x=-sw; ud.armL.rotation.x=-sw*0.7;
@@ -1461,7 +1497,6 @@ function update(dt){
   ud.head.material.emissiveIntensity=player.invuln>0?0.6:0;
   ud.head.material.emissive.set(player.invuln>0?0xff0000:0x000000);
 
-  // ---- Cave lamp flicker ----
   for (const c of caveLamps){
     c.phase += dt*8;
     const f = 1 + Math.sin(c.phase)*0.12 + Math.sin(c.phase*2.3)*0.06;
@@ -1469,12 +1504,10 @@ function update(dt){
     c.lantern.material.emissiveIntensity = 1.4 * f;
   }
 
-  // ---- Puddles ----
   for(let i=puddles.length-1; i>=0; i--){
     const p = puddles[i]; p.life -= dt;
     if (p.life <= 0) { scene.remove(p.obj); puddles.splice(i, 1); continue; }
     p.obj.material.opacity = Math.min(0.6, p.life/2);
-    // Player on ground puddle check
     if (!player.onShip && !player.inTree && player.alive && Math.hypot(player.pos.x-p.pos.x, player.pos.z-p.pos.z) < 2.5) {
       hurtPlayer(15 * dt);
     }
@@ -1488,7 +1521,6 @@ function update(dt){
       if (t.corridor) ugRoot.remove(t.corridor);
       const zIdx = enemyZones.indexOf(t.zone); if(zIdx > -1) enemyZones.splice(zIdx, 1);
       activeTunnels.splice(i, 1);
-      // if the player was underground at this collapsing tunnel, force them up
       if (player.underground && Math.hypot(player.pos.x-t.x, player.pos.z-t.z) < t.r+2){
         player.underground=false; player.obj.position.set(t.x,0,t.z); player.pos.copy(player.obj.position);
         showToast('The tunnel collapsed — forced up!','#ff5555');
@@ -1513,7 +1545,6 @@ function update(dt){
     let distToTarget = Math.hypot(target.x-e.pos.x, target.z-e.pos.z);
     let attackingTunnel = false;
 
-    // Mimic: stay disguised until the player wanders close, then transform.
     if (e.type === 'mimic' && !e.revealed){
       if (player.alive && distToTarget < 6.5){
         e.revealed = true;
@@ -1525,7 +1556,7 @@ function update(dt){
         showToast('A Mimic ambush!', '#ff5555');
       } else {
         e.pos.copy(e.obj.position);
-        continue; // idle, harmless, no AI while disguised
+        continue;
       }
     }
 
@@ -1557,7 +1588,6 @@ function update(dt){
           e.obj.rotation.y=Math.atan2(target.x-e.pos.x, target.z-e.pos.z);
           if (e.shootCd <= 0) {
             e.shootCd = 2.5;
-            // Aim at player's actual Y (e.g. if in tree)
             const pY = player.inTree ? 3.5 : 0;
             const dir = new THREE.Vector3(target.x-e.pos.x, pY - 1.2, target.z-e.pos.z).normalize(); 
             shootBolt(true, e.pos.clone().add(new THREE.Vector3(0,1.2,0)), dir, e.atk, e.type==='water'?0x1177ff:0xcc00ff, 0xaa00aa, 20);
@@ -1579,7 +1609,6 @@ function update(dt){
       resolveWaterBoundary(e.obj.position, e.scale, true);
     }
     
-    // Vertical Stalker Climb Logic
     let eTargetY = 0;
     if (e.type === 'stalker' && player.inTree && distToTarget < 2.5) {
       eTargetY = player.obj.position.y;
@@ -1592,7 +1621,6 @@ function update(dt){
     e.obj.userData.body.scale.set(1/Math.sqrt(sq),sq,1/Math.sqrt(sq));
     e.obj.userData.body.material.emissiveIntensity=e.flash>0?1.2:(e.type==='toxic'||e.type==='stalker'?0.5:0.15);
 
-    // floating health bar — appears once the enemy is damaged (and never gives a disguised mimic away)
     if (!e.hpBar){ e.hpBar = makeHpBar(); scene.add(e.hpBar); }
     const showBar = e.hp < e.maxHp;
     e.hpBar.visible = showBar;
@@ -1604,18 +1632,15 @@ function update(dt){
       fill.material.color.setHex(e.type==='mimic' ? 0xff2244 : (ratio>0.5?0x6fcf45:(ratio>0.25?0xffd24a:0xff3b3b)));
     }
 
-    // Melee Hit Check (3D Distance handles "safe in tree" naturally!)
     const dist3D = Math.hypot(e.pos.x - player.pos.x, (e.obj.position.y||0) - player.obj.position.y, e.pos.z - player.pos.z);
-    
     if (!player.onShip && player.alive && dist3D < 1.4+e.scale*0.5 && e.touchCd<=0 && e.type !== 'shooter' && e.type !== 'water'){ 
       hurtPlayer(e.atk); e.touchCd=0.8; 
       if (player.inTree && e.type === 'stalker') {
-         player.inTree = false; // Knocked out!
+         player.inTree = false;
          showToast("Knocked out of the tree!", "#ff5555");
       }
     }
 
-    // Enemy Separation
     for (const o of enemies){
       if (o===e||o.dead) continue;
       const dx=e.pos.x-o.pos.x, dz=e.pos.z-o.pos.z, dd=Math.hypot(dx,dz), min=e.scale+o.scale;
@@ -1624,7 +1649,6 @@ function update(dt){
   }
   for (let i=enemies.length-1;i>=0;i--){ const e=enemies[i]; if(e.dead&&e.obj.userData.dying>0.35){scene.remove(e.obj); if(e.hpBar) scene.remove(e.hpBar); enemies.splice(i,1);} }
 
-  // ---- Projectiles ----
   for (let i=projectiles.length-1;i>=0;i--){
     const pr=projectiles[i]; pr.life-=dt;
     if (pr.gravity) pr.vel.y -= 45 * dt; 
@@ -1640,7 +1664,7 @@ function update(dt){
     } else {
       for (const e of enemies){
         if (e.hp<=0) continue;
-        if (e.type==='mimic' && !e.revealed) continue; // disguised mimics ignore projectiles
+        if (e.type==='mimic' && !e.revealed) continue;
         if (Math.hypot(e.pos.x-pr.obj.position.x, e.pos.z-pr.obj.position.z) < pr.r+e.scale*0.8){
           if (pr.aoe) { explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false); hit=true; break; }
           else { 
@@ -1665,13 +1689,6 @@ function update(dt){
     }
   }
 
-  // ---- Effects & Pickups (Boat Collection) ----
-  for (let i=effects.length-1;i>=0;i--){
-    const ef=effects[i]; ef.age+=dt; const k=ef.age/ef.life;
-    ef.obj.scale.setScalar(0.3+ef.maxR*k); ef.obj.material.opacity=0.8*(1-k);
-    if (k>=1){ scene.remove(ef.obj); effects.splice(i,1); }
-  }
-
   const collectCenter = player.onShip ? ship.pos : player.pos;
   const pullRadius = player.onShip ? 7.0 : 4.5;
   const grabRadius = player.onShip ? 3.0 : 1.4;
@@ -1687,13 +1704,20 @@ function update(dt){
        p.obj.position.z+=(collectCenter.z-p.obj.position.z)*Math.min(1,dt*6); 
     }
     if (d < grabRadius) {
-      if (p.kind==='gold'){ const g=10+Math.floor(Math.random()*15); player.gold+=g; floatText(player.pos,'+'+g+'g','#ffd24a',16); }
-      else { const h=Math.round(player.maxHp*0.3); player.hp=Math.min(player.maxHp,player.hp+h); floatText(player.pos,'+'+h+' HP','#ff8a9d',16); }
+      if (p.kind==='gold'){ 
+        const g=10+Math.floor(Math.random()*15); player.gold+=g; 
+        if (audioCtxStarted) sfx.coin.triggerAttackRelease("B5", "16n");
+        floatText(player.pos,'+'+g+'g','#ffd24a',16); 
+      }
+      else { 
+        const h=Math.round(player.maxHp*0.3); player.hp=Math.min(player.maxHp,player.hp+h); 
+        if (audioCtxStarted) sfx.heal.triggerAttackRelease("E5", "8n");
+        floatText(player.pos,'+'+h+' HP','#ff8a9d',16); 
+      }
       scene.remove(p.obj); pickups.splice(i,1);
     }
   }
 
-  // ---- Waves & Camera ----
   spawnTimer-=dt;
   if (spawnTimer<=0 && enemies.length<50){ 
     spawnWave(waveSize); 
@@ -1703,8 +1727,6 @@ function update(dt){
 
   const focus = player.onShip ? ship.pos : player.pos;
   const cx=Math.sin(camYaw)*Math.cos(camPitch), cz=Math.cos(camYaw)*Math.cos(camPitch), cy=Math.sin(camPitch);
-  
-  // Look up slightly higher if in tree
   const pOffY = player.inTree ? 3.0 : 2.0;
   const target=focus.clone().add(new THREE.Vector3(0,pOffY,0));
   
@@ -1723,16 +1745,8 @@ loop();
 function resize(){ renderer.setSize(innerWidth,innerHeight,false); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
 addEventListener('resize',resize); resize();
 
-// QA-only manual frame stepper (lets automated tests advance the sim despite rAF throttling)
-window.__step = (n=1, dt=0.05)=>{ for(let i=0;i<n;i++) update(dt); renderer.render(scene,camera); };
-// Hidden debug readout (invisible to players; handy for QA): window.__dbg()
-window.__dbg = ()=>({ px:+player.pos.x.toFixed(1), pz:+player.pos.z.toFixed(1), lvl:player.level, kills:player.kills,
-  gold:player.gold, hp:Math.round(player.hp), maxHp:player.maxHp, underground:player.underground, onShip:player.onShip,
-  inTree:player.inTree, camYaw:+camYaw.toFixed(2), camPitch:+camPitch.toFixed(2), enemies:enemies.length,
-  tunnels:activeTunnels.length, shipHp:Math.round(ship.hp), touch:isTouch, camDist:+camDist.toFixed(1),
-  barsVisible: enemies.filter(e=>e.hpBar&&e.hpBar.visible).length });
-
 $('startBtn').onclick=()=>{
+  initAudio();
   document.getElementById('overlay').classList.add('hidden'); 
   started=true; paused=false; clock.getDelta();
   spawnWave(6);

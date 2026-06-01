@@ -127,9 +127,29 @@
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 
 <script type="module">
 import * as THREE from 'three';
+
+let audioCtxStarted = false;
+const sfx = {};
+
+function initAudio() {
+  if(audioCtxStarted) return;
+  Tone.start();
+  audioCtxStarted = true;
+  const masterVol = new Tone.Volume(-14).toDestination();
+
+  sfx.swing = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.01, decay: 0.15, sustain: 0 } }).connect(masterVol);
+  sfx.hit = new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 2, envelope: { attack: 0.01, decay: 0.2, sustain: 0 } }).connect(masterVol);
+  sfx.magic = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.01, decay: 0.2, sustain: 0 } }).connect(masterVol);
+  sfx.cannon = new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 4, envelope: { attack: 0.01, decay: 0.5, sustain: 0 } }).connect(masterVol);
+  sfx.coin = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.01, decay: 0.1, sustain: 0 } }).connect(masterVol);
+  sfx.heal = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.05, decay: 0.4, sustain: 0.2, release: 0.2 } }).connect(masterVol);
+  sfx.poly = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'square' } }).connect(masterVol);
+  sfx.dig = new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0 } }).connect(masterVol);
+}
 
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -139,7 +159,6 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x141826);
-// Expanded fog for the new WORLD=300 size
 scene.fog = new THREE.Fog(0x141826, 80, 240); 
 
 const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
@@ -151,21 +170,19 @@ sun.position.set(40, 80, 30);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.near = 1; sun.shadow.camera.far = 400;
-const d = 160; // Expanded shadow bounds for bigger world
+const d = 160; 
 sun.shadow.camera.left = -d; sun.shadow.camera.right = d;
 sun.shadow.camera.top = d; sun.shadow.camera.bottom = -d;
 scene.add(sun); scene.add(sun.target);
 
-const WORLD = 300; // Massively increased world size
+const WORLD = 300; 
 const walls = [];        
 const enemyZones = [];   
 const trees = [];
 
-// Massive Lake & Island positioning
 const LAKE = { x: -120, z: 100, r: 120 }; 
 const ISLAND = { x: -140, z: 90, r: 35 };
 
-// Ground
 const ground = new THREE.Mesh(
   new THREE.PlaneGeometry(WORLD*2, WORLD*2),
   new THREE.MeshStandardMaterial({ color: 0x3a5a3a, roughness: 1 })
@@ -186,11 +203,9 @@ const water = new THREE.Mesh(
 );
 water.rotation.x = -Math.PI/2; water.position.set(LAKE.x, 0.12, LAKE.z); water.receiveShadow = true; scene.add(water);
 
-// Lake Shore ring
 const shore = new THREE.Mesh(new THREE.RingGeometry(LAKE.r, LAKE.r+3.0, 64), new THREE.MeshStandardMaterial({color:0xb8a06a, roughness:1}));
 shore.rotation.x=-Math.PI/2; shore.position.set(LAKE.x,0.05,LAKE.z); scene.add(shore);
 
-// Island mesh
 const islandMesh = new THREE.Mesh(
   new THREE.CircleGeometry(ISLAND.r, 32),
   new THREE.MeshStandardMaterial({ color: 0x3a5a3a, roughness: 1 })
@@ -198,7 +213,6 @@ const islandMesh = new THREE.Mesh(
 islandMesh.rotation.x = -Math.PI/2; islandMesh.position.set(ISLAND.x, 0.15, ISLAND.z); 
 islandMesh.receiveShadow = true; scene.add(islandMesh);
 
-// Island Shore ring
 const islandShore = new THREE.Mesh(new THREE.RingGeometry(ISLAND.r-2, ISLAND.r, 32), new THREE.MeshStandardMaterial({color:0xb8a06a, roughness:1}));
 islandShore.rotation.x=-Math.PI/2; islandShore.position.set(ISLAND.x,0.16,ISLAND.z); scene.add(islandShore);
 
@@ -226,13 +240,11 @@ function makeRock(x,z){
   r.rotation.set(Math.random(),Math.random(),Math.random()); scene.add(r);
 }
 
-// Generate scenery
 for (let i=0;i<500;i++){
   const x=(Math.random()-0.5)*WORLD*1.9, z=(Math.random()-0.5)*WORLD*1.9;
   if (Math.hypot(x,z) < 12 || isWater(x,z)) continue;
   Math.random()<0.65 ? makeTree(x,z) : makeRock(x,z);
 }
-// Force some trees on the island
 for(let i=0;i<12;i++){
   const a = Math.random()*Math.PI*2, r = Math.random()*(ISLAND.r-6);
   makeTree(ISLAND.x + Math.cos(a)*r, ISLAND.z + Math.sin(a)*r, 1.3);
@@ -273,7 +285,6 @@ function makeHouse(cx, cz){
   enemyZones.push({ x:cx, z:cz, r:H+1.4 });
 }
 
-// Added Cave generation with internal Lamps
 function makeCave(cx, cz){
   const r = 6.5;
   const g = new THREE.Group();
@@ -288,13 +299,11 @@ function makeCave(cx, cz){
   dome.castShadow = true;
   g.add(dome);
 
-  // Entrance (dark pit)
   const entrance = new THREE.Mesh(new THREE.CircleGeometry(3.0, 16), new THREE.MeshStandardMaterial({color: 0x050505}));
   entrance.rotation.x = -Math.PI / 2;
   entrance.position.set(0, 0.05, 1.5);
   g.add(entrance);
 
-  // Interior Lamp
   const lampG = new THREE.Group();
   lampG.position.set(0, 1.5, -2.5); 
   const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.5), new THREE.MeshStandardMaterial({color: 0x332211}));
@@ -319,7 +328,7 @@ makeCave(-50, 40);
 makeCave(0, -60);
 makeCave(70, -20);
 makeCave(-20, 60);
-makeCave(-130, 85); // One on the island
+makeCave(-130, 85); 
 
 const weaponTiers = [
   { name: 'Iron Sword', cost: 0, atkBonus: 0, color: 0xdfe8ff, glow: 0x223366, scale: 1.0 },
@@ -441,7 +450,7 @@ function buildMimic(scale, disguiseType) {
   }
   g.add(disguiseGroup);
   
-  const monsterGroup = buildSlime('breaker', scale, 0xff0044); // Scary red spiky form
+  const monsterGroup = buildSlime('breaker', scale, 0xff0044); 
   monsterGroup.visible = false;
   g.add(monsterGroup);
   
@@ -530,6 +539,7 @@ function digTunnel() {
   enemyZones.push(zone);
   activeTunnels.push({ group: g, rimMat: rimMat, hp: tier.hp, maxHp: tier.hp, zone: zone, r: r, x: x, z: z });
   
+  if (audioCtxStarted) sfx.dig.triggerAttackRelease("8n");
   floatText(player.pos,'⛏️ Tunnel Dug!','#d8b070',24);
   showToast('Tunnel created — safe zone!','#d8b070');
 }
@@ -543,6 +553,7 @@ window.buyUpgrade = function(type){
       const blade = hero.userData.sword.children[0];
       blade.material.color.setHex(nxt.color); blade.material.emissive.setHex(nxt.glow);
       blade.scale.set(1, nxt.scale, nxt.scale);
+      if (audioCtxStarted) sfx.poly.triggerAttackRelease(["C4", "E4", "G4"], "0.3");
       addEffect(player.pos.clone(), 3.5, nxt.color); floatText(player.pos, 'SWORD UPGRADED!', '#'+nxt.color.toString(16), 26);
     } else showToast('Not enough gold!', '#ff7a7a');
   }
@@ -550,6 +561,7 @@ window.buyUpgrade = function(type){
     const nxt = magicTiers[magIdx+1];
     if (player.gold >= nxt.cost) {
       player.gold -= nxt.cost; magIdx++; player.magAtk += nxt.dmgBonus;
+      if (audioCtxStarted) sfx.poly.triggerAttackRelease(["E4", "G4", "B4"], "0.3");
       addEffect(player.pos.clone(), 3.5, nxt.color); floatText(player.pos, 'MAGIC UPGRADED!', '#'+nxt.color.toString(16), 26);
     } else showToast('Not enough gold!', '#ff7a7a');
   }
@@ -557,6 +569,7 @@ window.buyUpgrade = function(type){
     const nxt = tunnelTiers[tunIdx+1];
     if (player.gold >= nxt.cost) {
       player.gold -= nxt.cost; tunIdx++;
+      if (audioCtxStarted) sfx.poly.triggerAttackRelease(["F4", "A4", "C5"], "0.3");
       addEffect(player.pos.clone(), 3.5, 0xd8b070); floatText(player.pos, 'TUNNELS UPGRADED!', '#d8b070', 26);
     } else showToast('Not enough gold!', '#ff7a7a');
   }
@@ -610,7 +623,6 @@ canvas.addEventListener('mousedown', e=>{
   else if (e.button===2) secondaryAttack();
 });
 
-// Pause Logic via PointerLock
 document.addEventListener('pointerlockchange', () => {
   if (started && player.alive) {
     if (document.pointerLockElement === canvas) {
@@ -630,13 +642,14 @@ function primaryAttack() {
   if (player.attackCooldown>0) return;
   player.attackTimer=0.28; player.attackCooldown=0.42;
   
+  if (audioCtxStarted) sfx.swing.triggerAttackRelease("16n");
+
   const wScale = weaponTiers[wepIdx].scale;
   const reach = 3.2 * wScale, arc = Math.cos(Math.PI/2.8);
   const fwd = new THREE.Vector3(Math.sin(player.facing),0,Math.cos(player.facing));
   
   for (const e of enemies){
     if (e.hp<=0) continue;
-    // Disguised mimics cannot be hurt until revealed
     if (e.type === 'mimic' && e.isDisguised) continue;
 
     const dist3D = Math.hypot(e.pos.x - player.pos.x, (e.obj.position.y||0) - player.obj.position.y, e.pos.z - player.pos.z);
@@ -647,6 +660,7 @@ function primaryAttack() {
     
     const dmg = player.atk + Math.round(Math.random()*8);
     e.hp-=dmg; e.flash=0.15; e.obj.position.addScaledVector(to, 1.2 * wScale);
+    if (audioCtxStarted) sfx.hit.triggerAttackRelease("G2", "16n");
     floatText(e.pos,'-'+dmg,'#ffffff',20);
     if (e.hp<=0) killEnemy(e);
   }
@@ -665,6 +679,7 @@ function secondaryAttack(){
   player.shootCooldown=tier.cd; 
   const dir=new THREE.Vector3(Math.sin(player.facing),0,Math.cos(player.facing));
   const startY = player.inTree ? 4.8 : 1.4; 
+  if (audioCtxStarted) sfx.magic.triggerAttackRelease("E4", "8n");
   shootBolt(false, player.pos.clone().add(new THREE.Vector3(0,startY,0)).addScaledVector(dir,1), dir, player.magAtk, tier.color, tier.glow, tier.speed);
 }
 
@@ -680,6 +695,7 @@ function fireCannon(){
   const m=new THREE.Mesh(new THREE.SphereGeometry(0.6,12,12), new THREE.MeshStandardMaterial({color:0x222228,emissive:0x884400,emissiveIntensity:.5,metalness:.5,roughness:.4}));
   m.position.copy(ship.pos).add(new THREE.Vector3(0,2.2,0)).addScaledVector(flatDir,3.2); scene.add(m);
   
+  if (audioCtxStarted) sfx.cannon.triggerAttackRelease("C1", "4n");
   projectiles.push({obj:m, vel:vel, life:4.0, dmg:Math.round(player.atk*4), r:1.0, aoe:true, aoeR:6.5, gravity:true, isEnemy:false});
   addEffect(m.position.clone(), 2.5, 0x884400);  
   ship.obj.userData.cannon.rotation.x = Math.PI/2 - angle; 
@@ -689,12 +705,13 @@ function explode(pos,dmg,radius, isEnemy){
   if (!isEnemy) {
     for (const e of enemies){
       if (e.hp<=0) continue;
-      if (e.type === 'mimic' && e.isDisguised) continue; // Unaffected while disguised
+      if (e.type === 'mimic' && e.isDisguised) continue; 
 
       const d=Math.hypot(e.pos.x-pos.x, e.pos.z-pos.z);
       if (d<radius+e.scale*0.8){
         e.hp-=dmg; e.flash=0.15;
         const k=e.pos.clone().sub(pos); k.y=0; k.normalize(); e.obj.position.addScaledVector(k,2.5);
+        if (audioCtxStarted) sfx.hit.triggerAttackRelease("C2", "8n");
         floatText(e.pos,'-'+dmg,'#ffcc66',24);
         if (e.hp<=0) killEnemy(e);
       }
@@ -876,7 +893,6 @@ function update(dt){
     if (keys['KeyA']) move.sub(r);
   }
 
-  // ---- Movement & Prompts ----
   if (player.onShip){
     if (move.lengthSq()>0){
       move.normalize(); ship.facing=Math.atan2(move.x,move.z);
@@ -937,7 +953,6 @@ function update(dt){
     }
   }
 
-  // ---- Hero Animation ----
   const ud=player.obj.userData;
   const sw=Math.sin(player.walkPhase)*0.6;
   ud.legL.rotation.x=sw; ud.legR.rotation.x=-sw; ud.armL.rotation.x=-sw*0.7;
@@ -949,7 +964,6 @@ function update(dt){
   ud.head.material.emissiveIntensity=player.invuln>0?0.6:0;
   ud.head.material.emissive.set(player.invuln>0?0xff0000:0x000000);
 
-  // ---- Puddles ----
   for(let i=puddles.length-1; i>=0; i--){
     const p = puddles[i]; p.life -= dt;
     if (p.life <= 0) { scene.remove(p.obj); puddles.splice(i, 1); continue; }
@@ -984,7 +998,6 @@ function update(dt){
     let target = player.pos;
     let distToTarget = Math.hypot(target.x-e.pos.x, target.z-e.pos.z);
     
-    // Mimic Reveal Logic
     if (e.type === 'mimic' && e.isDisguised) {
       if (distToTarget < 9 && player.alive) {
         e.isDisguised = false;
@@ -993,7 +1006,7 @@ function update(dt){
         floatText(e.pos, "MIMIC!", "#ff0044", 28);
         addEffect(e.pos.clone(), 3.5, 0xff0044);
       } else {
-        continue; // Disguised mimic stays completely still
+        continue; 
       }
     }
 
@@ -1048,7 +1061,6 @@ function update(dt){
       resolveWaterBoundary(e.obj.position, e.scale, true);
     }
     
-    // Vertical Stalker Climb Logic
     let eTargetY = 0;
     if (e.type === 'stalker' && player.inTree && distToTarget < 2.5) {
       eTargetY = player.obj.position.y;
@@ -1079,7 +1091,6 @@ function update(dt){
   }
   for (let i=enemies.length-1;i>=0;i--){ const e=enemies[i]; if(e.dead&&e.obj.userData.dying>0.35){scene.remove(e.obj);enemies.splice(i,1);} }
 
-  // ---- Projectiles ----
   for (let i=projectiles.length-1;i>=0;i--){
     const pr=projectiles[i]; pr.life-=dt;
     if (pr.gravity) pr.vel.y -= 45 * dt; 
@@ -1094,7 +1105,7 @@ function update(dt){
     } else {
       for (const e of enemies){
         if (e.hp<=0) continue;
-        if (e.type === 'mimic' && e.isDisguised) continue; // Projectiles pass through disguised mimics for now
+        if (e.type === 'mimic' && e.isDisguised) continue; 
         
         if (Math.hypot(e.pos.x-pr.obj.position.x, e.pos.z-pr.obj.position.z) < pr.r+e.scale*0.8){
           if (pr.aoe) { explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false); hit=true; break; }
@@ -1120,7 +1131,6 @@ function update(dt){
     }
   }
 
-  // ---- Effects & Pickups ----
   for (let i=effects.length-1;i>=0;i--){
     const ef=effects[i]; ef.age+=dt; const k=ef.age/ef.life;
     ef.obj.scale.setScalar(0.3+ef.maxR*k); ef.obj.material.opacity=0.8*(1-k);
@@ -1142,13 +1152,20 @@ function update(dt){
        p.obj.position.z+=(collectCenter.z-p.obj.position.z)*Math.min(1,dt*6); 
     }
     if (d < grabRadius) {
-      if (p.kind==='gold'){ const g=10+Math.floor(Math.random()*15); player.gold+=g; floatText(player.pos,'+'+g+'g','#ffd24a',16); }
-      else { const h=Math.round(player.maxHp*0.3); player.hp=Math.min(player.maxHp,player.hp+h); floatText(player.pos,'+'+h+' HP','#ff8a9d',16); }
+      if (p.kind==='gold'){ 
+        const g=10+Math.floor(Math.random()*15); player.gold+=g; 
+        if (audioCtxStarted) sfx.coin.triggerAttackRelease("C5", "16n");
+        floatText(player.pos,'+'+g+'g','#ffd24a',16); 
+      }
+      else { 
+        const h=Math.round(player.maxHp*0.3); player.hp=Math.min(player.maxHp,player.hp+h); 
+        if (audioCtxStarted) sfx.heal.triggerAttackRelease("G4", "8n");
+        floatText(player.pos,'+'+h+' HP','#ff8a9d',16); 
+      }
       scene.remove(p.obj); pickups.splice(i,1);
     }
   }
 
-  // ---- Waves & Camera ----
   spawnTimer-=dt;
   if (spawnTimer<=0 && enemies.length<60){ 
     spawnWave(waveSize); 
@@ -1178,6 +1195,7 @@ function resize(){ renderer.setSize(innerWidth,innerHeight,false); camera.aspect
 addEventListener('resize',resize); resize();
 
 $('startBtn').onclick=()=>{ 
+  initAudio();
   document.getElementById('overlay').classList.add('hidden'); 
   started=true; clock.getDelta(); 
   spawnWave(6); 

@@ -115,8 +115,8 @@
   #bMag  { right: 132px; bottom: 60px;  width: 74px; height: 74px; font-size: 28px; background: linear-gradient(135deg,#4f9dff,#8b5cf6); }
   #bDash { right: 44px;  bottom: 150px; width: 62px; height: 62px; }
   
-  #tcol { position:absolute; right: 10px; top: 47%; transform: translateY(-50%); display:flex; flex-direction:column; gap:11px; }
-  #tcol .tbtn { position: static; width: 58px; height: 58px; font-size: 24px; }
+  #tcol { position:absolute; bottom: 16px; left: 50%; transform: translateX(-50%); display:flex; flex-direction:row; gap:12px; }
+  #tcol .tbtn { position: static; width: 50px; height: 50px; font-size: 22px; }
   #bPause { position:absolute; right: 10px; top: 16px; width: 48px; height: 48px; font-size: 20px; }
 
   #reticle { position: fixed; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; z-index: 25; pointer-events: none; display: none; }
@@ -139,7 +139,7 @@
   body.mobile #stats div { margin: 1px 0; }
   
   body.mobile #bPause { right: max(10px, env(safe-area-inset-right)); top: max(10px, env(safe-area-inset-top)); }
-  body.mobile #tcol { right: max(10px, env(safe-area-inset-right)); }
+  body.mobile #tcol { right: auto; bottom: max(16px, env(safe-area-inset-bottom)); }
   
   /* Unblock thumbs: shift toasts and prompts to the top on mobile */
   body.mobile #toast { top: 60px; font-size: 20px; width: 90%; }

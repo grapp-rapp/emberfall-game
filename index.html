@@ -277,6 +277,56 @@ function initAudio() {
     sfx.heal = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.05, decay: 0.4, sustain: 0.2, release: 0.5 } }).connect(masterVol);
     sfx.poly = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'square' } }).connect(new Tone.Volume(-8)).connect(masterVol); // Lower level-up volume
     sfx.dig = new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0 } }).connect(masterVol);
+
+    // --- BACKGROUND MUSIC ---
+    // 1. Dark ambient drone
+    const droneFilter = new Tone.Filter(200, "lowpass").connect(masterVol);
+    const drone = new Tone.Oscillator("D2", "sawtooth").connect(droneFilter);
+    drone.volume.value = -18;
+    drone.start();
+    
+    // Slowly modulate the drone filter for an evolving feel
+    const lfo = new Tone.LFO(0.1, 150, 400).connect(droneFilter.frequency);
+    lfo.start();
+
+    // 2. Slow eerie arpeggio (Lute/Harp feel)
+    const lute = new Tone.Synth({
+        oscillator: { type: 'triangle' },
+        envelope: { attack: 0.02, decay: 1.5, sustain: 0, release: 1 }
+    }).connect(masterVol);
+    lute.volume.value = -8;
+
+    const arpNotes = ["D3", "F3", "A3", "C4", "A3", "F3", "D3", "E3"];
+    let step = 0;
+    
+    // 3. Heartbeat drum
+    const drum = new Tone.MembraneSynth({
+        pitchDecay: 0.1, octaves: 3, envelope: { attack: 0.01, decay: 0.5, sustain: 0 }
+    }).connect(masterVol);
+    drum.volume.value = -6;
+
+    Tone.Transport.scheduleRepeat((time) => {
+        if (started && player.alive) {
+            // Play lute note if not paused
+            if (!paused) {
+                lute.triggerAttackRelease(arpNotes[step % arpNotes.length], "8n", time);
+            }
+            
+            // Play heartbeat on downbeats
+            if (step % 8 === 0) {
+                drum.triggerAttackRelease("D1", "4n", time);
+            } else if (step % 8 === 2) {
+                drum.triggerAttackRelease("D1", "8n", time, 0.5); // Softer second beat
+            }
+        } else if (!player.alive && step % 16 === 0) {
+            // Slow eerie heartbeat when dead
+            drum.triggerAttackRelease("D0", "1n", time);
+        }
+        step++;
+    }, "4n"); // Quarter note pulse
+
+    Tone.Transport.bpm.value = 100;
+    Tone.Transport.start();
 }
 
 const canvas = document.getElementById('game');

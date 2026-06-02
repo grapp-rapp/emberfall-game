@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  EMBERFALL EXPANDED v4.0
+  EMBERFALL EXPANDED v4.1
   © 2026 Noam Rapp. All Rights Reserved.
 -->
 <html lang="en">
@@ -47,9 +47,9 @@
   .keys b { color:#ffd56b; display:inline-block; width: 120px;}
 
   /* Shop */
-  #upgradesModal { width: 340px; padding: 24px; font-size: 14px; border: 1px solid #8be0ff; box-shadow: 0 10px 50px rgba(0,0,0,0.8); background: rgba(15,20,30,0.95); border-radius: 12px; position: relative;}
+  #upgradesModal { width: 350px; padding: 24px; font-size: 14px; border: 1px solid #8be0ff; box-shadow: 0 10px 50px rgba(0,0,0,0.8); background: rgba(15,20,30,0.95); border-radius: 12px; position: relative;}
   #upgradesModal h3 { font-size: 16px; text-transform: uppercase; letter-spacing: 1px; color: #ffd56b; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px;}
-  .upg-btn { pointer-events:auto; display: flex; justify-content: space-between; gap: 16px; background: rgba(255,255,255,0.05); padding: 12px; margin-bottom: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: background 0.1s;}
+  .upg-btn { pointer-events:auto; display: flex; justify-content: space-between; gap: 12px; background: rgba(255,255,255,0.05); padding: 12px; margin-bottom: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: background 0.1s;}
   .upg-btn:hover { background: rgba(255,255,255,0.15); }
   .upg-btn:active { transform: scale(0.98); }
   .upg-btn b { color: #8be0ff; }
@@ -239,7 +239,8 @@
       <div class="upg-btn" onclick="buyUpgrade(1)"><span><b>[1]</b> Sword: <span id="uWeap">Steel</span></span> <span class="cost" id="cWeap">25g</span></div>
       <div class="upg-btn" onclick="buyUpgrade(2)"><span><b>[2]</b> Magic: <span id="uMag">Adept</span></span> <span class="cost" id="cMag">20g</span></div>
       <div class="upg-btn" onclick="buyUpgrade(3)"><span><b>[3]</b> Tunnel: <span id="uTun">Reinforced</span></span> <span class="cost" id="cTun">30g</span></div>
-      <div class="upg-btn" onclick="repairShip()"><span><b>[4]</b> Repair Ship</span> <span class="cost" id="cRepair">-</span></div>
+      <div class="upg-btn" onclick="buyUpgrade(4)"><span><b>[4]</b> Ship: <span id="uShip">Ironclad</span></span> <span class="cost" id="cShip">200g</span></div>
+      <div class="upg-btn" onclick="repairShip()"><span><b>[5]</b> Repair Ship</span> <span class="cost" id="cRepair">-</span></div>
     </div>
   </div>
 </div>
@@ -265,7 +266,7 @@
 <div id="startScreen" class="overlay-screen">
   <div class="overlay-content">
     <h1>EMBERFALL</h1>
-    <p>Cleanse the 3 <b>Cursed Obelisks</b> hidden across the world to summon the final boss! <br><b style="color:#ff3b3b">WARNING: Make sure your ship is fully repaired before fighting it!</b></p>
+    <p>Cleanse the 3 <b>Cursed Obelisks</b> hidden across the world to summon the final boss! <br><b style="color:#ff3b3b">WARNING: Upgrade and repair your ship before fighting it!</b></p>
     <div class="keys">
       <b>WASD / Joy</b> Move &nbsp;&nbsp; | &nbsp;&nbsp; <b>Mouse / Drag</b> Look &nbsp;&nbsp; | &nbsp;&nbsp; <b>Shift / Dash</b> Dash<br>
       <b>L-Click / 🗡️</b> Melee &nbsp;&nbsp; | &nbsp;&nbsp; <b>R-Click / ✨</b> Magic &nbsp;&nbsp; | &nbsp;&nbsp; <b>C / 🔄</b> Swap Magic Element<br>
@@ -351,12 +352,10 @@ async function initAudio() {
         sfx.coin = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.01, decay: 0.4, sustain: 0 } }).connect(masterVol);
         sfx.heal = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'triangle' }, envelope: { attack: 0.05, decay: 0.4, sustain: 0.2, release: 0.5 } }).connect(masterVol);
         
-        // Lowered Level-Up Volume specifically
         sfx.levelUp = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'square' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0.2, release: 1 } }).connect(new Tone.Volume(-14).connect(masterVol));
         
         sfx.dig = new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0 } }).connect(masterVol);
 
-        // Boosted Ambience
         const droneFilter = new Tone.Filter(300, "lowpass").connect(masterVol);
         drone = new Tone.Oscillator("D2", "sawtooth").connect(droneFilter);
         drone.volume.value = -8; drone.start();
@@ -383,13 +382,12 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x3a4f66); // Daylight blueish
+scene.background = new THREE.Color(0x3a4f66); 
 scene.fog = new THREE.Fog(0x3a4f66, 90, 300);
 
 const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 800);
 let camYaw = 0.6, camPitch = 0.5, camDist = 18;
 
-// Locked Bright Lighting (Permanent Day)
 const hemiLight = new THREE.HemisphereLight(0xffffff, 0x5a5a6a, 0.8); scene.add(hemiLight);
 const sun = new THREE.DirectionalLight(0xffffff, 1.2);
 sun.position.set(40, 80, 30); sun.castShadow = true;
@@ -455,7 +453,6 @@ for (let i=0;i<600;i++){
   Math.random()<0.65 ? makeTree(x,z) : makeRock(x,z);
 }
 
-// Detailed Houses & Caves
 function makeHouse(cx, cz){
   const H = 4, t = 0.4, wallH = 3.2, door = 2.6;
   const wallMat = new THREE.MeshStandardMaterial({color:0x9c7a52, roughness:.9});
@@ -533,7 +530,9 @@ function spawnLeviathan() {
 // --- PLAYER & UPGRADES ---
 const weaponTiers = [{name:'Iron',cost:0,atkBonus:0,color:0xdfe8ff,glow:0x223366,scale:1.0},{name:'Steel',cost:25,atkBonus:10,color:0xcdd5e0,glow:0x556677,scale:1.2},{name:'Gold',cost:75,atkBonus:28,color:0xffd700,glow:0xaa8800,scale:1.4},{name:'Void',cost:250,atkBonus:75,color:0x8be0ff,glow:0x2200aa,scale:1.8}];
 const tunnelTiers = [{name:'Dirt',cost:30,hp:100,r:3.5},{name:'Wood',cost:100,hp:300,r:4.2},{name:'Stone',cost:250,hp:800,r:5.0}];
-let wepIdx = 0, magIdx = 0, tunIdx = 0;
+const shipTiers = [{name:'Wooden Sloop', cost:0, maxHp: 300, dmg: 48}, {name:'Ironclad', cost: 200, maxHp: 600, dmg: 95}, {name:'Dreadnought', cost: 500, maxHp: 1200, dmg: 180}];
+
+let wepIdx = 0, magIdx = 0, tunIdx = 0, shipIdx = 0;
 
 const magicTypes = [
     { name: 'Fire', color: 0xff3b3b, glow: 0xaa0000, ui: 'FIRE', effect: 'burn', dmgMult: 1.5 },
@@ -650,7 +649,7 @@ function spawnEnemy(type, x, z) {
     e.maxHp = e.hp = Math.round(e.hp);
     e.obj = (type==='mimic') ? buildMimic(e.scale, e.disguise) : buildSlime(e.type, e.scale, e.color);
     e.obj.position.copy(e.pos); scene.add(e.obj);
-    e.obj.userData.dying = 0; // Fixed garbage collection bug
+    e.obj.userData.dying = 0; 
     enemies.push(e);
 }
 
@@ -702,6 +701,8 @@ window.addEventListener('keydown', e => {
     if (e.code==='KeyC') cycleMagic();
     if (e.code==='KeyR') cleanseObelisk();
     if (e.code==='KeyM') toggleMap();
+    if (e.code==='Digit4') window.buyUpgrade(4);
+    if (e.code==='Digit5') window.repairShip();
     if (e.code==='Tab') { e.preventDefault(); toggleShop(); }
     if (e.code==='Escape') togglePause();
 });
@@ -802,7 +803,7 @@ function shootBolt(isEnemy, startPos, dir, dmg, color, glow, speed, effect=null)
 function secondaryAttack() {
     if (!started || !player.alive || player.onShip || paused || gameOver || player.magCd > 0) return;
     if (isTouch) faceNearestEnemy(40);
-    player.magCd = 0.35 - (magIdx*0.05); // slightly faster with upgrades
+    player.magCd = 0.35 - (magIdx*0.05);
     const mType = magicTypes[activeMagic];
     const dir = new THREE.Vector3(Math.sin(player.facing),0,Math.cos(player.facing));
     const sy = player.inTree ? 4.8 : 1.4;
@@ -811,16 +812,20 @@ function secondaryAttack() {
 
 function fireCannon() {
     if (ship.fireCd > 0) return; ship.fireCd = 1.2;
-    const power = 45;
+    const power = 60; // Straight, fast shot
     const dir = new THREE.Vector3(Math.sin(ship.facing), 0, Math.cos(ship.facing));
-    const angle = Math.max(0.1, Math.min(Math.PI/3, camPitch + 0.2)); 
-    const vel = dir.clone().multiplyScalar(power * Math.cos(angle)); vel.y = power * Math.sin(angle);
+    const vel = dir.clone().multiplyScalar(power);
+    vel.y = 0; // perfectly flat shot
+    
     const m = new THREE.Mesh(new THREE.SphereGeometry(0.6,12,12), new THREE.MeshStandardMaterial({color:0x222, emissive:0x884400, emissiveIntensity:.5, metalness:.5}));
     m.position.copy(ship.pos).add(new THREE.Vector3(0,2.2,0)).addScaledVector(dir,3.2); scene.add(m);
-    projectiles.push({ obj: m, vel, life: 4.0, dmg: Math.round(player.atk*4), isEnemy: false, aoe: true, aoeR: 6.5, grav: true });
+    
+    projectiles.push({ obj: m, vel, life: 3.0, dmg: shipTiers[shipIdx].dmg, isEnemy: false, aoe: true, aoeR: 6.5, grav: false });
     if(audioCtxStarted) sfx.cannon.triggerAttackRelease("G1", "4n");
     addEffect(m.position.clone(), 2.5, 0x884400);
-    ship.obj.userData.cannon.rotation.x = Math.PI/2 - angle;
+    
+    // Set cannon barrel perfectly horizontal
+    ship.obj.userData.cannon.rotation.x = Math.PI/2; 
 }
 
 function explode(pos,dmg,radius, isEnemy){
@@ -898,7 +903,7 @@ function toggleShip() {
     if (!started || !player.alive || paused || gameOver || player.inTree || player.underground) return;
     if (!player.onShip){
         if (ship.destroyed) return showToast('The ship is wrecked — wait for a new one','#ff7a7a');
-        if (Math.hypot(player.pos.x-ship.pos.x, player.pos.z-ship.pos.z) < 9){ player.onShip=true; hero.visible=false; showToast('⚓ Aboard! (Cannon affected by Camera Pitch)','#8be0ff'); }
+        if (Math.hypot(player.pos.x-ship.pos.x, player.pos.z-ship.pos.z) < 9){ player.onShip=true; hero.visible=false; showToast('⚓ Aboard! Ready the cannons!','#8be0ff'); }
     } else {
         const dLake = Math.hypot(ship.pos.x-LAKE.x, ship.pos.z-LAKE.z), dIsl = Math.hypot(ship.pos.x-ISLAND.x, ship.pos.z-ISLAND.z);
         if (dLake > LAKE.r-7 || dIsl < ISLAND.r+7){
@@ -992,10 +997,11 @@ function updateHUD() {
     shipEl.style.color = ship.destroyed ? '#ff5555' : (ship.hp < ship.maxHp*0.3 ? '#ff8844' : '#ffd56b');
     $('cRepair').textContent = ship.destroyed ? (rc+'g (summon)') : (rc>0 ? rc+'g' : 'OK');
     
-    const nW = weaponTiers[wepIdx+1], nM = magicTypes[activeMagic], nT = tunnelTiers[tunIdx+1];
+    const nW = weaponTiers[wepIdx+1], nM = magicTypes[activeMagic], nT = tunnelTiers[tunIdx+1], nS = shipTiers[shipIdx+1];
     $('uWeap').textContent = nW ? nW.name : 'MAX'; $('cWeap').textContent = nW ? nW.cost+'g' : '-';
     $('uMag').textContent = 'LVL ' + (Math.floor((player.magAtk-10)/5) + 1); $('cMag').textContent = (20 + player.magAtk * 2) + 'g';
     $('uTun').textContent = nT ? nT.name : 'MAX'; $('cTun').textContent = nT ? nT.cost+'g' : '-';
+    $('uShip').textContent = nS ? nS.name : 'MAX'; $('cShip').textContent = nS ? nS.cost+'g' : '-';
 }
 
 window.buyUpgrade = (type) => {
@@ -1021,6 +1027,15 @@ window.buyUpgrade = (type) => {
             player.gold -= nxt.cost; tunIdx++;
             if(audioCtxStarted) sfx.levelUp.triggerAttackRelease(["C4","E4","G4"], "8n");
             addEffect(player.pos.clone(), 3.5, 0xd8b070); floatText(player.pos, 'TUNNELS UPGRADED!', '#d8b070', 26);
+        } else showToast("Not enough gold!", "#ff7a7a");
+    } else if (type === 4 && shipIdx < shipTiers.length - 1) {
+        const nxt = shipTiers[shipIdx + 1];
+        if (player.gold >= nxt.cost) {
+            player.gold -= nxt.cost; shipIdx++;
+            ship.maxHp = nxt.maxHp; ship.hp = nxt.maxHp; ship.destroyed = false; ship.obj.visible = true;
+            if(audioCtxStarted) sfx.levelUp.triggerAttackRelease(["C4","E4","G4"], "8n");
+            addEffect(ship.pos.clone().add(new THREE.Vector3(0,1.6,0)), 6.0, 0x8a5a2b); 
+            floatText(player.pos, 'SHIP ARMOR UPGRADED!', '#8a5a2b', 26);
         } else showToast("Not enough gold!", "#ff7a7a");
     }
     updateHUD();
@@ -1132,7 +1147,10 @@ function update(dt) {
         ship.bob+=dt*2; ship.obj.position.set(ship.pos.x, 0.1+Math.sin(ship.bob)*0.12, ship.pos.z);
         ship.obj.rotation.y += (((ship.facing-ship.obj.rotation.y+Math.PI)%(Math.PI*2))-Math.PI)*Math.min(1,dt*8);
         ship.obj.rotation.z=Math.sin(ship.bob)*0.04;
+        
+        // Cannon recoil recovery
         if (ship.fireCd <= 0.9) ship.obj.userData.cannon.rotation.x += (Math.PI/2 - ship.obj.userData.cannon.rotation.x)*dt*5;
+        
         player.pos.copy(ship.pos);
         const dLake = Math.hypot(ship.pos.x-LAKE.x, ship.pos.z-LAKE.z), dIsl = Math.hypot(ship.pos.x-ISLAND.x, ship.pos.z-ISLAND.z);
         setPrompt((dLake > LAKE.r-7 || dIsl < ISLAND.r+7) ? 'Press [B] to step ashore' : '');
@@ -1205,10 +1223,35 @@ function update(dt) {
     }
     if(cleansedCount === 3 && !leviathan) spawnLeviathan();
     if(leviathan && !leviathan.dead) {
+        leviathan.phase += dt * 3;
+        
+        // Chasing the player
+        const toPlayer = player.pos.clone().sub(leviathan.pos);
+        toPlayer.y = 0;
+        const dist = toPlayer.length();
+        if (dist > 15) {
+            leviathan.pos.addScaledVector(toPlayer.normalize(), 8 * dt);
+        }
+        resolveWaterBoundary(leviathan.pos, 5, true);
+        leviathan.obj.position.copy(leviathan.pos);
+        leviathan.obj.rotation.y = Math.atan2(toPlayer.x, toPlayer.z);
+
+        // Body undulation animation
+        leviathan.obj.position.y = Math.sin(leviathan.phase) * 2;
+        for(let i=1; i<=4; i++) {
+            leviathan.obj.children[i].position.x = Math.sin(leviathan.phase - i * 0.8) * 2;
+        }
+
+        // Spread shooting
         leviathan.shootCd -= dt;
         if(leviathan.shootCd <= 0) {
-            leviathan.shootCd = 3; const dir = player.pos.clone().sub(leviathan.pos).normalize(); shootBolt(true, leviathan.pos.clone().add(new THREE.Vector3(0,8,0)), dir, 40, 0x00ffff, 0x00aaff, 25);
+            leviathan.shootCd = 2.5;
             if(audioCtxStarted) sfx.cannon.triggerAttackRelease("A0", "2n");
+            for(let i=-1; i<=1; i++) {
+                const dir = player.pos.clone().sub(leviathan.pos).normalize();
+                dir.applyAxisAngle(new THREE.Vector3(0,1,0), i * 0.25);
+                shootBolt(true, leviathan.pos.clone().add(new THREE.Vector3(0,6,0)), dir, 45, 0x00ffff, 0x00aaff, 28);
+            }
         }
     }
 

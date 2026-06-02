@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  EMBERFALL EXPANDED v2.0
+  EMBERFALL EXPANDED v2.1
   © 2026 Noam Rapp. All Rights Reserved.
 -->
 <html lang="en">
@@ -36,13 +36,14 @@
   .magic-indicator { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-left: 5px; text-transform: uppercase; }
 
   /* Modals & Overlays */
-  .overlay-screen { position: fixed; inset: 0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:100; text-align:center; padding:20px; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); }
+  .overlay-screen { position: fixed; inset: 0; display:flex; flex-direction:column; z-index:100; text-align:center; padding:20px; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); overflow-y: auto; overflow-x: hidden; }
+  .overlay-content { margin: auto; display: flex; flex-direction: column; align-items: center; max-width: 600px; padding: 20px 0; }
   .overlay-screen.hidden { display:none !important; }
   
   #startScreen { background: radial-gradient(circle at 50% 40%, rgba(40,20,60,.95), rgba(5,5,12,.98)); z-index: 200; }
   #startScreen h1 { font-size: 60px; background: linear-gradient(90deg,#ffb347,#ff5e62,#ffb347); -webkit-background-clip:text; background-clip:text; color:transparent; letter-spacing: 3px; text-shadow: 0 0 40px rgba(255,120,40,.3); margin-bottom: 10px; }
-  #startScreen p { max-width: 600px; margin: 14px 0; opacity:.9; line-height:1.5; font-size: 16px; }
-  .keys { font-size:13px; opacity:.9; margin: 12px 0 30px; line-height:1.8; max-width:600px; background: rgba(0,0,0,0.5); padding: 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); text-align: left;}
+  #startScreen p { margin: 14px 0; opacity:.9; line-height:1.5; font-size: 16px; }
+  .keys { font-size:13px; opacity:.9; margin: 12px 0 30px; line-height:1.8; width: 100%; background: rgba(0,0,0,0.5); padding: 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); text-align: left;}
   .keys b { color:#ffd56b; display:inline-block; width: 120px;}
 
   /* Upgrades Shop */
@@ -86,6 +87,12 @@
   #touch { position: fixed; inset: 0; z-index: 30; pointer-events: none; display: none; }
   body.mobile #touch { display: block; }
 
+  /* Landscape Enforcer for Mobile */
+  #landscapeWarning { display: none; position: fixed; inset: 0; background: #050508; z-index: 9999; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  #landscapeWarning .icon { font-size: 60px; margin-bottom: 20px; animation: tilt 2s infinite ease-in-out; }
+  @keyframes tilt { 0% { transform: rotate(0deg); } 50% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }
+  @media (max-width: 850px) and (orientation: portrait) { #landscapeWarning { display: flex; } }
+
   /* Left half: Joystick */
   #joyZone { position: absolute; left: 0; bottom: 0; width: 45%; height: 60%; pointer-events: auto; touch-action: none; }
   #joyBase { position: absolute; left: 80px; bottom: 60px; width: 120px; height: 120px; border-radius: 50%; margin: 0;
@@ -124,10 +131,16 @@
   body.mobile #toast { top: 70px; font-size: 20px; width: 90%; }
   body.mobile #prompt { top: 80px; font-size: 14px; width: auto; max-width: 280px; padding: 8px 16px; }
   body.mobile #startScreen h1 { font-size: 42px; }
-  body.mobile #startScreen .keys { font-size: 11px; line-height: 1.6; padding: 12px; }
+  body.mobile .keys { font-size: 11px; line-height: 1.6; padding: 12px; }
 </style>
 </head>
 <body>
+
+<div id="landscapeWarning">
+  <div class="icon">📱 <span>↻</span></div>
+  <h2>Rotate Device</h2>
+  <p>Please turn your phone horizontally<br>for the best experience.</p>
+</div>
 
 <canvas id="game"></canvas>
 
@@ -195,41 +208,49 @@
 
 <!-- Overlays -->
 <div id="upgradesScreen" class="overlay-screen hidden" style="z-index: 150;">
-  <div id="upgradesModal">
-    <div class="close-btn" id="closeShopBtn">✕</div>
-    <h3>Blacksmith & Upgrades</h3>
-    <div class="upg-btn" onclick="buyUpgrade(1)"><span><b>[1]</b> Sword: <span id="uWeap">Steel</span></span> <span class="cost" id="cWeap">25g</span></div>
-    <div class="upg-btn" onclick="buyUpgrade(2)"><span><b>[2]</b> Magic: <span id="uMag">Adept</span></span> <span class="cost" id="cMag">20g</span></div>
-    <div class="upg-btn" onclick="buyUpgrade(3)"><span><b>[3]</b> Tunnel: <span id="uTun">Reinforced</span></span> <span class="cost" id="cTun">30g</span></div>
-    <div class="upg-btn" onclick="repairShip()"><span><b>[4]</b> Repair Ship</span> <span class="cost" id="cRepair">-</span></div>
+  <div class="overlay-content">
+    <div id="upgradesModal">
+      <div class="close-btn" id="closeShopBtn">✕</div>
+      <h3>Blacksmith & Upgrades</h3>
+      <div class="upg-btn" onclick="buyUpgrade(1)"><span><b>[1]</b> Sword: <span id="uWeap">Steel</span></span> <span class="cost" id="cWeap">25g</span></div>
+      <div class="upg-btn" onclick="buyUpgrade(2)"><span><b>[2]</b> Magic: <span id="uMag">Adept</span></span> <span class="cost" id="cMag">20g</span></div>
+      <div class="upg-btn" onclick="buyUpgrade(3)"><span><b>[3]</b> Tunnel: <span id="uTun">Reinforced</span></span> <span class="cost" id="cTun">30g</span></div>
+      <div class="upg-btn" onclick="repairShip()"><span><b>[4]</b> Repair Ship</span> <span class="cost" id="cRepair">-</span></div>
+    </div>
   </div>
 </div>
 
 <div id="pauseMenu" class="overlay-screen hidden">
-  <h2>PAUSED</h2>
-  <p style="margin-bottom: 26px;">Take a breath, hero.</p>
-  <button class="btn" id="resumeBtn">RESUME GAME</button>
-  <button class="btn btn-alt" id="fsBtn">TOGGLE FULLSCREEN</button>
-  <button class="btn btn-quit" id="quitBtn">QUIT GAME</button>
+  <div class="overlay-content">
+    <h2>PAUSED</h2>
+    <p style="margin-bottom: 26px;">Take a breath, hero.</p>
+    <button class="btn" id="resumeBtn">RESUME GAME</button>
+    <button class="btn btn-alt" id="fsBtn">TOGGLE FULLSCREEN</button>
+    <button class="btn btn-quit" id="quitBtn">QUIT GAME</button>
+  </div>
 </div>
 
 <div id="victoryScreen" class="overlay-screen hidden">
-  <h1 style="font-size: 60px; color: #8be0ff; text-shadow: 0 0 30px #4f9dff;">VICTORY</h1>
-  <p style="font-size: 20px; margin-bottom: 30px;">The Leviathan is slain. The waters are safe.</p>
-  <button class="btn" onclick="location.reload()">PLAY AGAIN</button>
+  <div class="overlay-content">
+    <h1 style="font-size: 60px; color: #8be0ff; text-shadow: 0 0 30px #4f9dff;">VICTORY</h1>
+    <p style="font-size: 20px; margin-bottom: 30px;">The Leviathan is slain. The waters are safe.</p>
+    <button class="btn" onclick="location.reload()">PLAY AGAIN</button>
+  </div>
 </div>
 
 <div id="startScreen" class="overlay-screen">
-  <h1>EMBERFALL</h1>
-  <p>The world has expanded. Cleanse the 3 <b>Cursed Obelisks</b> to summon the final boss! Survive the nights, build defenses, and upgrade your magic.</p>
-  <div class="keys">
-    <b>WASD / Joy</b> Move &nbsp;&nbsp; | &nbsp;&nbsp; <b>Mouse / Drag</b> Look &nbsp;&nbsp; | &nbsp;&nbsp; <b>Shift / Dash</b> Dash<br>
-    <b>L-Click / 🗡️</b> Melee &nbsp;&nbsp; | &nbsp;&nbsp; <b>R-Click / ✨</b> Magic &nbsp;&nbsp; | &nbsp;&nbsp; <b>C / 🔄</b> Swap Magic Element<br>
-    <b>T / ⛏️</b> Dig Tunnel &nbsp;&nbsp; | &nbsp;&nbsp; <b>F / 🚇</b> Enter Tunnel &nbsp;&nbsp; | &nbsp;&nbsp; <b>E / 🌲</b> Climb Tree<br>
-    <b>5 / 📌</b> Spike Trap (15g) &nbsp;&nbsp; | &nbsp;&nbsp; <b>6 / 🏹</b> Auto-Turret (40g)<br>
-    <b>B / ⛵</b> Board Ship &nbsp;&nbsp; | &nbsp;&nbsp; <b>R</b> Cleanse Obelisk &nbsp;&nbsp; | &nbsp;&nbsp; <b>TAB / 🛒</b> Upgrades Shop<br>
+  <div class="overlay-content">
+    <h1>EMBERFALL</h1>
+    <p>The world has expanded. Cleanse the 3 <b>Cursed Obelisks</b> to summon the final boss! Survive the nights, build defenses, and upgrade your magic.</p>
+    <div class="keys">
+      <b>WASD / Joy</b> Move &nbsp;&nbsp; | &nbsp;&nbsp; <b>Mouse / Drag</b> Look &nbsp;&nbsp; | &nbsp;&nbsp; <b>Shift / Dash</b> Dash<br>
+      <b>L-Click / 🗡️</b> Melee &nbsp;&nbsp; | &nbsp;&nbsp; <b>R-Click / ✨</b> Magic &nbsp;&nbsp; | &nbsp;&nbsp; <b>C / 🔄</b> Swap Magic Element<br>
+      <b>T / ⛏️</b> Dig Tunnel &nbsp;&nbsp; | &nbsp;&nbsp; <b>F / 🚇</b> Enter Tunnel &nbsp;&nbsp; | &nbsp;&nbsp; <b>E / 🌲</b> Climb Tree<br>
+      <b>5 / 📌</b> Spike Trap (15g) &nbsp;&nbsp; | &nbsp;&nbsp; <b>6 / 🏹</b> Auto-Turret (40g)<br>
+      <b>B / ⛵</b> Board Ship &nbsp;&nbsp; | &nbsp;&nbsp; <b>R</b> Cleanse Obelisk &nbsp;&nbsp; | &nbsp;&nbsp; <b>TAB / 🛒</b> Upgrades Shop<br>
+    </div>
+    <button class="btn" id="startBtn">ENTER THE FRAY</button>
   </div>
-  <button class="btn" id="startBtn">ENTER THE FRAY</button>
 </div>
 
 <script type="importmap">
@@ -247,6 +268,14 @@ let started = false, paused = false, shopOpen = false, gameOver = false;
 let clock = new THREE.Clock();
 
 function $(id) { return document.getElementById(id); }
+
+// Window Resizing (crucial to avoid black screen on launch)
+function onWindowResize() {
+    renderer.setSize(innerWidth, innerHeight);
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', onWindowResize);
 
 // --- AUDIO (Tone.js) ---
 let audioCtxStarted = false;
@@ -336,9 +365,16 @@ const WORLD = 320;
 const walls = [], enemyZones = [], trees = [], caveLamps = [];
 const LAKE = { x: -80, z: 70, r: 90 }; 
 const ISLAND = { x: -95, z: 65, r: 24 };
+
+// Underground Setup
 const UG_Y = -12;
 const ugRoot = new THREE.Group(); scene.add(ugRoot);
+const ugFloorMat = new THREE.MeshStandardMaterial({ color: 0x3a2e20, roughness: 1 });
+const ugBigFloor = new THREE.Mesh(new THREE.PlaneGeometry(WORLD*2, WORLD*2), new THREE.MeshStandardMaterial({ color: 0x0d0b08, roughness: 1 }));
+ugBigFloor.rotation.x = -Math.PI/2; ugBigFloor.position.y = UG_Y - 0.1; scene.add(ugBigFloor);
+const ugAmbient = new THREE.AmbientLight(0x6a6280, 0.0); scene.add(ugAmbient);
 const ugLightPool = [];
+for(let i=0; i<3; i++) { const L = new THREE.PointLight(0xffbb55, 0, 38, 2); ugRoot.add(L); ugLightPool.push(L); }
 
 // Geometries & Materials (Shared to save memory)
 const geoTreeTrunk = new THREE.CylinderGeometry(0.3,0.45,2.2,6);
@@ -412,7 +448,7 @@ function spawnLeviathan() {
 }
 
 // --- PLAYER & UPGRADES ---
-const weaponTiers = [{name:'Iron',cost:0,atk:0,col:0xdfe8ff},{name:'Steel',cost:20,atk:10,col:0xcdd5e0},{name:'Gold',cost:50,atk:25,col:0xffd700},{name:'Void',cost:150,atk:60,col:0x8be0ff}];
+const weaponTiers = [{name:'Iron',cost:0,atkBonus:0,col:0xdfe8ff},{name:'Steel',cost:20,atkBonus:10,col:0xcdd5e0},{name:'Gold',cost:50,atkBonus:25,col:0xffd700},{name:'Void',cost:150,atkBonus:60,col:0x8be0ff}];
 const tunnelTiers = [{name:'Dirt',cost:25,hp:100},{name:'Wood',cost:60,hp:300},{name:'Stone',cost:150,hp:800}];
 
 let wepIdx = 0, tunIdx = 0;
@@ -668,8 +704,68 @@ function toggleShip() {
     }
 }
 
-function digTunnel() { /* Omitted full implementation for length, functionally identical to previous */ }
-function toggleUnderground() { /* Omitted full implementation for length */ }
+// Underground Room Generation Functions
+function buildTunnelRoom(x, z, r){
+  const g = new THREE.Group(); g.position.set(x, UG_Y, z); ugRoot.add(g);
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(r+1.5, 24), ugFloorMat); floor.rotation.x = -Math.PI/2; floor.position.y = 0.02; g.add(floor);
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(r*0.55, r*0.55, -UG_Y, 18, 1, true), new THREE.MeshStandardMaterial({ color:0x1a1610, side:THREE.DoubleSide, roughness:1 }));
+  shaft.position.y = (-UG_Y)/2; g.add(shaft);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(r*0.55, 0.18, 8, 20), new THREE.MeshStandardMaterial({ color:0x66ff88, emissive:0x33cc55, emissiveIntensity:0.9 }));
+  ring.rotation.x = Math.PI/2; ring.position.y = 0.12; g.add(ring);
+  return g;
+}
+
+function buildCorridor(ax, az, bx, bz){
+  const dx = bx-ax, dz = bz-az, len = Math.hypot(dx,dz);
+  if (len < 2) return null;
+  const g = new THREE.Group(); g.position.set((ax+bx)/2, UG_Y, (az+bz)/2); g.rotation.y = Math.atan2(dx, dz); ugRoot.add(g);
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.15, len), ugFloorMat); floor.position.y = 0.05; g.add(floor);
+  return g;
+}
+
+function digTunnel() {
+    if (player.onShip || player.inTree || player.underground || !player.alive || player.tunnels<=0 || isWater(player.pos.x,player.pos.z)) return;
+    player.tunnels--;
+    if (audioCtxStarted) sfx.dig.triggerAttackRelease("8n");
+    const tier = tunnelTiers[tunIdx];
+    const x=player.pos.x, z=player.pos.z, r=3.5;
+    const g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
+    const hole=new THREE.Mesh(new THREE.CircleGeometry(r,24), new THREE.MeshStandardMaterial({color:0x14100c, roughness:1})); hole.rotation.x=-Math.PI/2; hole.position.y=0.03; g.add(hole);
+    const rimMat = new THREE.MeshStandardMaterial({color:0x4a3520,roughness:1});
+    const rim=new THREE.Mesh(new THREE.TorusGeometry(r,0.35,8,24), rimMat); rim.rotation.x=Math.PI/2; rim.position.y=0.1; g.add(rim);
+    
+    const ugGroup = buildTunnelRoom(x, z, r);
+    let corridor = null;
+    if (activeTunnels.length > 0){
+        const prev = activeTunnels[activeTunnels.length-1];
+        corridor = buildCorridor(prev.x, prev.z, x, z);
+    }
+    
+    activeTunnels.push({ group: g, x, z, r, hp: tier.hp, maxHp: tier.hp, rimMat, ugGroup, corridor });
+    floatText(player.pos,'⛏️ Tunnel Dug!','#d8b070',24);
+    showToast(activeTunnels.length>1 ? 'Tunnel linked! Press [F] to enter.' : 'Tunnel created! Press [F] to enter.','#d8b070');
+}
+
+function toggleUnderground() {
+    if (!started || !player.alive || paused) return;
+    if (player.underground){
+        let best=null, bd=Infinity;
+        for (const t of activeTunnels){ const d=Math.hypot(player.pos.x-t.x, player.pos.z-t.z); if (d<bd){ bd=d; best=t; } }
+        if (best && bd < best.r+2){
+            player.underground=false;
+            player.obj.position.set(best.x, 0, best.z); player.pos.copy(player.obj.position);
+            showToast('Climbed to the surface','#d8b070');
+        } else showToast('Stand near a tunnel exit to climb up','#ffd56b');
+    } else if (!player.onShip && !player.inTree){
+        let on=null;
+        for (const t of activeTunnels){ if (Math.hypot(player.pos.x-t.x, player.pos.z-t.z) < t.r){ on=t; break; } }
+        if (on){
+            player.underground=true;
+            player.obj.position.set(on.x, UG_Y, on.z); player.pos.copy(player.obj.position);
+            showToast('In the tunnels! Walk to another shaft to exit.','#d8b070');
+        }
+    }
+}
 
 function cleanseObelisk() {
     if(!started || !player.alive || player.onShip) return;
@@ -712,6 +808,21 @@ function hurtPlayer(dmg) {
     }
 }
 
+function damageShip(dmg) {
+    if(ship.destroyed) return;
+    ship.hp -= dmg;
+    if(ship.hp <= 0) {
+        ship.destroyed = true; ship.hp = 0; scene.remove(ship.obj);
+        if(player.onShip) {
+            player.onShip = false; hero.visible = true;
+            player.pos.copy(LAKE); player.pos.y = 0; hurtPlayer(20);
+            showToast("Ship destroyed! You washed ashore.", "#ff3b3b");
+        } else {
+            showToast("Your ship was sunk!", "#ff3b3b");
+        }
+    }
+}
+
 function addEffect(pos, r, col) {
     const m = new THREE.Mesh(new THREE.SphereGeometry(1,8,8), new THREE.MeshBasicMaterial({color:col, transparent:true, opacity:0.8}));
     m.position.copy(pos); scene.add(m); effects.push({obj:m, life:1.0, maxR:r});
@@ -724,15 +835,73 @@ function floatText(pos, text, col, size) {
 }
 let tTmr=0; function showToast(msg, col){ const t=$('toast'); t.textContent=msg; t.style.color=col; t.classList.add('show'); tTmr=2.5; }
 function setPrompt(msg) { const p=$('prompt'); if(msg){p.textContent=msg; p.classList.add('show');} else p.classList.remove('show'); }
+
 function updateHUD() {
     $('hpFill').style.width = (player.hp/player.maxHp*100)+'%'; $('hpText').textContent = Math.round(player.hp)+'/'+player.maxHp;
     $('xpFill').style.width = (player.xp/player.xpNext*100)+'%'; $('xpText').textContent = Math.floor(player.xp)+'/'+player.xpNext;
     $('lvlBadge').textContent = 'LVL '+player.level; $('goldStat').textContent = player.gold;
     $('atkStat').textContent = player.atk; $('magStat').textContent = player.magAtk;
+    $('killStat').textContent = player.kills; $('tunStat').textContent = player.tunnels;
+    const rc = ship.destroyed ? 100 : Math.ceil((ship.maxHp - ship.hp) * 0.4);
+    $('shipStat').textContent = ship.destroyed ? 'SUNK' : (Math.round(ship.hp)+'/'+ship.maxHp);
+    $('shipStat').style.color = ship.destroyed ? '#ff5555' : '#fff';
+    
+    const nW = weaponTiers[wepIdx+1], nT = tunnelTiers[tunIdx+1];
+    $('uWeap').textContent = nW ? nW.name : 'MAX'; $('cWeap').textContent = nW ? nW.cost+'g' : '-';
+    $('uMag').textContent = 'LVL ' + (Math.floor((player.magAtk-12)/5) + 1); $('cMag').textContent = (20 + player.magAtk * 2) + 'g';
+    $('uTun').textContent = nT ? nT.name : 'MAX'; $('cTun').textContent = nT ? nT.cost+'g' : '-';
+    $('cRepair').textContent = ship.destroyed ? (rc+'g (summon)') : (rc>0 ? rc+'g' : 'OK');
 }
 
-window.buyUpgrade = (type) => { /* Shop Logic */ updateHUD(); };
-window.repairShip = () => { /* Ship Repair Logic */ updateHUD(); };
+window.buyUpgrade = (type) => {
+    if (!player.alive) return;
+    if (type === 1 && wepIdx < weaponTiers.length - 1) {
+        const nxt = weaponTiers[wepIdx + 1];
+        if (player.gold >= nxt.cost) {
+            player.gold -= nxt.cost; wepIdx++; player.atk += nxt.atkBonus;
+            blade.material.color.setHex(nxt.col);
+            if(audioCtxStarted) sfx.levelUp.triggerAttackRelease(["C4","E4","G4"], "8n");
+            showToast("Sword Upgraded!", "#" + nxt.col.toString(16));
+        } else showToast("Not enough gold!", "#ff7a7a");
+    } else if (type === 2) {
+        const cost = 20 + player.magAtk * 2;
+        if (player.gold >= cost) {
+            player.gold -= cost; player.magAtk += 5;
+            if(audioCtxStarted) sfx.levelUp.triggerAttackRelease(["C4","E4","G4"], "8n");
+            showToast("Magic Upgraded!", "#4f9dff");
+        } else showToast("Not enough gold!", "#ff7a7a");
+    } else if (type === 3 && tunIdx < tunnelTiers.length - 1) {
+        const nxt = tunnelTiers[tunIdx + 1];
+        if (player.gold >= nxt.cost) {
+            player.gold -= nxt.cost; tunIdx++;
+            if(audioCtxStarted) sfx.levelUp.triggerAttackRelease(["C4","E4","G4"], "8n");
+            showToast("Tunnels Upgraded!", "#ffd56b");
+        } else showToast("Not enough gold!", "#ff7a7a");
+    }
+    updateHUD();
+};
+
+window.repairShip = () => {
+    if (!player.alive) return;
+    const cost = ship.destroyed ? 100 : Math.ceil((ship.maxHp - ship.hp) * 0.4);
+    if (ship.hp >= ship.maxHp && !ship.destroyed) return showToast("Ship is pristine!", "#8be0ff");
+    if (player.gold >= cost) {
+        player.gold -= cost;
+        ship.hp = ship.maxHp;
+        if (ship.destroyed) {
+            ship.destroyed = false;
+            const dl = Math.hypot(LAKE.x, LAKE.z);
+            ship.pos.set(LAKE.x - (LAKE.x/dl)*(LAKE.r-5), 0, LAKE.z - (LAKE.z/dl)*(LAKE.r-5));
+            ship.facing = Math.atan2(LAKE.x, LAKE.z); ship.obj.position.copy(ship.pos);
+            scene.add(ship.obj);
+            showToast("New ship summoned!", "#8be0ff");
+        } else {
+            showToast("Ship repaired!", "#8be0ff");
+        }
+        if(audioCtxStarted) sfx.build.triggerAttackRelease("C3", "8n");
+    } else showToast("Not enough gold!", "#ff7a7a");
+    updateHUD();
+};
 
 function toggleShop() { if(!player.alive) return; shopOpen = !shopOpen; $('upgradesScreen').classList.toggle('hidden', !shopOpen); paused = shopOpen; if(document.pointerLockElement) document.exitPointerLock(); }
 $('bShop').onclick = toggleShop; $('closeShopBtn').onclick = toggleShop;
@@ -755,6 +924,22 @@ function update(dt) {
     player.atkCd -= dt; player.magCd -= dt; player.dashCd -= dt; player.invuln -= dt; ship.fireCd -= dt;
     if(tTmr>0){ tTmr-=dt; if(tTmr<=0) $('toast').classList.remove('show'); }
 
+    // Underground lighting
+    ugAmbient.intensity += ((player.underground ? 0.85 : 0.0) - ugAmbient.intensity) * Math.min(1, dt*6);
+    if (player.underground){
+        scene.fog.near=6; scene.fog.far=75;
+        const sorted = activeTunnels.slice().sort((a,b)=> (Math.hypot(player.pos.x-a.x,player.pos.z-a.z)) - (Math.hypot(player.pos.x-b.x,player.pos.z-b.z)));
+        const flick = 1 + Math.sin(performance.now()*0.006)*0.1;
+        for (let i=0;i<ugLightPool.length;i++){
+            const t=sorted[i];
+            if (t){ ugLightPool[i].position.set(t.x, UG_Y+3, t.z); ugLightPool[i].intensity = 7*flick; }
+            else ugLightPool[i].intensity = 0;
+        }
+    } else {
+        scene.fog.near=60; scene.fog.far=250;
+        for (const L of ugLightPool) L.intensity = 0;
+    }
+
     // Input to Movement
     const f=new THREE.Vector3(Math.sin(camYaw),0,Math.cos(camYaw)); const r=new THREE.Vector3(f.z,0,-f.x);
     const move = new THREE.Vector3();
@@ -773,9 +958,8 @@ function update(dt) {
     } else if (player.inTree) {
         player.obj.position.lerp(new THREE.Vector3(player.treePos.x, 3.5, player.treePos.z), 0.1); player.pos.copy(player.obj.position);
     } else if (player.alive) {
-        player.obj.position.y = 0;
+        player.obj.position.y = player.underground ? UG_Y : 0;
         if(move.lengthSq()>0) { player.pos.addScaledVector(move.normalize(), player.speed*dt); player.facing = Math.atan2(move.x, move.z); player.obj.rotation.y = player.facing; }
-        // Simple Bounds
         player.pos.x = Math.max(-WORLD, Math.min(WORLD, player.pos.x)); player.pos.z = Math.max(-WORLD, Math.min(WORLD, player.pos.z));
         player.obj.position.copy(player.pos);
     }
@@ -788,7 +972,7 @@ function update(dt) {
 
     // Prompts
     let pMsg = "";
-    if(!player.onShip) {
+    if(!player.onShip && !player.underground) {
         let nearTree=false; for(const t of trees) if(Math.hypot(player.pos.x-t.x, player.pos.z-t.z)<2.5){ nearTree=true; break; }
         if(nearTree) pMsg = "Press [E] to Climb";
         for(const ob of obelisks) if(ob.state==='idle' && Math.hypot(player.pos.x-ob.x, player.pos.z-ob.z)<10) pMsg = "Press [R] to Cleanse Obelisk";
@@ -832,7 +1016,6 @@ function update(dt) {
         if(e.dead) continue;
         e.touchCd -= dt; e.shootCd -= dt;
         
-        // Effects
         let spdMult = 1.0;
         for(let i=e.effects.length-1; i>=0; i--){
             const ef = e.effects[i]; ef.time -= dt;
@@ -868,7 +1051,11 @@ function update(dt) {
         p.obj.position.addScaledVector(p.vel, dt);
         let hit = false;
         if(p.isEnemy) {
-            if(Math.hypot(player.pos.x-p.obj.position.x, player.pos.z-p.obj.position.z) < 2) { hurtPlayer(p.dmg); hit=true; }
+            if(player.onShip) {
+                if(Math.hypot(ship.pos.x-p.obj.position.x, ship.pos.z-p.obj.position.z) < 3) { damageShip(p.dmg); hit=true; }
+            } else {
+                if(Math.hypot(player.pos.x-p.obj.position.x, player.pos.z-p.obj.position.z) < 2) { hurtPlayer(p.dmg); hit=true; }
+            }
         } else {
             if(leviathan && !leviathan.dead && Math.hypot(leviathan.pos.x-p.obj.position.x, leviathan.pos.z-p.obj.position.z) < 6) {
                 leviathan.hp -= p.dmg; hit=true; floatText(leviathan.pos, "-"+Math.round(p.dmg), "#ffaa00", 30);
@@ -901,7 +1088,7 @@ function update(dt) {
         if(ef.life <= 0) { scene.remove(ef.obj); effects.splice(i,1); }
     }
 
-    // Spawning (Exponential)
+    // Spawning
     spawnTmr -= dt;
     if(spawnTmr <= 0 && enemies.length < 60) {
         spawnWave(Math.min(25, 4 + Math.floor(player.level*1.5)));
@@ -914,10 +1101,11 @@ function update(dt) {
 
 function loop() { requestAnimationFrame(loop); update(Math.min(0.05, clock.getDelta())); renderer.render(scene, camera); }
 
-window.addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); });
-
 // START GAME
+let isBooting = false;
 $('startBtn').onclick = async () => {
+    if(isBooting) return;
+    isBooting = true;
     $('startScreen').classList.add('hidden');
     if (!document.fullscreenElement && isTouch) try{ document.documentElement.requestFullscreen(); }catch(e){}
     await initAudio();
@@ -926,7 +1114,7 @@ $('startBtn').onclick = async () => {
     $('reticle').classList.add('show');
     if (!isTouch) try{ await canvas.requestPointerLock(); }catch(e){}
     showToast("Survive and Expand!", "#ffd56b");
-    resize(); loop();
+    onWindowResize(); loop();
 };
 </script>
 </body>

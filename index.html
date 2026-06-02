@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  EMBERFALL EXPANDED v3.0
+  EMBERFALL EXPANDED v4.0
   © 2026 Noam Rapp. All Rights Reserved.
 -->
 <html lang="en">
@@ -36,7 +36,7 @@
   .magic-indicator { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-left: 5px; text-transform: uppercase; }
 
   /* Modals & Overlays */
-  .overlay-screen { position: fixed; inset: 0; display:flex; flex-direction:column; z-index:100; text-align:center; padding:20px; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); overflow-y: auto; overflow-x: hidden; }
+  .overlay-screen { position: fixed; inset: 0; display:flex; flex-direction:column; z-index:100; text-align:center; padding:20px; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); overflow-y: auto; overflow-x: hidden; pointer-events: auto;}
   .overlay-content { margin: auto; display: flex; flex-direction: column; align-items: center; max-width: 600px; padding: 20px 0; position: relative;}
   .overlay-screen.hidden { display:none !important; }
   
@@ -89,6 +89,7 @@
   html, body { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
   #touch { position: fixed; inset: 0; z-index: 30; pointer-events: none; display: none; }
   body.mobile #touch { display: block; }
+  body.mobile #reticle { display: none !important; }
 
   /* Landscape Enforcer for Mobile */
   #landscapeWarning { display: none; position: fixed; inset: 0; background: #050508; z-index: 9999; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
@@ -129,7 +130,6 @@
   .sys-btn { width: 42px; height: 42px; border-radius: 50%; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.3); font-size: 18px; color: white; display: flex; align-items: center; justify-content: center; }
 
   /* Mobile HUD Adjustments */
-  body.mobile #reticle { display: none !important; }
   body.mobile #hint { display: none; }
   body.mobile #vitals { width: 160px; top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); padding: 6px; }
   body.mobile #vitals #lvlBadge { font-size: 11px; margin-bottom: 5px; }
@@ -265,7 +265,7 @@
 <div id="startScreen" class="overlay-screen">
   <div class="overlay-content">
     <h1>EMBERFALL</h1>
-    <p>Cleanse the 3 <b>Cursed Obelisks</b> hidden across the world to summon the final boss! <b>Make sure your ship is fully repaired and upgraded before fighting it!</b></p>
+    <p>Cleanse the 3 <b>Cursed Obelisks</b> hidden across the world to summon the final boss! <br><b style="color:#ff3b3b">WARNING: Make sure your ship is fully repaired before fighting it!</b></p>
     <div class="keys">
       <b>WASD / Joy</b> Move &nbsp;&nbsp; | &nbsp;&nbsp; <b>Mouse / Drag</b> Look &nbsp;&nbsp; | &nbsp;&nbsp; <b>Shift / Dash</b> Dash<br>
       <b>L-Click / 🗡️</b> Melee &nbsp;&nbsp; | &nbsp;&nbsp; <b>R-Click / ✨</b> Magic &nbsp;&nbsp; | &nbsp;&nbsp; <b>C / 🔄</b> Swap Magic Element<br>
@@ -293,7 +293,38 @@ let clock = new THREE.Clock();
 
 function $(id) { return document.getElementById(id); }
 
-// Window Resizing
+window.togglePause = function() { 
+    if(!started || !player.alive || shopOpen || mapOpen || gameOver) return; 
+    paused = !paused; 
+    $('pauseMenu').classList.toggle('hidden', !paused); 
+    setReticle(!paused);
+    if(paused && document.pointerLockElement) document.exitPointerLock();
+};
+
+window.toggleMap = function() { 
+    if(!started || !player.alive || gameOver || shopOpen) return; 
+    mapOpen = !mapOpen; 
+    $('mapScreen').classList.toggle('hidden', !mapOpen); 
+    paused = mapOpen; 
+    setReticle(!paused);
+    if(mapOpen) drawMap(); 
+    if(paused && document.pointerLockElement) document.exitPointerLock(); 
+};
+
+window.toggleShop = function() { 
+    if(!started || !player.alive || gameOver || mapOpen) return; 
+    shopOpen = !shopOpen; 
+    $('upgradesScreen').classList.toggle('hidden', !shopOpen); 
+    paused = shopOpen; 
+    setReticle(!paused);
+    if(paused && document.pointerLockElement) document.exitPointerLock(); 
+};
+
+function setReticle(show) {
+    const r = $('reticle');
+    if (r && !isTouch) r.style.display = show ? 'block' : 'none';
+}
+
 function onWindowResize() {
     renderer.setSize(innerWidth, innerHeight);
     camera.aspect = innerWidth / innerHeight;
@@ -311,7 +342,7 @@ async function initAudio() {
     try {
         await Tone.start();
         audioCtxStarted = true;
-        const masterVol = new Tone.Volume(-8).toDestination();
+        const masterVol = new Tone.Volume(-4).toDestination();
 
         sfx.swing = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.01, decay: 0.15, sustain: 0 } }).connect(new Tone.Filter(1200, "lowpass").connect(masterVol));
         sfx.hit = new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 2, envelope: { attack: 0.01, decay: 0.1, sustain: 0 } }).connect(masterVol);
@@ -320,7 +351,7 @@ async function initAudio() {
         sfx.coin = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.01, decay: 0.4, sustain: 0 } }).connect(masterVol);
         sfx.heal = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'triangle' }, envelope: { attack: 0.05, decay: 0.4, sustain: 0.2, release: 0.5 } }).connect(masterVol);
         
-        // Lowered Level-Up Volume
+        // Lowered Level-Up Volume specifically
         sfx.levelUp = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'square' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0.2, release: 1 } }).connect(new Tone.Volume(-14).connect(masterVol));
         
         sfx.dig = new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0 } }).connect(masterVol);
@@ -328,10 +359,10 @@ async function initAudio() {
         // Boosted Ambience
         const droneFilter = new Tone.Filter(300, "lowpass").connect(masterVol);
         drone = new Tone.Oscillator("D2", "sawtooth").connect(droneFilter);
-        drone.volume.value = -12; drone.start();
+        drone.volume.value = -8; drone.start();
 
         lute = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.02, decay: 1.5, sustain: 0 } }).connect(masterVol);
-        lute.volume.value = -8;
+        lute.volume.value = -4;
 
         const arpNotes = ["D3", "F3", "A3", "C4", "A3", "G3", "F3", "E3"];
         let step = 0;
@@ -619,7 +650,7 @@ function spawnEnemy(type, x, z) {
     e.maxHp = e.hp = Math.round(e.hp);
     e.obj = (type==='mimic') ? buildMimic(e.scale, e.disguise) : buildSlime(e.type, e.scale, e.color);
     e.obj.position.copy(e.pos); scene.add(e.obj);
-    e.obj.userData.dying = 0;
+    e.obj.userData.dying = 0; // Fixed garbage collection bug
     enemies.push(e);
 }
 
@@ -916,10 +947,11 @@ function hurtPlayer(dmg) {
         player.hp = 0; player.alive = false; gameOver = true;
         $('startScreen').classList.remove('hidden');
         $('startScreen').querySelector('h1').textContent = "YOU FELL";
-        $('startScreen').querySelector('p').textContent = `Level ${player.level} | ${player.kills} Slain`;
+        $('startScreen').querySelector('p').textContent = `Level ${player.level} | ${player.kills} Slain | ${player.gold} Gold`;
         $('startScreen').querySelector('.keys').style.display='none';
         const btn=$('startBtn'); btn.textContent = "RISE AGAIN"; btn.onclick = () => location.reload();
         if(document.pointerLockElement) document.exitPointerLock();
+        setReticle(false);
     }
 }
 
@@ -1010,8 +1042,6 @@ window.repairShip = () => {
     updateHUD();
 };
 
-function toggleShop() { if(!player.alive||gameOver||mapOpen) return; shopOpen = !shopOpen; $('upgradesScreen').classList.toggle('hidden', !shopOpen); paused = shopOpen; if(paused && document.pointerLockElement) document.exitPointerLock(); }
-
 function drawMap() {
     const ctx = $('minimap').getContext('2d'); ctx.clearRect(0, 0, 320, 320);
     const scale = 320 / (WORLD * 2);
@@ -1032,13 +1062,6 @@ function drawMap() {
     // Player
     ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(toX(player.pos.x), toY(player.pos.z), 5, 0, Math.PI*2); ctx.fill();
 }
-function toggleMap() { if(!player.alive||gameOver||shopOpen) return; mapOpen = !mapOpen; $('mapScreen').classList.toggle('hidden', !mapOpen); paused = mapOpen; if(mapOpen) drawMap(); if(paused && document.pointerLockElement) document.exitPointerLock(); }
-
-window.togglePause = function() { 
-    if(!started || !player.alive || shopOpen || mapOpen || gameOver) return; 
-    paused = !paused; $('pauseMenu').classList.toggle('hidden', !paused); 
-    if(paused && document.pointerLockElement) document.exitPointerLock();
-};
 
 function resolveBox(p, radius, b) {
   const cx=Math.max(b.minx,Math.min(p.x,b.maxx)), cz=Math.max(b.minz,Math.min(p.z,b.maxz)); let dx=p.x-cx, dz=p.z-cz, d2=dx*dx+dz*dz;
@@ -1269,7 +1292,7 @@ function update(dt) {
         } else {
             if(leviathan && !leviathan.dead && Math.hypot(leviathan.pos.x-p.obj.position.x, leviathan.pos.z-p.obj.position.z) < 6) {
                 leviathan.hp -= p.dmg; hit=true; floatText(leviathan.pos, "-"+Math.round(p.dmg), "#ffaa00", 30);
-                if(leviathan.hp <= 0) { leviathan.dead=true; scene.remove(leviathan.obj); $('victoryScreen').classList.remove('hidden'); paused=true; if(document.pointerLockElement)document.exitPointerLock(); }
+                if(leviathan.hp <= 0) { leviathan.dead=true; scene.remove(leviathan.obj); $('victoryScreen').classList.remove('hidden'); paused=true; setReticle(false); if(document.pointerLockElement)document.exitPointerLock(); }
             } else {
                 for(const e of enemies) {
                     if(e.dead || (e.type==='mimic'&&!e.revealed)) continue;
@@ -1332,6 +1355,7 @@ $('startBtn').onclick = async () => {
     started = true; clock.getDelta();
     spawnWave(8);
     for(let i=0; i<10; i++) { let x,z, tries=0; do{ x=(Math.random()-0.5)*WORLD*1.8; z=(Math.random()-0.5)*WORLD*1.8; tries++; }while((Math.hypot(x,z)<35||isWater(x,z))&&tries<50); spawnEnemy('mimic', x, z); }
+    setReticle(true);
     if (!isTouch) try{ await canvas.requestPointerLock(); }catch(e){}
     showToast(isTouch ? 'Slay the shadows! Joystick to move · drag to look' : 'Slay the shadows! (drag mouse to look · ESC to pause)', "#ffd56b");
 };

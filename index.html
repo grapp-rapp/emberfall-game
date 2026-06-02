@@ -56,7 +56,7 @@
   .floater { position: absolute; font-weight: bold; font-size: 18px; text-shadow: 0 1px 3px #000; animation: floatUp 1s ease-out forwards; }
   @keyframes floatUp { from { transform: translateY(0); opacity:1; } to { transform: translateY(-50px); opacity:0; } }
 
-  .overlay-screen { position: fixed; inset: 0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:10; text-align:center; padding:20px; overflow-y: auto; touch-action: pan-y; }
+  .overlay-screen { position: fixed; inset: 0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:10; text-align:center; padding:20px; }
   .overlay-screen.hidden { display:none !important; }
   
   #overlay { background: radial-gradient(circle at 50% 40%, rgba(40,20,60,.9), rgba(5,5,12,.98)); z-index: 300; }
@@ -64,16 +64,6 @@
   #overlay p { max-width: 600px; margin: 14px 0; opacity:.9; line-height:1.5; font-size: 17px; }
   #overlay .keys { font-size:14px; opacity:.9; margin: 12px 0 30px; line-height:2.0; max-width:600px; background: rgba(0,0,0,0.5); padding: 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); text-align: left;}
   #overlay .keys b { color:#ffd56b; display:inline-block; width: 110px;}
-  .mobile-keys { display: none; }
-  body.mobile .pc-keys { display: none; }
-  body.mobile .mobile-keys { display: block; color: #8be0ff; }
-
-  @media (max-height: 450px) {
-    .overlay-screen { justify-content: flex-start; padding-top: 40px; }
-    #overlay h1 { font-size: 36px; margin-bottom: 5px; }
-    #overlay p { font-size: 14px; margin: 8px 0; line-height: 1.4; }
-    #overlay .keys { margin: 10px 0 20px; padding: 12px; }
-  }
 
   #pauseMenu { background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); z-index: 250;}
   #pauseMenu h2 { font-size: 50px; color: #ffb347; letter-spacing: 4px; text-shadow: 0 0 20px rgba(255,150,40,0.5); margin-bottom: 20px;}
@@ -88,10 +78,7 @@
   #landscapeWarning { display: none; position: fixed; inset: 0; background: #0a0a12; z-index: 9999; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
   #landscapeWarning .icon { font-size: 60px; margin-bottom: 20px; animation: tilt 2s infinite ease-in-out; }
   @keyframes tilt { 0% { transform: rotate(0deg); } 50% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }
-  
-  @media (max-width: 850px) and (orientation: portrait) {
-      #landscapeWarning { display: flex; }
-  }
+  @media (max-width: 850px) and (orientation: portrait) { #landscapeWarning { display: flex; } }
 
   html, body { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
   #touch { position: fixed; inset: 0; z-index: 30; pointer-events: none; display: none; }
@@ -112,11 +99,12 @@
   .tbtn:active { transform: scale(.92); filter: brightness(1.3); }
   
   #bAtk  { right: 22px;  bottom: 34px;  width: 100px; height: 100px; font-size: 36px; background: linear-gradient(135deg,#ff7a18,#ff3b3b); }
-  #bMag  { right: 132px; bottom: 60px;  width: 74px; height: 74px; font-size: 28px; background: linear-gradient(135deg,#4f9dff,#8b5cf6); }
+  #bMag  { right: 132px; bottom: 60px;  width: 74px; height: 74px; font-size: 28px; background: linear-gradient(135deg,#4f9dff,#8b5cf6); transition: background 0.2s; }
+  #bMagSwap { right: 147px; bottom: 144px; width: 44px; height: 44px; font-size: 18px; background: rgba(30,34,50,.8); border-color: rgba(255,255,255,.5); }
   #bDash { right: 44px;  bottom: 150px; width: 62px; height: 62px; }
   
-  #tcol { position:absolute; bottom: 16px; left: 50%; transform: translateX(-50%); display:flex; flex-direction:row; gap:12px; }
-  #tcol .tbtn { position: static; width: 50px; height: 50px; font-size: 22px; }
+  #tcol { position:absolute; right: 10px; top: 47%; transform: translateY(-50%); display:flex; flex-direction:column; gap:11px; }
+  #tcol .tbtn { position: static; width: 58px; height: 58px; font-size: 24px; }
   #bPause { position:absolute; right: 10px; top: 16px; width: 48px; height: 48px; font-size: 20px; }
 
   #reticle { position: fixed; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; z-index: 25; pointer-events: none; display: none; }
@@ -139,9 +127,8 @@
   body.mobile #stats div { margin: 1px 0; }
   
   body.mobile #bPause { right: max(10px, env(safe-area-inset-right)); top: max(10px, env(safe-area-inset-top)); }
-  body.mobile #tcol { right: auto; bottom: max(16px, env(safe-area-inset-bottom)); }
+  body.mobile #tcol { right: max(10px, env(safe-area-inset-right)); }
   
-  /* Unblock thumbs: shift toasts and prompts to the top on mobile */
   body.mobile #toast { top: 60px; font-size: 20px; width: 90%; }
   body.mobile #prompt { top: 70px; bottom: auto; padding: 8px 16px; font-size: 14px; width: auto; max-width: 250px; text-align: center; }
 
@@ -206,6 +193,7 @@
   <div id="joyBase"><div id="joyKnob"></div></div>
   <div id="bAtk"  class="tbtn">🗡️</div>
   <div id="bMag"  class="tbtn">✨</div>
+  <div id="bMagSwap" class="tbtn">🔄</div>
   <div id="bDash" class="tbtn">💨</div>
   <div id="tcol">
     <div id="bDig"  class="tbtn">⛏️</div>
@@ -213,6 +201,8 @@
     <div id="bShip" class="tbtn">⛵</div>
     <div id="bTree" class="tbtn">🌲</div>
     <div id="bShop" class="tbtn" style="background: rgba(60,40,20,0.8); border-color:#ffd56b;">🛒</div>
+    <div id="bTrap" class="tbtn">📌</div>
+    <div id="bTurret" class="tbtn">🏹</div>
   </div>
   <div id="bPause" class="tbtn">⏸️</div>
 </div>
@@ -220,11 +210,17 @@
 <div id="floaters"></div>
 <div id="prompt"></div>
 
+<div id="victoryScreen" class="overlay-screen hidden" style="background: radial-gradient(circle, rgba(10,30,80,.95), #000); z-index:400;">
+  <h1 style="color:#8be0ff; font-size:70px;">VICTORY</h1>
+  <p style="font-size:22px; margin-bottom:30px;">The Leviathan is slain. The waters are calm once more.</p>
+  <button class="btn" onclick="location.reload()" style="background: linear-gradient(135deg,#4f9dff,#8b5cf6);">PLAY AGAIN</button>
+</div>
+
 <div id="pauseMenu" class="overlay-screen hidden">
   <h2>PAUSED</h2>
   <p style="margin-bottom: 26px;">Take a breath, hero.</p>
-  <button class="btn" id="fullScreenBtn" style="margin-bottom: 14px; background: linear-gradient(135deg,#4f9dff,#8b5cf6);">TOGGLE FULLSCREEN</button>
-  <button class="btn" id="resumeBtn" style="margin-bottom: 14px;">RESUME GAME</button>
+  <button class="btn" id="resumeBtn">RESUME GAME</button>
+  <button class="btn" style="background:linear-gradient(135deg,#444,#222); margin-top:14px;" onclick="if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen()">TOGGLE FULLSCREEN</button>
   <button class="btn btn-quit" id="quitBtn">QUIT GAME</button>
   <div class="copyright">© 2026 Noam Rapp. All Rights Reserved.</div>
 </div>
@@ -233,19 +229,14 @@
   <h1>EMBERFALL</h1>
   <p>The world has grown vast. Beware <b style="color:#ff5555">Mimics</b> — they disguise themselves as trees, rocks, even cave mouths, and lunge the moment you draw near. Shelter in lamp-lit caves, fort up in tunnels, climb trees, and command your artillery ship.</p>
   <div class="keys">
-    <div class="pc-keys">
-      <b>Mouse</b> Look around (drag if your browser won't lock the pointer)<br>
-      <b>WASD</b> Move &nbsp;&nbsp;&nbsp; <b>Shift</b> Dash<br>
-      <b>Left-Click</b> Melee &nbsp;&nbsp;&nbsp; <b>Right-Click</b> Magic Bolt<br>
-      <b>T</b> Dig Tunnel &nbsp;&nbsp;&nbsp; <b>F</b> Enter/Travel Tunnels (dig 2+ to link them underground)<br>
-      <b>B</b> Board/Leave Ship (the ship has its own health — keep it alive!)<br>
-      <b>E</b> Climb Tree (Safe from ground foes)<br>
-      <b>TAB</b> Open Upgrades Shop (Pauses Game)<br>
-    </div>
-    <div class="mobile-keys">
-      <b>Mobile</b> Left half of screen to Move, Right half to Look.<br>
-      Tap the on-screen buttons to Attack, Cast, Dash, Dig, and Interact.
-    </div>
+    <b>Mouse</b> Look around (drag if your browser won't lock the pointer)<br>
+    <b>WASD</b> Move &nbsp;&nbsp;&nbsp; <b>Shift</b> Dash<br>
+    <b>Left-Click</b> Melee &nbsp;&nbsp;&nbsp; <b>Right-Click</b> Magic Bolt &nbsp;&nbsp;&nbsp; <b>Q / C</b> Cycle Magic Element<br>
+    <b>T</b> Dig Tunnel &nbsp;&nbsp;&nbsp; <b>F</b> Enter/Travel Tunnels (dig 2+ to link them underground)<br>
+    <b>5</b> Spike Trap (20g) &nbsp;&nbsp;&nbsp; <b>6</b> Auto-Turret (50g)<br>
+    <b>B</b> Board/Leave Ship (the ship has its own health — keep it alive!)<br>
+    <b>E</b> Climb Tree / Cleanse Obelisks<br>
+    <b>TAB</b> Open Upgrades Shop (Pauses Game)<br>
   </div>
   <button class="btn" id="startBtn">ENTER THE FRAY</button>
   <div class="credit">A game by <b>Noam Rapp</b></div>
@@ -275,57 +266,30 @@ function initAudio() {
     sfx.cannon = new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 4, envelope: { attack: 0.01, decay: 0.5, sustain: 0 } }).connect(masterVol);
     sfx.coin = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.01, decay: 0.4, sustain: 0 } }).connect(masterVol);
     sfx.heal = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.05, decay: 0.4, sustain: 0.2, release: 0.5 } }).connect(masterVol);
-    sfx.poly = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'square' } }).connect(new Tone.Volume(-8)).connect(masterVol); // Lower level-up volume
+    sfx.poly = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'square' } }).connect(masterVol);
+    sfx.poly.volume.value = -6; // Lower level up volume
     sfx.dig = new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0 } }).connect(masterVol);
 
-    // --- BACKGROUND MUSIC ---
-    // 1. Dark ambient drone
-    const droneFilter = new Tone.Filter(200, "lowpass").connect(masterVol);
+    // Dark medieval ambient background
+    const droneFilter = new Tone.Filter(300, "lowpass").connect(masterVol);
     const drone = new Tone.Oscillator("D2", "sawtooth").connect(droneFilter);
-    drone.volume.value = -18;
+    drone.volume.value = -20;
     drone.start();
     
-    // Slowly modulate the drone filter for an evolving feel
-    const lfo = new Tone.LFO(0.1, 150, 400).connect(droneFilter.frequency);
-    lfo.start();
-
-    // 2. Slow eerie arpeggio (Lute/Harp feel)
     const lute = new Tone.Synth({
         oscillator: { type: 'triangle' },
-        envelope: { attack: 0.02, decay: 1.5, sustain: 0, release: 1 }
+        envelope: { attack: 0.02, decay: 1.5, sustain: 0 }
     }).connect(masterVol);
-    lute.volume.value = -8;
+    lute.volume.value = -10;
 
-    const arpNotes = ["D3", "F3", "A3", "C4", "A3", "F3", "D3", "E3"];
+    const arpNotes = ["D3", "F3", "A3", "C4", "A3", "G3", "F3", "E3"];
     let step = 0;
-    
-    // 3. Heartbeat drum
-    const drum = new Tone.MembraneSynth({
-        pitchDecay: 0.1, octaves: 3, envelope: { attack: 0.01, decay: 0.5, sustain: 0 }
-    }).connect(masterVol);
-    drum.volume.value = -6;
-
     Tone.Transport.scheduleRepeat((time) => {
-        if (started && player.alive) {
-            // Play lute note if not paused
-            if (!paused) {
-                lute.triggerAttackRelease(arpNotes[step % arpNotes.length], "8n", time);
-            }
-            
-            // Play heartbeat on downbeats
-            if (step % 8 === 0) {
-                drum.triggerAttackRelease("D1", "4n", time);
-            } else if (step % 8 === 2) {
-                drum.triggerAttackRelease("D1", "8n", time, 0.5); // Softer second beat
-            }
-        } else if (!player.alive && step % 16 === 0) {
-            // Slow eerie heartbeat when dead
-            drum.triggerAttackRelease("D0", "1n", time);
+        if (started && !paused && player.alive) {
+            lute.triggerAttackRelease(arpNotes[step % arpNotes.length], "8n", time);
         }
         step++;
-    }, "4n"); // Quarter note pulse
-
-    Tone.Transport.bpm.value = 100;
+    }, "4n");
     Tone.Transport.start();
 }
 
@@ -359,7 +323,21 @@ const enemyZones = [];
 const trees = [];
 const caveLamps = [];
 
-// ---- Underground tunnel network ----
+// --- Endgame & Base Building Vars ---
+let dayTime = 0;
+const obelisks = [];
+let cleansedObelisks = 0;
+let leviathan = null;
+const traps = [];
+const turrets = [];
+
+const MAGIC_ELEMENTS = [
+  { name: 'Fire', color: 0xff3b3b, glow: 0xff7a18, bg: 'linear-gradient(135deg,#ff7a18,#ff3b3b)', type: 'fire' },
+  { name: 'Ice', color: 0x4f9dff, glow: 0x8be0ff, bg: 'linear-gradient(135deg,#4f9dff,#8be0ff)', type: 'ice' },
+  { name: 'Lightning', color: 0x9d4fff, glow: 0xe08bff, bg: 'linear-gradient(135deg,#8b5cf6,#d94fff)', type: 'lightning' }
+];
+let activeElem = 0;
+
 const UG_Y = -12;
 const ugRoot = new THREE.Group(); scene.add(ugRoot);
 const ugFloorMat = new THREE.MeshStandardMaterial({ color: 0x3a2e20, roughness: 1 });
@@ -370,22 +348,24 @@ const ugAmbient = new THREE.AmbientLight(0x6a6280, 0.0); scene.add(ugAmbient);
 const ugLightPool = [];
 for (let i=0;i<3;i++){ const L=new THREE.PointLight(0xffbb55, 0, 38, 2); ugRoot.add(L); ugLightPool.push(L); }
 
-// Massive Lake & Island positioning
 const LAKE = { x: -80, z: 70, r: 90 }; 
 const ISLAND = { x: -95, z: 65, r: 24 };
 
-// Ground
 const ground = new THREE.Mesh(
   new THREE.PlaneGeometry(WORLD*2, WORLD*2),
   new THREE.MeshStandardMaterial({ color: 0x3a5a3a, roughness: 1 })
 );
 ground.rotation.x = -Math.PI/2; ground.receiveShadow = true; scene.add(ground);
 
-const patchMat = new THREE.MeshStandardMaterial({ color: 0x2f4a30, roughness: 1 });
 for (let i=0;i<340;i++){
-  const p = new THREE.Mesh(new THREE.CircleGeometry(3+Math.random()*10, 8), patchMat);
+  const x=(Math.random()-0.5)*WORLD*1.9, z=(Math.random()-0.5)*WORLD*1.9;
+  let pColor = 0x2f4a30;
+  if (z < -80) pColor = 0xc0d0e0; // Snow Biome (North)
+  else if (z > 80) pColor = 0x4a2e1b; // Scorched Biome (South)
+  
+  const p = new THREE.Mesh(new THREE.CircleGeometry(3+Math.random()*10, 8), new THREE.MeshStandardMaterial({ color: pColor, roughness: 1 }));
   p.rotation.x = -Math.PI/2;
-  p.position.set((Math.random()-0.5)*WORLD*1.9, 0.01, (Math.random()-0.5)*WORLD*1.9);
+  p.position.set(x, 0.01, z);
   p.receiveShadow = true; scene.add(p);
 }
 
@@ -534,6 +514,18 @@ function placeCave(x,z){ makeCave(x, z, Math.atan2(-x,-z)); }
 placeCave(-50, 40); placeCave(0, -60); placeCave(70, -20); placeCave(-20, 60);
 placeCave(-160, -40); placeCave(170, 60); placeCave(50, -160); placeCave(-120, 150);
 
+function buildObelisk(x, z, element, color) {
+  const g = new THREE.Group();
+  const p = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 2.5, 10, 4), new THREE.MeshStandardMaterial({color:0x111111, roughness:0.8, emissive:0xff0000, emissiveIntensity:0.5}));
+  p.position.y = 5; g.add(p);
+  g.position.set(x, 0, z); scene.add(g);
+  enemyZones.push({ x, z, r: 4 });
+  obelisks.push({ obj: g, pillar: p, pos: new THREE.Vector3(x,0,z), state: 'cursed', progress: 0, element, targetColor: color });
+}
+buildObelisk(0, -120, 'Ice', 0x00aaff);
+buildObelisk(0, 120, 'Fire', 0xff5500);
+buildObelisk(130, 0, 'Lightning', 0xaa00ff);
+
 const weaponTiers = [
   { name: 'Iron Sword', cost: 0, atkBonus: 0, color: 0xdfe8ff, glow: 0x223366, scale: 1.0 },
   { name: 'Steel Broadsword', cost: 25, atkBonus: 10, color: 0xcdd5e0, glow: 0x556677, scale: 1.2 },
@@ -645,28 +637,6 @@ function buildSlime(type, scale, color){
   g.userData.body = body; return g;
 }
 
-function buildBat(scale, color){
-  const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.DodecahedronGeometry(0.55*scale, 0), new THREE.MeshStandardMaterial({color, flatShading:true}));
-  body.castShadow = true; g.add(body);
-  const eye = new THREE.Mesh(new THREE.SphereGeometry(0.15*scale, 8, 8), new THREE.MeshStandardMaterial({color:0xff2222, emissive:0xff0000}));
-  eye.position.set(0, 0.2*scale, 0.45*scale); g.add(eye);
-  const wingMat = new THREE.MeshStandardMaterial({color:0x111111, flatShading:true, side:THREE.DoubleSide});
-  
-  const wL = new THREE.Group(); wL.position.set(-0.4*scale, 0, 0);
-  const mhwL = new THREE.Mesh(new THREE.CircleGeometry(0.7*scale, 3), wingMat);
-  mhwL.position.set(-0.35*scale, 0, 0); mhwL.rotation.x = Math.PI/2; mhwL.rotation.z = -Math.PI/6;
-  wL.add(mhwL); g.add(wL);
-
-  const wR = new THREE.Group(); wR.position.set(0.4*scale, 0, 0);
-  const mhwR = new THREE.Mesh(new THREE.CircleGeometry(0.7*scale, 3), wingMat);
-  mhwR.position.set(0.35*scale, 0, 0); mhwR.rotation.x = Math.PI/2; mhwR.rotation.z = Math.PI/6;
-  wR.add(mhwR); g.add(wR);
-
-  g.userData = { body, wingL: wL, wingR: wR };
-  return g;
-}
-
 function buildTreeMesh(){
   const grp = new THREE.Group();
   const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.45,2.2,6), new THREE.MeshStandardMaterial({color:0x6b4a2b, roughness:1}));
@@ -720,16 +690,17 @@ function buildMimic(scale, disguiseType){
 }
 
 function spawnEnemy(type, x, z){
-  let e = { type, pos: new THREE.Vector3(x,0,z), phase:Math.random()*Math.PI*2, flash:0, touchCd:0, shootCd: 2.0, atkTimer:0 };
+  let e = { type, pos: new THREE.Vector3(x,0,z), phase:Math.random()*Math.PI*2, flash:0, touchCd:0, shootCd: 2.0, atkTimer:0, burn:0, freeze:0, stun:0 };
   const powerMult = 1 + player.level*0.15 + wepIdx*0.2 + magIdx*0.2;
   
   if (type==='brute') { e.scale=1.8; e.hp=80*powerMult; e.atk=18; e.speed=3.2; e.xp=65; e.gold=35; e.color=0x9b2d2d; }
+  else if (type==='ice_slime') { e.scale=1.3; e.hp=50*powerMult; e.atk=14; e.speed=3.5; e.xp=40; e.gold=20; e.color=0x8be0ff; e.type='slime'; }
+  else if (type==='fire_brute') { e.scale=2.0; e.hp=120*powerMult; e.atk=25; e.speed=3.8; e.xp=85; e.gold=45; e.color=0xff5500; }
   else if (type==='shooter') { e.scale=1.1; e.hp=30*powerMult; e.atk=10; e.speed=3.8; e.xp=40; e.gold=15; e.color=0x7030a0; }
   else if (type==='breaker') { e.scale=1.4; e.hp=60*powerMult; e.atk=15; e.speed=4.5; e.xp=50; e.gold=25; e.color=0xd06010; }
   else if (type==='toxic') { e.scale=1.2; e.hp=45*powerMult; e.atk=12; e.speed=4.0; e.xp=45; e.gold=20; e.color=0x33ff33; }
   else if (type==='water') { e.scale=1.5; e.hp=50*powerMult; e.atk=14; e.speed=4.5; e.xp=60; e.gold=30; e.color=0x1177ff; }
   else if (type==='stalker') { e.scale=1.1; e.hp=40*powerMult; e.atk=20; e.speed=5.2; e.xp=55; e.gold=25; e.color=0x2a1a3a; }
-  else if (type==='bat') { e.scale=1.2; e.hp=30*powerMult; e.atk=16; e.speed=7.5; e.xp=50; e.gold=20; e.color=0x664466; e.flying=true; }
   else if (type==='mimic') {
     e.disguise=['tree','rock','cave'][Math.floor(Math.random()*3)]; e.revealed=false;
     if (e.disguise==='cave'){ e.scale=2.6; e.hp=900*powerMult; e.atk=30; e.speed=4.2; e.xp=300; e.gold=250; }
@@ -739,7 +710,7 @@ function spawnEnemy(type, x, z){
   else { e.scale=1; e.hp=25*powerMult; e.atk=8; e.speed=4.2; e.xp=25; e.gold=10; e.color=0x6fcf45; e.type='slime'; }
 
   e.hp = Math.round(e.hp); e.maxHp=e.hp;
-  e.obj = (e.type==='mimic') ? buildMimic(e.scale, e.disguise) : (e.type==='bat' ? buildBat(e.scale, e.color) : buildSlime(e.type, e.scale, e.color));
+  e.obj = (e.type==='mimic') ? buildMimic(e.scale, e.disguise) : buildSlime(e.type, e.scale, e.color);
   e.obj.position.copy(e.pos);
   scene.add(e.obj); enemies.push(e); return e;
 }
@@ -748,9 +719,11 @@ function spawnWave(n){
   const pwr = player.level + wepIdx*3 + magIdx*3;
   let pool = ['slime'];
   if (pwr > 4) pool.push('brute', 'shooter');
-  if (pwr > 6) pool.push('bat');
   if (pwr > 8) pool.push('breaker', 'toxic');
   if (pwr > 10) pool.push('stalker', 'mimic');
+  
+  const isNight = Math.sin(dayTime) < 0;
+  if (isNight) pool.push('stalker', 'stalker');
   
   for (let i=0;i<n;i++){
     let x,z,tries=0, type;
@@ -761,7 +734,10 @@ function spawnWave(n){
     } else {
       do { const a=Math.random()*Math.PI*2, r=20+Math.random()*(WORLD-24); x=Math.cos(a)*r; z=Math.sin(a)*r; tries++; }
       while ((Math.hypot(x-player.pos.x,z-player.pos.z)<25 || isWater(x,z)) && tries<30);
-      type = pool[Math.floor(Math.random()*pool.length)];
+      
+      if (z < -80 && Math.random() < 0.5) type = 'ice_slime';
+      else if (z > 80 && Math.random() < 0.5) type = 'fire_brute';
+      else type = pool[Math.floor(Math.random()*pool.length)];
     }
     spawnEnemy(type, x, z);
   }
@@ -823,8 +799,6 @@ function digTunnel() {
   if (player.onShip || player.inTree || player.underground || !player.alive || player.tunnels<=0 || player.tunnelCd>0 || isWater(player.pos.x,player.pos.z)) return;
   player.tunnels--; player.tunnelCd=1.5;
 
-  if (audioCtxStarted) sfx.dig.triggerAttackRelease("8n");
-
   const tier = tunnelTiers[tunIdx];
   const x=player.pos.x, z=player.pos.z, r=tier.r;
   const g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
@@ -847,8 +821,44 @@ function digTunnel() {
   enemyZones.push(zone);
   activeTunnels.push({ group: g, rimMat: rimMat, hp: tier.hp, maxHp: tier.hp, zone: zone, r: r, x: x, z: z, ugGroup, corridor });
 
+  if (audioCtxStarted) sfx.dig.triggerAttackRelease("8n");
   floatText(player.pos,'⛏️ Tunnel Dug!','#d8b070',24);
   showToast(activeTunnels.length>1 ? 'Tunnel dug — linked underground! Press [F] to enter' : 'Tunnel dug — press [F] to go underground','#d8b070');
+}
+
+function cycleMagic() {
+  activeElem = (activeElem + 1) % 3;
+  const mt = MAGIC_ELEMENTS[activeElem];
+  const magBtn = $('bMag');
+  if (magBtn) magBtn.style.background = mt.bg;
+  showToast(mt.name + ' Magic Equipped', '#' + mt.color.toString(16));
+  if (audioCtxStarted) sfx.magic.triggerAttackRelease("C6", "32n");
+}
+
+function buildSpikeTrap() {
+  if (player.gold < 20) { showToast('Need 20g for Spike Trap', '#ff7a7a'); return; }
+  if (player.onShip || player.inTree || isWater(player.pos.x, player.pos.z)) return;
+  player.gold -= 20;
+  const m = new THREE.Mesh(new THREE.ConeGeometry(1, 0.5, 4), new THREE.MeshStandardMaterial({color:0x888899, metalness:0.6}));
+  m.position.copy(player.pos); m.position.y = 0.25; scene.add(m);
+  traps.push({ pos: player.pos.clone(), obj: m, hits: 15 });
+  if (audioCtxStarted) sfx.dig.triggerAttackRelease("16n");
+  updateHUD();
+  showToast('Spike Trap Placed', '#aaaaaa');
+}
+
+function buildAutoTurret() {
+  if (player.gold < 50) { showToast('Need 50g for Turret', '#ff7a7a'); return; }
+  if (player.onShip || player.inTree || isWater(player.pos.x, player.pos.z)) return;
+  player.gold -= 50;
+  const g = new THREE.Group();
+  const base = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), new THREE.MeshStandardMaterial({color:0x444455})); base.position.y = 0.6;
+  const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.5, 0), new THREE.MeshStandardMaterial({color:0x8be0ff, emissive:0x224488, emissiveIntensity:1})); crystal.position.y = 1.8;
+  g.add(base, crystal); g.position.copy(player.pos); scene.add(g);
+  turrets.push({ pos: player.pos.clone(), obj: g, crystal: crystal, cd: 0 });
+  if (audioCtxStarted) sfx.dig.triggerAttackRelease("16n");
+  updateHUD();
+  showToast('Auto-Turret Placed', '#8be0ff');
 }
 
 function toggleUnderground(){
@@ -872,7 +882,6 @@ function toggleUnderground(){
   }
 }
 
-// Pause & Shop State logic
 let paused = false, menuPaused = false, shopPaused = false;
 function checkPause() {
   paused = menuPaused || shopPaused;
@@ -965,10 +974,13 @@ addEventListener('keydown', e=>{
   if (e.code==='KeyT') digTunnel();
   if (e.code==='KeyF') toggleUnderground();
   if (e.code==='KeyB') toggleShip();
+  if (e.code==='KeyQ' || e.code==='KeyC') cycleMagic();
   if (e.code==='Digit1') window.buyUpgrade(1);
   if (e.code==='Digit2') window.buyUpgrade(2);
   if (e.code==='Digit3') window.buyUpgrade(3);
   if (e.code==='Digit4') window.repairShip();
+  if (e.code==='Digit5') buildSpikeTrap();
+  if (e.code==='Digit6') buildAutoTurret();
   if (e.code==='Escape') togglePause();
   if (e.code==='Tab') { e.preventDefault(); toggleShop(); }
   if (e.code==='KeyE') toggleTree();
@@ -977,6 +989,15 @@ addEventListener('keyup', e=>{ keys[e.code]=false; });
 
 function toggleTree(){
   if (!started || !player.alive || paused) return;
+  
+  // Cleanse Obelisk override
+  for (const ob of obelisks) {
+    if (ob.state === 'cursed' && Math.hypot(player.pos.x - ob.pos.x, player.pos.z - ob.pos.z) < 12) {
+      showToast(`Defend the ${ob.element} Obelisk!`, '#ffd56b');
+      return;
+    }
+  }
+
   if (player.inTree) {
     player.inTree = false;
     showToast("Jumped down from tree", "#ccc");
@@ -1075,6 +1096,7 @@ if (isTouch){
   }
   hold('bAtk', primaryAttack, true);
   hold('bMag', secondaryAttack, true);
+  hold('bMagSwap', cycleMagic);
   hold('bDash', ()=>{ keys['ShiftLeft']=true; setTimeout(()=>keys['ShiftLeft']=false, 60); });
   hold('bDig', digTunnel);
   hold('bTun', toggleUnderground);
@@ -1082,17 +1104,14 @@ if (isTouch){
   hold('bTree', toggleTree);
   hold('bShop', toggleShop);
   hold('bPause', togglePause);
+  hold('bTrap', buildSpikeTrap);
+  hold('bTurret', buildAutoTurret);
 }
 
 $('resumeBtn').onclick = togglePause;
 $('quitBtn').onclick = () => { location.reload(); };
-$('fullScreenBtn').onclick = () => {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(()=>{});
-  } else {
-    document.exitFullscreen().catch(()=>{});
-  }
-};
+
+function setReticle(on){ $('reticle').classList.toggle('show', !!on); }
 
 function faceNearestEnemy(maxDist){
   let best=null, bd=maxDist*maxDist;
@@ -1135,11 +1154,11 @@ function primaryAttack() {
   }
 }
 
-function shootBolt(isEnemy=false, startPos, dirVec, dmg, color, glow, speed){
+function shootBolt(isEnemy=false, startPos, dirVec, dmg, color, glow, speed, elemType='normal'){
   if (audioCtxStarted && !isEnemy) sfx.magic.triggerAttackRelease("E5", "16n");
   const m=new THREE.Mesh(new THREE.SphereGeometry(isEnemy?0.4:0.35,10,10), new THREE.MeshStandardMaterial({color:color,emissive:glow,emissiveIntensity:1.5,roughness:.3}));
   m.position.copy(startPos); scene.add(m);
-  projectiles.push({obj:m, vel:dirVec.clone().multiplyScalar(speed), life: 1.5, dmg, r: 0.6, aoe:false, isEnemy});
+  projectiles.push({obj:m, vel:dirVec.clone().multiplyScalar(speed), life: 1.5, dmg, r: 0.6, aoe:false, isEnemy, elemType});
 }
 
 function secondaryAttack(){
@@ -1150,7 +1169,9 @@ function secondaryAttack(){
   player.shootCooldown=tier.cd;
   const dir=new THREE.Vector3(Math.sin(player.facing),0,Math.cos(player.facing));
   const startY = player.inTree ? 4.8 : 1.4;
-  shootBolt(false, player.pos.clone().add(new THREE.Vector3(0,startY,0)).addScaledVector(dir,1), dir, player.magAtk, tier.color, tier.glow, tier.speed);
+  const mt = MAGIC_ELEMENTS[activeElem];
+  const dmg = player.magAtk * (mt.type === 'fire' ? 1.5 : 1.0);
+  shootBolt(false, player.pos.clone().add(new THREE.Vector3(0,startY,0)).addScaledVector(dir,1), dir, dmg, mt.color, mt.glow, tier.speed, mt.type);
 }
 
 function fireCannon(){
@@ -1172,7 +1193,7 @@ function fireCannon(){
 }
 
 function explode(pos,dmg,radius, isEnemy){
-  if (audioCtxStarted) sfx.cannon.triggerAttackRelease("C1", "4n");
+  if (audioCtxStarted) sfx.cannon.triggerAttackRelease("C1", "2n");
   if (!isEnemy) {
     for (const e of enemies){
       if (e.hp<=0) continue;
@@ -1184,11 +1205,41 @@ function explode(pos,dmg,radius, isEnemy){
         if (e.hp<=0) killEnemy(e);
       }
     }
+    if (leviathan && leviathan.active && Math.hypot(leviathan.pos.x-pos.x, leviathan.pos.z-pos.z) < radius+12) {
+       leviathan.hp -= dmg;
+       floatText(leviathan.pos.clone().add(new THREE.Vector3(0,10,0)), '-'+Math.round(dmg), '#ffcc66', 30);
+    }
   } else {
     const pY = player.inTree ? 3.5 : 0;
     if (Math.hypot(player.pos.x-pos.x, pY-pos.y, player.pos.z-pos.z) < radius+PLAYER_R) hurtPlayer(dmg);
   }
   addEffect(pos.clone(),radius, isEnemy?0x5555ff:0xffaa33);
+}
+
+function spawnLeviathan() {
+  leviathan = { hp: 12000 * (1 + player.level*0.1), maxHp: 12000 * (1 + player.level*0.1), pos: new THREE.Vector3(LAKE.x, -10, LAKE.z), phase: 0, active: true };
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.IcosahedronGeometry(12, 2), new THREE.MeshStandardMaterial({color:0x001133, roughness:0.2, emissive:0x002255, emissiveIntensity:0.5}));
+  g.add(body);
+  
+  const eyeMat = new THREE.MeshStandardMaterial({color:0xff0000, emissive:0xff0000, emissiveIntensity:2});
+  for(const dx of [-4, 4]){
+     const eye = new THREE.Mesh(new THREE.SphereGeometry(1.5), eyeMat);
+     eye.position.set(dx, 4, 10);
+     g.add(eye);
+  }
+
+  g.position.copy(leviathan.pos); scene.add(g); leviathan.obj = g;
+  water.material.color.setHex(0x550000); water.material.emissive.setHex(0x330000);
+  showToast('THE LEVIATHAN AWAKENS!', '#ff2222');
+  floatText(leviathan.pos, "THE END HAS COME", "#ff2222", 50);
+  if (audioCtxStarted) sfx.cannon.triggerAttackRelease("C1", "1n");
+  
+  if (!leviathan.hpBar) {
+     leviathan.hpBar = makeHpBar();
+     leviathan.hpBar.scale.set(4, 4, 4);
+     scene.add(leviathan.hpBar);
+  }
 }
 
 function addEffect(pos,maxR,color){
@@ -1199,6 +1250,7 @@ function addEffect(pos,maxR,color){
 
 function killEnemy(e){
   if (e.dead) return; e.dead=true;
+  if (audioCtxStarted) sfx.hit.triggerAttackRelease("E1", "8n");
   gainXp(e.xp); player.gold+=e.gold; player.kills++;
   
   if (e.type === 'toxic') createPuddle(e.pos);
@@ -1247,6 +1299,7 @@ function damageShip(dmg){
   floatText(ship.pos.clone().add(new THREE.Vector3(0,2.5,0)), '-'+Math.round(dmg), '#ff8844', 20);
   if (ship.hp <= 0){ ship.hp = 0; destroyShip(); }
 }
+
 function destroyShip(){
   ship.destroyed = true;
   addEffect(ship.pos.clone().add(new THREE.Vector3(0,1.6,0)), 7, 0xff6622);
@@ -1260,6 +1313,7 @@ function destroyShip(){
   }
   ship.obj.visible = false; ship.respawnTimer = 8;
 }
+
 function repairCost(){
   if (ship.destroyed) return 100;
   if (ship.hp >= ship.maxHp) return 0;
@@ -1386,6 +1440,105 @@ function update(dt){
   ship.fireCd=Math.max(0,ship.fireCd-dt);
   ship.dmgCd=Math.max(0,ship.dmgCd-dt);
 
+  // --- Day/Night Cycle ---
+  dayTime += dt * 0.04;
+  const dayLight = (Math.sin(dayTime) + 1) / 2;
+  sun.intensity = 0.05 + dayLight * 1.5;
+  hemiLight.intensity = 0.05 + dayLight * 0.5;
+  scene.fog.color.setHSL(0.66, 0.4, 0.01 + dayLight * 0.1);
+  scene.background.setHSL(0.66, 0.4, 0.01 + dayLight * 0.1);
+
+  // --- Obelisks ---
+  let cleansing = false;
+  for (const ob of obelisks) {
+    if (ob.state === 'cursed') {
+      const d = Math.hypot(player.pos.x - ob.pos.x, player.pos.z - ob.pos.z);
+      if (d < 12) {
+         cleansing = true;
+         ob.progress += dt * 8;
+         if (Math.random() < 0.02 * dt * 60) {
+           spawnEnemy('stalker', ob.pos.x + (Math.random()-0.5)*20, ob.pos.z + (Math.random()-0.5)*20);
+         }
+         if (ob.progress >= 100) {
+           ob.state = 'cleansed';
+           ob.pillar.material.emissive.setHex(ob.targetColor);
+           showToast(`${ob.element} Obelisk Cleansed!`, '#8be0ff');
+           floatText(ob.pos, "CLEANSED", "#8be0ff", 30);
+           if (audioCtxStarted) sfx.levelUp.triggerAttackRelease(["C4", "G4", "C5"], "2n");
+           cleansedObelisks++;
+           if (cleansedObelisks === 3 && !leviathan) spawnLeviathan();
+         }
+      }
+    }
+  }
+
+  // --- Base Defenses ---
+  for (const t of turrets) {
+    t.cd -= dt;
+    t.crystal.rotation.y += dt;
+    if (t.cd <= 0) {
+       let best = null, bd = 16*16;
+       for (const e of enemies) {
+          if (e.hp <= 0 || (e.type==='mimic'&&!e.revealed)) continue;
+          const distSq = (e.pos.x-t.pos.x)**2 + (e.pos.z-t.pos.z)**2;
+          if (distSq < bd) { bd = distSq; best = e; }
+       }
+       if (best) {
+          t.cd = 0.8; 
+          const dir = new THREE.Vector3(best.pos.x-t.pos.x, (best.obj.position.y||0)-1.8, best.pos.z-t.pos.z).normalize();
+          shootBolt(false, t.pos.clone().add(new THREE.Vector3(0,1.8,0)), dir, 15 + player.magAtk*0.3, 0x8be0ff, 0x224488, 30);
+       }
+    }
+  }
+
+  for (let i=traps.length-1; i>=0; i--) {
+    const t = traps[i];
+    let hit = false;
+    for (const e of enemies) {
+       if (e.hp <= 0 || e.flying) continue;
+       if (Math.hypot(e.pos.x-t.pos.x, e.pos.z-t.pos.z) < 1.5 + e.scale*0.5) {
+          e.hp -= 35 * dt; 
+          e.flash = 0.2;
+          hit = true;
+          if (e.hp <= 0) killEnemy(e);
+       }
+    }
+    if (hit) {
+      t.hits -= dt;
+      if (t.hits <= 0) { scene.remove(t.obj); traps.splice(i, 1); }
+    }
+  }
+
+  // --- Leviathan Boss ---
+  if (leviathan && leviathan.active) {
+    leviathan.phase += dt;
+    leviathan.obj.position.y += (2 - leviathan.obj.position.y) * dt * 0.5; // Rise up
+    leviathan.obj.rotation.y = Math.atan2(player.pos.x - leviathan.pos.x, player.pos.z - leviathan.pos.z);
+    
+    leviathan.hpBar.visible = true;
+    leviathan.hpBar.position.set(leviathan.obj.position.x, leviathan.obj.position.y + 16, leviathan.obj.position.z);
+    leviathan.hpBar.quaternion.copy(camera.quaternion);
+    const r = Math.max(0, leviathan.hp / leviathan.maxHp), fill = leviathan.hpBar.userData.fill;
+    fill.scale.x = r; fill.position.x = -leviathan.hpBar.userData.W * (1 - r) / 2;
+    fill.material.color.setHex(0xff2244);
+
+    if (leviathan.obj.position.y > 0 && Math.random() < 0.015 * dt * 60) {
+       const pY = player.inTree ? 4.0 : 0;
+       const dir = player.pos.clone().add(new THREE.Vector3(0,pY,0)).sub(leviathan.obj.position.clone().add(new THREE.Vector3(0,8,0))).normalize();
+       shootBolt(true, leviathan.obj.position.clone().add(new THREE.Vector3(0,8,0)), dir, 45, 0x00aaff, 0x0055aa, 40);
+    }
+
+    if (leviathan.hp <= 0) {
+       leviathan.active = false;
+       addEffect(leviathan.pos, 40, 0x00aaff);
+       scene.remove(leviathan.obj);
+       scene.remove(leviathan.hpBar);
+       $('victoryScreen').classList.remove('hidden');
+       setReticle(false);
+       if (document.pointerLockElement === canvas) document.exitPointerLock();
+    }
+  }
+
   ugAmbient.intensity += ((player.underground ? 0.85 : 0.0) - ugAmbient.intensity) * Math.min(1, dt*6);
   if (player.underground){
     scene.fog.near=6; scene.fog.far=75;
@@ -1498,11 +1651,20 @@ function update(dt){
        }
        if (!nearTree) {
           let onTunnel=false;
-          for(const t of activeTunnels){ if(Math.hypot(p.x-t.x,p.z-t.z)<t.r){ onTunnel=true; setPrompt('Press [F] to go underground'); break; } }
-          if (!onTunnel){
+          for(const t of activeTunnels){ if(Math.hypot(p.x-t.x,p.z-t.z)<t.r){ onTunnel=true; if(!cleansing) setPrompt('Press [F] to go underground'); break; } }
+          
+          if (!onTunnel && !cleansing){
             if (Math.hypot(p.x-ship.pos.x,p.z-ship.pos.z) < 9 && !ship.destroyed) setPrompt('Press [B] to board ship');
             else setPrompt('');
           }
+       }
+       
+       if (cleansing) {
+         for (const ob of obelisks) {
+           if (ob.state === 'cursed' && Math.hypot(player.pos.x - ob.pos.x, player.pos.z - ob.pos.z) < 12) {
+             setPrompt(`Cleansing ${ob.element} Obelisk... ${Math.floor(ob.progress)}%`);
+           }
+         }
        }
     }
   }
@@ -1559,6 +1721,11 @@ function update(dt){
       const u=e.obj.userData; u.dying+=dt; const k=u.dying/0.35;
       e.obj.scale.setScalar(Math.max(0.001,1-k)); e.obj.position.y=k*2; continue;
     }
+    
+    if (e.burn > 0) { e.burn -= dt; e.hp -= 20 * dt; e.flash = 0.1; if (e.hp<=0) {killEnemy(e); continue;} }
+    if (e.freeze > 0) { e.freeze -= dt; e.speedMod = 0.3; } else { e.speedMod = 1.0; }
+    if (e.stun > 0) { e.stun -= dt; e.flash = 0.1; continue; }
+    
     e.touchCd=Math.max(0,e.touchCd-dt); e.shootCd=Math.max(0,e.shootCd-dt); e.atkTimer=Math.max(0,e.atkTimer-dt); 
     e.flash=Math.max(0,e.flash-dt); e.phase+=dt*8;
     
@@ -1601,10 +1768,10 @@ function update(dt){
       if (e.type === 'shooter' || e.type === 'water') {
         if (distToTarget > 12) {
           const to=target.clone().sub(e.pos); to.y=0; to.normalize();
-          e.obj.position.addScaledVector(to, e.speed*dt); e.obj.rotation.y=Math.atan2(to.x,to.z);
+          e.obj.position.addScaledVector(to, e.speed * e.speedMod * dt); e.obj.rotation.y=Math.atan2(to.x,to.z);
         } else if (distToTarget < 8) {
           const to=e.pos.clone().sub(target); to.y=0; to.normalize();
-          e.obj.position.addScaledVector(to, e.speed*dt*0.5); e.obj.rotation.y=Math.atan2(-to.x,-to.z);
+          e.obj.position.addScaledVector(to, e.speed * e.speedMod * dt * 0.5); e.obj.rotation.y=Math.atan2(-to.x,-to.z);
         } else {
           e.obj.rotation.y=Math.atan2(target.x-e.pos.x, target.z-e.pos.z);
           if (e.shootCd <= 0) {
@@ -1617,7 +1784,7 @@ function update(dt){
       } else {
         if (distToTarget > 1.2) {
           const to=target.clone().sub(e.pos); to.y=0; to.normalize();
-          e.obj.position.addScaledVector(to, e.speed*dt); e.obj.rotation.y=Math.atan2(to.x,to.z);
+          e.obj.position.addScaledVector(to, e.speed * e.speedMod * dt); e.obj.rotation.y=Math.atan2(to.x,to.z);
         }
       }
     }
@@ -1625,25 +1792,17 @@ function update(dt){
     if (e.type !== 'water') {
       for (const b of walls) resolveBox(e.obj.position, e.scale, b);
       for (const z of enemyZones) resolveZoneOut(e.obj.position, e.scale*0.6, z);
-      if (!e.flying) resolveWaterBoundary(e.obj.position, e.scale, false);
+      resolveWaterBoundary(e.obj.position, e.scale, false);
     } else {
       resolveWaterBoundary(e.obj.position, e.scale, true);
     }
     
     let eTargetY = 0;
-    if (e.flying) {
-      eTargetY = distToTarget < 4.5 ? player.obj.position.y + 0.5 : 5.0; 
-      if (e.type === 'bat') {
-        const flap = Math.sin(e.phase * 4) * 0.8;
-        e.obj.userData.wingL.rotation.z = flap;
-        e.obj.userData.wingR.rotation.z = -flap;
-      }
-    }
     if (e.type === 'stalker' && player.inTree && distToTarget < 2.5) {
       eTargetY = player.obj.position.y;
     }
-    const bounce = e.flying ? 0 : Math.abs(Math.sin(e.phase*0.5))*0.15;
-    e.obj.position.y += ((eTargetY + bounce) - e.obj.position.y) * Math.min(1, dt * (e.flying ? 6 : 5));
+    const bounce = Math.abs(Math.sin(e.phase*0.5))*0.15;
+    e.obj.position.y += ((eTargetY + bounce) - e.obj.position.y) * Math.min(1, dt * 5);
     e.pos.copy(e.obj.position);
 
     const sq=1+Math.sin(e.phase)*0.12;
@@ -1698,11 +1857,27 @@ function update(dt){
           if (pr.aoe) { explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false); hit=true; break; }
           else { 
             e.hp-=pr.dmg; e.flash=0.15; const k=pr.vel.clone(); k.y=0; k.normalize(); 
-            e.obj.position.addScaledVector(k,1.2); floatText(e.pos,'-'+pr.dmg,'#8be0ff',20); 
+            e.obj.position.addScaledVector(k,1.2); floatText(e.pos,'-'+Math.round(pr.dmg),'#8be0ff',20); 
+            
+            if (pr.elemType === 'fire') { e.burn = 3.0; floatText(e.pos,'BURN','#ff7a18',16); }
+            if (pr.elemType === 'ice') { e.freeze = 3.0; floatText(e.pos,'SLOW','#8be0ff',16); }
+            if (pr.elemType === 'lightning') { e.stun = 0.8; floatText(e.pos,'STUN','#e08bff',16); }
+            
             if(e.hp<=0) killEnemy(e); 
             hit=true; break; 
           }
         }
+      }
+      
+      if (!hit && !pr.isEnemy && leviathan && leviathan.active) {
+         if (Math.hypot(leviathan.pos.x-pr.obj.position.x, leviathan.pos.z-pr.obj.position.z) < 12) {
+            if (pr.aoe) { explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false); hit=true; }
+            else {
+              leviathan.hp -= pr.dmg;
+              floatText(leviathan.pos.clone().add(new THREE.Vector3(0,10,0)), '-'+Math.round(pr.dmg), '#ffffff', 30);
+              hit = true;
+            }
+         }
       }
     }
     
@@ -1718,14 +1893,10 @@ function update(dt){
     }
   }
 
-  for (let i=effects.length-1; i>=0; i--) {
-    const ef = effects[i]; ef.age += dt;
-    if (ef.age >= ef.life) { scene.remove(ef.obj); effects.splice(i, 1); }
-    else {
-      const k = ef.age / ef.life;
-      ef.obj.scale.setScalar(1 + k * ef.maxR);
-      ef.obj.material.opacity = 0.8 * (1 - k);
-    }
+  for (let i=effects.length-1;i>=0;i--){
+    const ef=effects[i]; ef.age+=dt; const k=ef.age/ef.life;
+    ef.obj.scale.setScalar(0.3+ef.maxR*k); ef.obj.material.opacity=0.8*(1-k);
+    if (k>=1){ scene.remove(ef.obj); effects.splice(i,1); }
   }
 
   const collectCenter = player.onShip ? ship.pos : player.pos;
@@ -1758,10 +1929,10 @@ function update(dt){
   }
 
   spawnTimer-=dt;
-  if (spawnTimer<=0 && enemies.length < 100){ 
+  if (spawnTimer<=0 && enemies.length<50){ 
     spawnWave(waveSize); 
-    waveSize = Math.min(40, 5 + Math.floor(player.level * 1.5)); 
-    spawnTimer = Math.max(0.5, 6.0 - player.level * 0.4); 
+    waveSize=Math.min(20,waveSize+1); 
+    spawnTimer= 7.0 - Math.min(3, player.level*0.1); 
   }
 
   const focus = player.onShip ? ship.pos : player.pos;
@@ -1799,7 +1970,7 @@ $('startBtn').onclick=()=>{
   spawnMimics(10);
   setReticle(true);
   if (!isTouch){ try { canvas.requestPointerLock(); } catch(_){} }
-  showToast(isTouch ? 'Left half: Move  |  Right half: Look' : 'Slay the shadows! (drag mouse to look · ESC to pause)','#ffd56b');
+  showToast(isTouch ? 'Slay the shadows! Joystick to move · drag to look' : 'Slay the shadows! (drag mouse to look · ESC to pause)','#ffd56b');
 };
 </script>
 </body>

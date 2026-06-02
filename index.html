@@ -82,6 +82,17 @@
   #reticle::after  { top: 11px; left: 0; height: 4px; width: 26px; }
   #reticle.show { display: block; }
 
+  /* Boss health bar */
+  #bossBar { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); width: min(560px, 80vw); height: 22px; background: rgba(0,0,0,.6); border: 1px solid #4f9dff; border-radius: 11px; display: none; z-index: 85; overflow: hidden; }
+  #bossBar.show { display: block; }
+  #bossFill { height: 100%; width: 100%; background: linear-gradient(90deg,#00ffff,#4f9dff); transition: width .2s; }
+  #bossLabel { position: absolute; inset: 0; text-align: center; font-size: 12px; font-weight: bold; line-height: 22px; letter-spacing: 1px; text-shadow: 0 1px 2px #000; }
+  body.mobile #bossBar { top: 46px; height: 18px; }
+  body.mobile #bossLabel { line-height: 18px; }
+
+  /* Mobile active-magic chip (near the swap button) */
+  #magChip { position: absolute; right: 120px; bottom: 160px; min-width: 50px; text-align: center; padding: 2px 6px; border-radius: 6px; font-size: 11px; font-weight: bold; color: #fff; background: #ff3b3b; box-shadow: 0 2px 6px rgba(0,0,0,.5); pointer-events: none; }
+
   /* ---------------- MOBILE TOUCH LAYOUT ---------------- */
   html, body { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
   #touch { position: fixed; inset: 0; z-index: 30; pointer-events: none; display: none; }
@@ -175,6 +186,7 @@
 
 <div id="toast"></div>
 <div id="prompt"></div>
+<div id="bossBar"><div id="bossFill"></div><div id="bossLabel">THE LEVIATHAN</div></div>
 <div id="floaters"></div>
 <div id="reticle"></div>
 
@@ -188,6 +200,7 @@
   <div id="bMag" class="act-btn">✨</div>
   <div id="bDash" class="act-btn">💨</div>
   <div id="bSwap" class="act-btn">🔄</div>
+  <div id="magChip">FIRE</div>
 
   <!-- Bottom Toolbar -->
   <div id="utils-bar">
@@ -295,20 +308,20 @@ async function initAudio() {
         sfx.cannon = new Tone.MembraneSynth({ pitchDecay: 0.1, octaves: 4, envelope: { attack: 0.01, decay: 0.6, sustain: 0 } }).connect(masterVol);
         sfx.coin = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.01, decay: 0.4, sustain: 0 } }).connect(masterVol);
         sfx.heal = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.05, decay: 0.4, sustain: 0.2, release: 0.5 } }).connect(masterVol);
-        sfx.levelUp = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'square' } }).connect(new Tone.Volume(-6).connect(masterVol));
+        sfx.levelUp = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'square' } }).connect(new Tone.Volume(-17).connect(masterVol));
         sfx.dig = new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0 } }).connect(masterVol);
         sfx.build = new Tone.MembraneSynth({ pitchDecay: 0.2, octaves: 3, envelope: { attack: 0.01, decay: 0.1, sustain: 0 } }).connect(masterVol);
 
         // Ambience
         const droneFilter = new Tone.Filter(300, "lowpass").connect(masterVol);
         drone = new Tone.Oscillator("D2", "sawtooth").connect(droneFilter);
-        drone.volume.value = -20; drone.start();
+        drone.volume.value = -10; drone.start();
 
         lute = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.02, decay: 1.5, sustain: 0 } }).connect(masterVol);
-        lute.volume.value = -12;
+        lute.volume.value = 1;
 
         drum = new Tone.MembraneSynth({ pitchDecay: 0.01, octaves: 1 }).connect(masterVol);
-        drum.volume.value = -10;
+        drum.volume.value = -3;
 
         const arpNotes = ["D3", "F3", "A3", "C4", "A3", "G3", "F3", "E3"];
         let step = 0;
@@ -499,6 +512,7 @@ function spawnEnemy(type, x, z) {
     else if (type==='shooter') { e.scale=1.1; e.hp=30*pwr; e.atk=10; e.speed=3.8; e.xp=40; e.gold=15; e.color=0x7030a0; }
     else if (type==='bat') { e.scale=0.9; e.hp=25*pwr; e.atk=12; e.speed=5.5; e.xp=35; e.gold=15; e.color=0x222222; }
     else if (type==='stalker') { e.scale=1.2; e.hp=50*pwr; e.atk=22; e.speed=5.0; e.xp=60; e.gold=30; e.color=0x111111; }
+    else if (type==='breaker') { e.scale=1.5; e.hp=120*pwr; e.atk=15; e.speed=3.6; e.xp=70; e.gold=40; e.color=0xd06010; e.atkTunnelCd=0; } // ONLY type that smashes tunnels
     else if (type==='mimic') { e.scale=1.7; e.hp=400*pwr; e.atk=26; e.speed=4.8; e.xp=150; e.gold=100; e.color=0x3a0f2a; e.revealed=false; }
     else { e.scale=1; e.hp=25*pwr; e.atk=8; e.speed=4.2; e.xp=25; e.gold=10; e.color=0x6fcf45; e.type='slime'; }
 
@@ -506,6 +520,7 @@ function spawnEnemy(type, x, z) {
     // Simple geometry per type
     let geo = new THREE.IcosahedronGeometry(0.8*e.scale, 1);
     if(type==='bat') geo = new THREE.ConeGeometry(0.6*e.scale, 1.2*e.scale, 4);
+    else if(type==='breaker') geo = new THREE.DodecahedronGeometry(0.85*e.scale, 0);
     e.obj = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color:e.color, flatShading:true}));
     e.obj.position.copy(e.pos); scene.add(e.obj);
     enemies.push(e);
@@ -515,7 +530,7 @@ function spawnWave(n, forcePos=null) {
     const pwr = player.level;
     let pool = ['slime'];
     if (pwr > 3) pool.push('shooter', 'bat');
-    if (pwr > 6) pool.push('brute', 'stalker');
+    if (pwr > 6) pool.push('brute', 'stalker', 'breaker');
     
     for(let i=0; i<n; i++) {
         let x, z, tries=0;
@@ -622,14 +637,16 @@ if (isTouch) {
 function cycleMagic() {
     activeMagic = (activeMagic + 1) % magicTypes.length;
     const m = magicTypes[activeMagic];
-    $('magInd').textContent = m.ui;
-    $('magInd').style.background = '#' + m.col.toString(16);
+    const hex = '#' + m.col.toString(16).padStart(6,'0');
+    $('magInd').textContent = m.ui; $('magInd').style.background = hex;
+    const chip = $('magChip'); if(chip){ chip.textContent = m.ui; chip.style.background = hex; }
 }
 
 function primaryAttack() {
     if (!started || !player.alive || paused) return;
     if (player.onShip) return fireCannon();
     if (player.atkCd > 0) return;
+    if (isTouch) faceNearestEnemy(5.0); // auto-aim melee on touch
     player.atkCd = 0.4;
     if (audioCtxStarted) sfx.swing.triggerAttackRelease("16n");
 
@@ -661,6 +678,7 @@ function shootBolt(isEnemy, startPos, dir, dmg, color, speed, effect=null) {
 
 function secondaryAttack() {
     if (!started || !player.alive || player.onShip || paused || player.magCd > 0) return;
+    if (isTouch) faceNearestEnemy(45); // auto-aim magic on touch
     player.magCd = 0.3;
     const mType = magicTypes[activeMagic];
     const dir = new THREE.Vector3(Math.sin(player.facing),0,Math.cos(player.facing));
@@ -740,8 +758,10 @@ function digTunnel() {
         const prev = activeTunnels[activeTunnels.length-1];
         corridor = buildCorridor(prev.x, prev.z, x, z);
     }
-    
-    activeTunnels.push({ group: g, x, z, r, hp: tier.hp, maxHp: tier.hp, rimMat, ugGroup, corridor });
+
+    const zone = { x, z, r: r+0.6 };   // enemies (except Breakers) are blocked from this
+    enemyZones.push(zone);
+    activeTunnels.push({ group: g, x, z, r, hp: tier.hp, maxHp: tier.hp, rimMat, ugGroup, corridor, zone });
     floatText(player.pos,'⛏️ Tunnel Dug!','#d8b070',24);
     showToast(activeTunnels.length>1 ? 'Tunnel linked! Press [F] to enter.' : 'Tunnel created! Press [F] to enter.','#d8b070');
 }
@@ -778,18 +798,80 @@ function cleanseObelisk() {
     }
 }
 
+// --- Pickups (gold / health drops) ---
+function spawnPickup(x, z, kind) {
+    let mesh;
+    if (kind === 'gold') {
+        mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.25,0.08,10), new THREE.MeshStandardMaterial({color:0xffd24a, emissive:0x886600, emissiveIntensity:0.4}));
+        mesh.rotation.x = Math.PI/2;
+    } else {
+        mesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.32,0), new THREE.MeshStandardMaterial({color:0xff4d6d, emissive:0xff2244, emissiveIntensity:0.6}));
+    }
+    mesh.position.set(x, 0.6, z); scene.add(mesh);
+    pickups.push({ obj: mesh, kind, spin: Math.random()*6 });
+}
+
+// --- Collision helpers (enemies vs safe-zones, walls, water) ---
+function resolveZoneOut(p, radius, z) {
+    const dx=p.x-z.x, dz=p.z-z.z, d=Math.hypot(dx,dz), min=z.r+radius;
+    if (d < min) { if (d>1e-4){ p.x=z.x+dx/d*min; p.z=z.z+dz/d*min; } else p.x=z.x+min; }
+}
+function resolveBox(p, radius, b) {
+    const cx=Math.max(b.minx,Math.min(p.x,b.maxx)), cz=Math.max(b.minz,Math.min(p.z,b.maxz));
+    let dx=p.x-cx, dz=p.z-cz, d2=dx*dx+dz*dz;
+    if (d2 > radius*radius) return;
+    if (d2 > 1e-6){ const d=Math.sqrt(d2); p.x+=dx/d*(radius-d); p.z+=dz/d*(radius-d); }
+    else { const l=p.x-b.minx, rr=b.maxx-p.x, t=p.z-b.minz, bo=b.maxz-p.z, m=Math.min(l,rr,t,bo);
+           if(m===l)p.x=b.minx-radius; else if(m===rr)p.x=b.maxx+radius; else if(m===t)p.z=b.minz-radius; else p.z=b.maxz+radius; }
+}
+function resolveWaterBoundary(p, radius, isShip) {
+    const dL=Math.hypot(p.x-LAKE.x,p.z-LAKE.z), dI=Math.hypot(p.x-ISLAND.x,p.z-ISLAND.z);
+    if (!isShip) { // keep on land (out of lake, island counts as land)
+        if (dL < LAKE.r+radius && dI > ISLAND.r-radius) {
+            const toLake=(LAKE.r+radius)-dL, toIsl=dI-(ISLAND.r-radius);
+            if (toLake < toIsl){ const m=LAKE.r+radius; p.x=LAKE.x+(p.x-LAKE.x)/dL*m; p.z=LAKE.z+(p.z-LAKE.z)/dL*m; }
+            else { const m=ISLAND.r-radius; p.x=ISLAND.x+(p.x-ISLAND.x)/dI*m; p.z=ISLAND.z+(p.z-ISLAND.z)/dI*m; }
+        }
+    } else { // keep ship on the water
+        if (dL > LAKE.r-radius){ const m=LAKE.r-radius; p.x=LAKE.x+(p.x-LAKE.x)/dL*m; p.z=LAKE.z+(p.z-LAKE.z)/dL*m; }
+        if (dI < ISLAND.r+radius && dI>0.001){ const m=ISLAND.r+radius; p.x=ISLAND.x+(p.x-ISLAND.x)/dI*m; p.z=ISLAND.z+(p.z-ISLAND.z)/dI*m; }
+    }
+}
+
+// Turn the hero toward the nearest valid enemy in range (used on touch to ease aiming)
+function faceNearestEnemy(maxDist) {
+    let best=null, bd=maxDist*maxDist;
+    for (const e of enemies) {
+        if (e.dead || (e.type==='mimic' && !e.revealed)) continue;
+        const dx=e.pos.x-player.pos.x, dz=e.pos.z-player.pos.z, d2=dx*dx+dz*dz;
+        if (d2 < bd){ bd=d2; best=e; }
+    }
+    if (best){ player.facing = Math.atan2(best.pos.x-player.pos.x, best.pos.z-player.pos.z); player.obj.rotation.y = player.facing; }
+}
+
+// Floating billboard health bar (created lazily per enemy, shown once damaged)
+function makeHpBar() {
+    const g = new THREE.Group();
+    const W = 1.7;
+    const bg = new THREE.Mesh(new THREE.PlaneGeometry(W,0.24), new THREE.MeshBasicMaterial({color:0x110000, transparent:true, opacity:0.78, depthTest:false}));
+    const fill = new THREE.Mesh(new THREE.PlaneGeometry(W,0.18), new THREE.MeshBasicMaterial({color:0x6fcf45, depthTest:false}));
+    bg.renderOrder=998; fill.renderOrder=999; fill.position.z=0.001;
+    g.add(bg, fill); g.userData={W, fill}; g.visible=false;
+    return g;
+}
+
 function killEnemy(e) {
-    if(e.dead) return; e.dead = true;
+    if(e.dead) return; e.dead = true; e.dying = 0;
+    if(e.hpBar) e.hpBar.visible = false;
     player.xp += e.xp; player.gold += e.gold; player.kills++;
     if(audioCtxStarted) sfx.hit.triggerAttackRelease("E1", "8n");
-    if(Math.random()<0.4) spawnPickup(e.pos.x, e.pos.z, Math.random()<0.7?'gold':'health');
-    e.obj.visible = false; // Fast cleanup
-    
+    if(Math.random()<0.5) spawnPickup(e.pos.x, e.pos.z, Math.random()<0.7?'gold':'health');
+
     // Level up check
     while(player.xp >= player.xpNext) {
         player.xp -= player.xpNext; player.level++; player.xpNext = Math.round(player.xpNext*1.5);
         player.maxHp += 20; player.hp = player.maxHp; player.atk += 5;
-        if(audioCtxStarted) sfx.levelUp.triggerAttackRelease(["C4","E4","G4","C5"], "2n");
+        if(audioCtxStarted) sfx.levelUp.triggerAttackRelease(["C4","E4","G4"], "8n");
         showToast("LEVEL UP!", "#ffd56b"); addEffect(player.pos.clone(), 6, 0xffd56b);
     }
 }
@@ -815,7 +897,8 @@ function damageShip(dmg) {
         ship.destroyed = true; ship.hp = 0; scene.remove(ship.obj);
         if(player.onShip) {
             player.onShip = false; hero.visible = true;
-            player.pos.copy(LAKE); player.pos.y = 0; hurtPlayer(20);
+            player.pos.set(ship.pos.x, 0, ship.pos.z); resolveWaterBoundary(player.pos, PLAYER_R, false); player.obj.position.copy(player.pos);
+            hurtPlayer(20);
             showToast("Ship destroyed! You washed ashore.", "#ff3b3b");
         } else {
             showToast("Your ship was sunk!", "#ff3b3b");
@@ -954,12 +1037,17 @@ function update(dt) {
 
     if (player.onShip) {
         if(move.lengthSq()>0) { ship.pos.addScaledVector(move.normalize(), 14*dt); ship.facing = Math.atan2(move.x, move.z); }
+        resolveWaterBoundary(ship.pos, 1.8, true); // keep the ship on the lake
         player.pos.copy(ship.pos); ship.obj.position.copy(ship.pos); ship.obj.rotation.y = ship.facing;
     } else if (player.inTree) {
         player.obj.position.lerp(new THREE.Vector3(player.treePos.x, 3.5, player.treePos.z), 0.1); player.pos.copy(player.obj.position);
     } else if (player.alive) {
         player.obj.position.y = player.underground ? UG_Y : 0;
         if(move.lengthSq()>0) { player.pos.addScaledVector(move.normalize(), player.speed*dt); player.facing = Math.atan2(move.x, move.z); player.obj.rotation.y = player.facing; }
+        if(!player.underground) { // on the surface: blocked by water and solid structures
+            resolveWaterBoundary(player.pos, PLAYER_R, false);
+            for(const w of walls) resolveBox(player.pos, PLAYER_R, w);
+        }
         player.pos.x = Math.max(-WORLD, Math.min(WORLD, player.pos.x)); player.pos.z = Math.max(-WORLD, Math.min(WORLD, player.pos.z));
         player.obj.position.copy(player.pos);
     }
@@ -1002,6 +1090,8 @@ function update(dt) {
     if(cleansedCount === 3 && !leviathan) spawnLeviathan();
 
     if(leviathan && !leviathan.dead) {
+        $('bossBar').classList.add('show');
+        $('bossFill').style.width = Math.max(0, leviathan.hp/leviathan.maxHp*100) + '%';
         leviathan.shootCd -= dt;
         if(leviathan.shootCd <= 0) {
             leviathan.shootCd = 4;
@@ -1013,14 +1103,20 @@ function update(dt) {
 
     // Enemies
     for(const e of enemies) {
-        if(e.dead) continue;
+        if(e.dead) { // death fade-out, then removed in the cleanup pass below
+            e.dying += dt;
+            e.obj.scale.setScalar(Math.max(0.001, 1 - e.dying/0.3));
+            e.obj.position.y += dt*3;
+            if(e.hpBar) e.hpBar.visible = false;
+            continue;
+        }
         e.touchCd -= dt; e.shootCd -= dt;
-        
+
         let spdMult = 1.0;
         for(let i=e.effects.length-1; i>=0; i--){
             const ef = e.effects[i]; ef.time -= dt;
             if(ef.type === 'slow') spdMult = 0.4;
-            if(ef.type === 'burn') { e.hp -= 10*dt; floatText(e.pos, "-1", "#ff5500", 12); }
+            if(ef.type === 'burn') { e.hp -= 12*dt; } // damage applied silently (floater shown periodically below)
             if(ef.time <= 0 || e.hp <= 0) e.effects.splice(i,1);
         }
         if(e.hp <= 0) { killEnemy(e); continue; }
@@ -1030,17 +1126,60 @@ function update(dt) {
             if(dToP < 7) { e.revealed = true; e.obj.material.color.setHex(0xff1133); showToast("Mimic Ambush!", "#ff3333"); }
             continue;
         }
-        
-        if (dToP > 1.5) {
+
+        // Breakers are the ONLY type that can smash tunnels; everyone else is kept out of tunnel zones.
+        let attackingTunnel = false;
+        if (e.type === 'breaker' && activeTunnels.length) {
+            let nt=null, nd=1e9;
+            for(const t of activeTunnels){ const d=Math.hypot(t.x-e.pos.x, t.z-e.pos.z); if(d<nd){nd=d;nt=t;} }
+            if(nt && nd < nt.r + e.scale + 0.5){
+                attackingTunnel = true; e.atkTunnelCd -= dt;
+                if(e.atkTunnelCd <= 0){ e.atkTunnelCd = 1.0; nt.hp -= e.atk; floatText(new THREE.Vector3(nt.x,0.5,nt.z), '-'+e.atk, '#ffaa00', 18); }
+            }
+        }
+
+        if (dToP > 1.5 && !attackingTunnel) {
             const dir = player.pos.clone().sub(e.pos).normalize();
             e.pos.addScaledVector(dir, e.speed * spdMult * dt);
         }
+
+        // Collisions: walls block everything; safe-zones (tunnels) block all but Breakers
+        for(const w of walls) resolveBox(e.pos, e.scale*0.7, w);
+        if(e.type !== 'breaker') for(const z of enemyZones) resolveZoneOut(e.pos, e.scale*0.6, z);
+
         if (e.type === 'bat') e.obj.position.lerp(new THREE.Vector3(e.pos.x, dToP<3 ? (player.inTree?3:1) : 4, e.pos.z), 0.1);
         else e.obj.position.copy(e.pos);
 
-        if(dToP < 2.0 && e.touchCd <= 0) {
+        // Floating health bar (appears once damaged)
+        if(!e.hpBar){ e.hpBar = makeHpBar(); scene.add(e.hpBar); }
+        const showBar = e.hp < e.maxHp;
+        e.hpBar.visible = showBar;
+        if(showBar){
+            e.hpBar.position.set(e.pos.x, (e.obj.position.y||0) + e.scale*1.8 + 0.8, e.pos.z);
+            e.hpBar.quaternion.copy(camera.quaternion);
+            const ratio=Math.max(0,e.hp/e.maxHp), bw=e.hpBar.userData.W, fill=e.hpBar.userData.fill;
+            fill.scale.x=ratio; fill.position.x=-bw*(1-ratio)/2;
+            fill.material.color.setHex(e.type==='mimic'?0xff2244:(ratio>0.5?0x6fcf45:(ratio>0.25?0xffd24a:0xff3b3b)));
+        }
+
+        if(dToP < 2.0 && e.touchCd <= 0 && !attackingTunnel) {
             hurtPlayer(e.atk); e.touchCd = 1.0;
             if(player.inTree && e.type==='stalker') { player.inTree=false; showToast("Knocked out of tree!", "#ff3b3b"); }
+        }
+    }
+    // Remove fully-faded corpses (frees the array so waves keep spawning)
+    for(let i=enemies.length-1;i>=0;i--){ const e=enemies[i]; if(e.dead && e.dying>0.3){ scene.remove(e.obj); if(e.hpBar) scene.remove(e.hpBar); enemies.splice(i,1); } }
+
+    // Tunnel upkeep — Breakers can collapse them
+    for(let i=activeTunnels.length-1;i>=0;i--){
+        const t=activeTunnels[i]; const pct=Math.max(0,t.hp/t.maxHp);
+        if(t.rimMat) t.rimMat.color.setHex(0x4a3520).lerp(new THREE.Color(0xff0000), 1-pct);
+        if(t.hp<=0){
+            scene.remove(t.group); if(t.ugGroup) ugRoot.remove(t.ugGroup); if(t.corridor) ugRoot.remove(t.corridor);
+            const zi=enemyZones.indexOf(t.zone); if(zi>-1) enemyZones.splice(zi,1);
+            if(player.underground && Math.hypot(player.pos.x-t.x,player.pos.z-t.z)<t.r+2){ player.underground=false; player.obj.position.set(t.x,0,t.z); player.pos.copy(player.obj.position); showToast("Tunnel collapsed — forced up!", "#ff3b3b"); }
+            activeTunnels.splice(i,1);
+            floatText(new THREE.Vector3(t.x,0.5,t.z), "COLLAPSED!", "#ff3333", 22);
         }
     }
 
@@ -1059,20 +1198,25 @@ function update(dt) {
         } else {
             if(leviathan && !leviathan.dead && Math.hypot(leviathan.pos.x-p.obj.position.x, leviathan.pos.z-p.obj.position.z) < 6) {
                 leviathan.hp -= p.dmg; hit=true; floatText(leviathan.pos, "-"+Math.round(p.dmg), "#ffaa00", 30);
-                if(leviathan.hp <= 0) { leviathan.dead=true; scene.remove(leviathan.obj); $('victoryScreen').classList.remove('hidden'); paused=true; if(document.pointerLockElement)document.exitPointerLock(); }
+                if(leviathan.hp <= 0) { leviathan.dead=true; scene.remove(leviathan.obj); $('bossBar').classList.remove('show'); $('victoryScreen').classList.remove('hidden'); paused=true; if(document.pointerLockElement)document.exitPointerLock(); }
             } else {
                 for(const e of enemies) {
                     if(e.dead || (e.type==='mimic'&&!e.revealed)) continue;
-                    if(Math.hypot(e.pos.x-p.obj.position.x, e.pos.z-p.obj.position.z) < 2) {
-                        if(p.aoe) { 
+                    if(Math.hypot(e.pos.x-p.obj.position.x, e.pos.z-p.obj.position.z) < 1.2 + e.scale*0.7) {
+                        if(p.aoe) {
                             addEffect(p.obj.position, p.r, 0xffaa00);
                             for(const e2 of enemies) if(!e2.dead && Math.hypot(e2.pos.x-p.obj.position.x, e2.pos.z-p.obj.position.z)<p.r) { e2.hp -= p.dmg; if(e2.hp<=0) killEnemy(e2); }
-                        } else { 
+                            hit=true; break;
+                        } else if(p.effect === 'pierce') { // Lightning passes through, hitting each enemy once
+                            if(!p.hits) p.hits = [];
+                            if(!p.hits.includes(e)){ p.hits.push(e); e.hp -= p.dmg; floatText(e.pos, "-"+Math.round(p.dmg), "#c9a0ff", 20); if(e.hp<=0) killEnemy(e); }
+                            // no break / no hit → keeps flying
+                        } else {
                             e.hp -= p.dmg; floatText(e.pos, "-"+Math.round(p.dmg), "#fff", 20);
                             if(p.effect) e.effects.push({type: p.effect, time: 3.0});
-                            if(e.hp<=0) killEnemy(e); 
+                            if(e.hp<=0) killEnemy(e);
+                            hit=true; break;
                         }
-                        hit=true; break;
                     }
                 }
             }
@@ -1088,6 +1232,20 @@ function update(dt) {
         if(ef.life <= 0) { scene.remove(ef.obj); effects.splice(i,1); }
     }
 
+    // Pickups (gold / health) — magnet toward the player and collect
+    const cc = player.onShip ? ship.pos : player.pos;
+    for (let i=pickups.length-1; i>=0; i--) {
+        const p = pickups[i]; p.spin += dt*3; p.obj.rotation.y = p.spin; p.obj.rotation.z = p.spin;
+        p.obj.position.y = 0.6 + Math.sin(p.spin)*0.15;
+        const d = Math.hypot(p.obj.position.x-cc.x, p.obj.position.z-cc.z);
+        if(!player.underground && d < 4){ p.obj.position.x += (cc.x-p.obj.position.x)*Math.min(1,dt*6); p.obj.position.z += (cc.z-p.obj.position.z)*Math.min(1,dt*6); }
+        if(!player.underground && d < 1.6){
+            if(p.kind==='gold'){ const g=8+Math.floor(Math.random()*10); player.gold+=g; floatText(player.pos,'+'+g+'g','#ffd24a',16); if(audioCtxStarted) sfx.coin.triggerAttackRelease("C6","16n"); }
+            else { const h=Math.round(player.maxHp*0.25); player.hp=Math.min(player.maxHp,player.hp+h); floatText(player.pos,'+'+h,'#ff8a9d',16); if(audioCtxStarted) sfx.heal.triggerAttackRelease("C5","8n"); }
+            scene.remove(p.obj); pickups.splice(i,1);
+        }
+    }
+
     // Spawning
     spawnTmr -= dt;
     if(spawnTmr <= 0 && enemies.length < 60) {
@@ -1100,6 +1258,13 @@ function update(dt) {
 }
 
 function loop() { requestAnimationFrame(loop); update(Math.min(0.05, clock.getDelta())); renderer.render(scene, camera); }
+
+// QA-only hooks (invisible in normal play): advance/inspect despite rAF throttling
+window.__step = (n=1, dt=0.05) => { for(let i=0;i<n;i++) update(dt); renderer.render(scene, camera); };
+window.__dbg = () => ({ px:+player.pos.x.toFixed(1), pz:+player.pos.z.toFixed(1), lvl:player.level, kills:player.kills,
+    gold:player.gold, hp:Math.round(player.hp), maxHp:player.maxHp, enemies:enemies.length, alive:enemies.filter(e=>!e.dead).length,
+    pickups:pickups.length, tunnels:activeTunnels.length, underground:player.underground, onShip:player.onShip,
+    magic:magicTypes[activeMagic].name, bossHp: leviathan?Math.round(leviathan.hp):null });
 
 // START GAME
 let isBooting = false;

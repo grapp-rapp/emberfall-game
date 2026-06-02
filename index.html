@@ -108,9 +108,12 @@
   #bMagSwap { right: 147px; bottom: 144px; width: 44px; height: 44px; font-size: 18px; background: rgba(30,34,50,.8); border-color: rgba(255,255,255,.5); }
   #bDash { right: 44px;  bottom: 150px; width: 62px; height: 62px; }
   
-  #tcol { position:absolute; top: 80px; right: max(16px, env(safe-area-inset-right)); display:grid; grid-template-columns: repeat(2, 1fr); gap:12px; pointer-events: none;}
-  #tcol .tbtn { position: static; width: 46px; height: 46px; font-size: 20px; pointer-events: auto;}
-  #bPause { position:absolute; right: max(16px, env(safe-area-inset-right)); top: max(16px, env(safe-area-inset-top)); width: 48px; height: 48px; font-size: 20px; }
+  #tcol { position:absolute; top: 70px; bottom: 10px; right: max(10px, env(safe-area-inset-right)); width: 56px; display:flex; flex-direction: column; gap:10px; pointer-events: auto; overflow-y: auto; overflow-x: hidden; padding-bottom: 20px; z-index: 35;}
+  #tcol::-webkit-scrollbar { display: none; }
+  #tcol { -ms-overflow-style: none; scrollbar-width: none; }
+  
+  #tcol .tbtn { position: relative; width: 50px; height: 50px; font-size: 22px; flex-shrink: 0;}
+  #bPause { position:absolute; right: max(16px, env(safe-area-inset-right)); top: max(16px, env(safe-area-inset-top)); width: 48px; height: 48px; font-size: 20px; z-index: 40; }
 
   #reticle { position: fixed; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; z-index: 25; pointer-events: none; display: none; }
   #reticle::before, #reticle::after { content:''; position:absolute; background: rgba(255,255,255,.7); box-shadow: 0 0 3px rgba(0,0,0,.8); }
@@ -129,8 +132,7 @@
   body.mobile #vitals .bar-bg { height: 10px; }
   body.mobile #vitals .bar-label { font-size: 9px; }
   
-  /* Stats moved to top center on mobile to avoid overlap with tcol grid */
-  body.mobile #stats { top: max(8px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); right: auto; text-align: center; padding: 6px 12px; min-width: 0; font-size: 11px; background: rgba(0,0,0,0.85); }
+  body.mobile #stats { top: max(8px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); right: auto; text-align: center; padding: 6px 12px; min-width: 0; font-size: 11px; background: rgba(0,0,0,0.85); z-index: 21;}
   body.mobile #stats div { margin: 1px 0; justify-content: center; }
   
   body.mobile #toast { top: 60px; font-size: 20px; width: 90%; z-index: 150;}
@@ -512,7 +514,6 @@ function makeCave(cx, cz, faceAngle = 0){
 makeHouse(30, -15); makeHouse(-35, -45); makeHouse(55, 45); makeHouse(10, 80);
 makeHouse(-130, 70); makeHouse(150, -100); makeHouse(-100, -150); makeHouse(130, 140);
 
-function placeCave(x,z){ makeCave(x, z, Math.atan2(-x,-z)); }
 placeCave(-50, 40); placeCave(0, -60); placeCave(70, -20); placeCave(-20, 60);
 placeCave(-160, -40); placeCave(170, 60); placeCave(50, -160); placeCave(-120, 150);
 

@@ -121,7 +121,7 @@
   #reticle::before { left: 11px; top: 0; width: 4px; height: 26px; }
   #reticle::after  { top: 11px; left: 0; height: 4px; width: 26px; }
   #reticle.show { display: block; }
-  body.mobile #reticle { display: none !important; }
+  body.mobile #reticle { display: none !important; } /* Hide reticle on mobile */
 
   .credit { margin-top: 18px; font-size: 16px; letter-spacing: 1px; opacity: .92; }
   .credit b { color: #ffd56b; }
@@ -133,7 +133,7 @@
   body.mobile #vitals #lvlBadge { font-size: 11px; margin-bottom: 5px; }
   body.mobile #vitals .bar-bg { height: 10px; }
   body.mobile #vitals .bar-label { font-size: 9px; }
-  body.mobile #stats { display: none; }
+  body.mobile #stats { display: none; } /* Hide stats on mobile to save space */
   
   body.mobile #bPause { right: max(10px, env(safe-area-inset-right)); top: max(10px, env(safe-area-inset-top)); }
   body.mobile #tcol { right: max(10px, env(safe-area-inset-right)); }
@@ -172,7 +172,7 @@
 
   <div id="stats" class="panel">
     <div>⚔️ Atk (Melee) <span class="num" id="atkStat">12</span></div>
-    <div>✨ Atk (Magic) <span class="num" id="magStat">10</span> <span id="magInd" style="display:inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-left: 5px; background: #8be0ff; color: #111;">ICE</span></div>
+    <div>✨ Atk (Magic) <span class="num" id="magStat">10</span> <span id="magInd" style="display:inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-left: 5px; background: #8be0ff; color: #111;">APPRENTICE</span></div>
     <div>💀 Slain <span class="num" id="killStat">0</span></div>
     <div>⛏️ Tunnels <span class="num" id="tunStat">3</span></div>
     <div>🚢 Ship <span class="num" id="shipStat">300/300</span></div>
@@ -203,7 +203,7 @@
   <div id="joyBase"><div id="joyKnob"></div></div>
   <div id="bAtk"  class="tbtn">🗡️</div>
   <div id="bMag"  class="tbtn">✨</div>
-  <div id="mobileMagInd">ICE</div>
+  <div id="mobileMagInd">APPRENTICE</div>
   <div id="bDash" class="tbtn">💨</div>
   <div id="tcol">
     <div id="bDig"  class="tbtn">⛏️</div>
@@ -249,7 +249,7 @@
 
 <div id="overlay" class="overlay-screen">
   <h1>EMBERFALL</h1>
-  <p>Find and Cleanse the 3 <b>Cursed Obelisks</b> to summon the Leviathan!<br><b style="color:#ff3b3b">WARNING: You must upgrade and repair your Ship to survive the final battle!</b></p>
+  <p>Find and Cleanse the 3 <b>Cursed Obelisks</b> to summon the Leviathan!<br><b style="color:#ff3b3b">WARNING: You must fully upgrade and repair your Ship to survive the final battle!</b></p>
   <div class="keys">
     <b>Mouse</b> Look around (drag if your browser won't lock the pointer)<br>
     <b>WASD</b> Move &nbsp;&nbsp;&nbsp; <b>Shift</b> Dash<br>
@@ -288,9 +288,13 @@ function initAudio() {
     sfx.cannon = new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 4, envelope: { attack: 0.01, decay: 0.5, sustain: 0 } }).connect(masterVol);
     sfx.coin = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.01, decay: 0.4, sustain: 0 } }).connect(masterVol);
     sfx.heal = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.05, decay: 0.4, sustain: 0.2, release: 0.5 } }).connect(masterVol);
-    sfx.poly = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'square' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0.2, release: 1 } }).connect(masterVol);
+    
+    // Lowered level up volume significantly
+    sfx.poly = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'square' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0.2, release: 1 } }).connect(new Tone.Volume(-10).connect(masterVol));
+    
     sfx.dig = new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0 } }).connect(masterVol);
 
+    // Boosted background music
     const droneFilter = new Tone.Filter(300, "lowpass").connect(masterVol);
     drone = new Tone.Oscillator("D2", "sawtooth").connect(droneFilter);
     drone.volume.value = -8; drone.start();
@@ -620,7 +624,15 @@ function buildMimic(scale, disguiseType){
       b.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3); b.castShadow=true; disguise.add(b);
     }
   } else if (disguiseType === 'cave'){ disguise = buildCaveVisual(Math.random()*Math.PI*2); } 
-  else { disguise = buildTreeMesh(); }
+  else {
+    disguise = new THREE.Group();
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.45,2.2,6), new THREE.MeshStandardMaterial({color:0x6b4a2b, roughness:1}));
+    trunk.position.y = 1.1; trunk.castShadow = true;
+    const leaves = new THREE.Mesh(new THREE.IcosahedronGeometry(1.8, 0), new THREE.MeshStandardMaterial({color:0x2e7d4f, flatShading:true, roughness:1}));
+    leaves.position.y = 3.2; leaves.castShadow = true;
+    const leaves2 = leaves.clone(); leaves2.scale.setScalar(.7); leaves2.position.set(.6,4.0,.3);
+    disguise.add(trunk, leaves, leaves2);
+  }
   g.add(disguise);
 
   const monster = new THREE.Group();
@@ -783,6 +795,8 @@ function toggleMap(){
   if (mapPaused) drawMap(); checkPause();
 }
 
+function $(id){return document.getElementById(id);}
+
 $('closeShopBtn').onclick = toggleShop;
 $('shopBtnDesktop').onclick = toggleShop;
 $('closeMapBtn').onclick = toggleMap;
@@ -802,6 +816,18 @@ window.buyUpgrade = function(type){
     const nxt = magicTiers[magIdx+1];
     if (player.gold >= nxt.cost) {
       player.gold -= nxt.cost; magIdx++; player.magAtk += nxt.dmgBonus;
+      
+      const magName = nxt.name.split(' ')[0].toUpperCase();
+      if($('mobileMagInd')) {
+          $('mobileMagInd').textContent = magName;
+          $('mobileMagInd').style.color = '#' + nxt.color.toString(16);
+      }
+      if($('magInd')) {
+          $('magInd').textContent = magName;
+          $('magInd').style.color = '#111';
+          $('magInd').style.background = '#' + nxt.color.toString(16);
+      }
+      
       if (audioCtxStarted) sfx.poly.triggerAttackRelease(["G4", "B4", "D5"], "4n");
       addEffect(player.pos.clone(), 3.5, nxt.color); floatText(player.pos, 'MAGIC UPGRADED!', '#'+nxt.color.toString(16), 26);
     } else showToast('Not enough gold!', '#ff7a7a');
@@ -894,6 +920,8 @@ canvas.addEventListener('mousedown', e=>{
   if (e.button===0) primaryAttack(); else if (e.button===2) secondaryAttack();
 });
 
+function setReticle(show) { const r = $('reticle'); if (r && !isTouch) r.className = show ? 'show' : ''; }
+
 if (isTouch){
   document.body.classList.add('mobile');
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
@@ -932,8 +960,6 @@ if (isTouch){
   hold('bDig', digTunnel); hold('bTun', toggleUnderground); hold('bShip', toggleShip); hold('bTree', toggleTree); hold('bShop', toggleShop); hold('bPause', togglePause);
   hold('bMap', toggleMap); hold('bCleanse', cleanseObelisk);
 }
-
-function setReticle(show) { const r = $('reticle'); if (r && !isTouch) r.className = show ? 'show' : ''; }
 
 $('resumeBtn').onclick = togglePause; $('quitBtn').onclick = () => { location.reload(); };
 
@@ -976,27 +1002,15 @@ function shootBolt(isEnemy=false, startPos, dirVec, dmg, color, glow, speed){
   projectiles.push({obj:m, vel:dirVec.clone().multiplyScalar(speed), life: 1.5, dmg, r: 0.6, aoe:false, isEnemy, isCannon:false});
 }
 
-function secondaryAttack(){
-  if (!started || !player.alive || player.onShip || paused) return;
-  const tier = magicTiers[magIdx];
-  if (player.shootCooldown>0) return;
-  if (isTouch) faceNearestEnemy(40);
-  player.shootCooldown=tier.cd;
-  const dir=new THREE.Vector3(Math.sin(player.facing),0,Math.cos(player.facing));
-  const startY = player.inTree ? 4.8 : 1.4;
-  shootBolt(false, player.pos.clone().add(new THREE.Vector3(0,startY,0)).addScaledVector(dir,1), dir, player.magAtk, tier.color, tier.glow, tier.speed);
-}
-
 function fireCannon(){
   if (ship.fireCd>0) return; ship.fireCd=1.2;
-  const power = 80; // Fast straight shot
+  const power = 80;
   const flatDir = new THREE.Vector3(Math.sin(ship.facing), 0, Math.cos(ship.facing));
   
   if (audioCtxStarted) sfx.cannon.triggerAttackRelease("G1", "4n");
   const dmg = shipTiers[shipIdx].dmg;
   
   for(let c of ship.obj.userData.cannons) {
-      // Get global position of the cannon barrel
       const startPos = new THREE.Vector3();
       c.getWorldPosition(startPos);
       
@@ -1008,7 +1022,7 @@ function fireCannon(){
   }
 }
 
-function explode(pos,dmg,radius, isEnemy){
+function explode(pos,dmg,radius, isEnemy, isCannon=false){
   if (audioCtxStarted) sfx.cannon.triggerAttackRelease("C1", "2n");
   if (!isEnemy) {
     for (const e of enemies){
@@ -1019,7 +1033,7 @@ function explode(pos,dmg,radius, isEnemy){
         floatText(e.pos,'-'+dmg,'#ffcc66',24); if (e.hp<=0) killEnemy(e);
       }
     }
-    if (leviathan && !leviathan.dead && Math.hypot(leviathan.pos.x-pos.x, leviathan.pos.z-pos.z) < 8) {
+    if (isCannon && leviathan && !leviathan.dead && Math.hypot(leviathan.pos.x-pos.x, leviathan.pos.z-pos.z) < radius+3) {
        leviathan.hp -= dmg; floatText(leviathan.pos, "-"+Math.round(dmg), "#ffaa00", 30);
        if(leviathan.hp <= 0) { leviathan.dead=true; scene.remove(leviathan.obj); $('victoryScreen').classList.remove('hidden'); paused=true; setReticle(false); if(document.pointerLockElement)document.exitPointerLock(); }
     }
@@ -1118,7 +1132,6 @@ function projectFloater(el){ tmpVec.copy(el._wp).project(camera); el.style.left=
 let toastTimer=0; function showToast(msg,color){ const t=document.getElementById('toast'); t.textContent=msg; t.style.color=color||'#fff'; t.classList.add('show'); toastTimer=2.5; }
 const promptEl=document.getElementById('prompt'); function setPrompt(msg){ if(msg){promptEl.textContent=msg; promptEl.classList.add('show');} else promptEl.classList.remove('show'); }
 
-function $(id){return document.getElementById(id);}
 function updateHUD(){
   $('hpFill').style.width=Math.max(0,player.hp/player.maxHp*100)+'%'; $('hpText').textContent=Math.max(0,Math.round(player.hp))+'/'+player.maxHp;
   $('xpFill').style.width=player.xp/player.xpNext*100+'%'; $('xpText').textContent=player.xp+'/'+player.xpNext;
@@ -1333,26 +1346,25 @@ function update(dt){
       for (const e of enemies){
         if (e.hp<=0 || (e.type==='mimic' && !e.revealed)) continue;
         if (Math.hypot(e.pos.x-pr.obj.position.x, e.pos.z-pr.obj.position.z) < pr.r+e.scale*0.8){
-          if (pr.aoe) { explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false); hit=true; break; }
+          if (pr.aoe) { explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false, pr.isCannon); hit=true; break; }
           else { e.hp-=pr.dmg; e.flash=0.15; const k=pr.vel.clone(); k.y=0; k.normalize(); e.obj.position.addScaledVector(k,1.2); floatText(e.pos,'-'+pr.dmg,'#8be0ff',20); if(e.hp<=0) killEnemy(e); hit=true; break; }
         }
       }
       if (!hit && leviathan && !leviathan.dead && pr.isCannon) {
-          if (Math.hypot(leviathan.pos.x-pr.obj.position.x, leviathan.pos.z-pr.obj.position.z) < pr.r+5.0) { explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false); hit=true; }
+          if (Math.hypot(leviathan.pos.x-pr.obj.position.x, leviathan.pos.z-pr.obj.position.z) < pr.r+5.0) { explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false, true); hit=true; }
       }
     }
     
     // Check ground collision for straight cannonballs
     if (!hit && pr.isCannon) {
-        // Cannonballs pass over small ground units but hit water/ground if they travel far enough (they naturally lower over time or hit hills, but since terrain is flat, we just wait for life to end to explode, UNLESS they pass very close to an enemy which triggers proximity explosion)
         for(const e of enemies) {
-            if (e.hp>0 && Math.hypot(e.pos.x-pr.obj.position.x, e.pos.z-pr.obj.position.z) < pr.aoeR * 0.6) { explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false); hit=true; break; }
+            if (e.hp>0 && Math.hypot(e.pos.x-pr.obj.position.x, e.pos.z-pr.obj.position.z) < pr.aoeR * 0.6) { explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false, true); hit=true; break; }
         }
     }
 
-    if (pr.gravity && pr.obj.position.y <= 0.1) { pr.obj.position.y = 0.1; hit = true; if(pr.aoe) explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, pr.isEnemy); }
+    if (pr.gravity && pr.obj.position.y <= 0.1) { pr.obj.position.y = 0.1; hit = true; if(pr.aoe) explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, pr.isEnemy, pr.isCannon); }
     const oob=Math.abs(pr.obj.position.x)>WORLD||Math.abs(pr.obj.position.z)>WORLD;
-    if (hit||pr.life<=0||oob){ if(pr.aoe&&!hit&&pr.life<=0&&!pr.gravity) explode(pr.obj.position.clone(),pr.dmg,pr.aoeR, pr.isEnemy); scene.remove(pr.obj); projectiles.splice(i,1); }
+    if (hit||pr.life<=0||oob){ if(pr.aoe&&!hit&&pr.life<=0&&!pr.gravity) explode(pr.obj.position.clone(),pr.dmg,pr.aoeR, pr.isEnemy, pr.isCannon); scene.remove(pr.obj); projectiles.splice(i,1); }
   }
 
   const collectCenter = player.onShip ? ship.pos : player.pos; const pullRadius = player.onShip ? 7.0 : 4.5, grabRadius = player.onShip ? 3.0 : 1.4;

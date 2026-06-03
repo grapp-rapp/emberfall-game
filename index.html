@@ -56,8 +56,11 @@
   .floater { position: absolute; font-weight: bold; font-size: 18px; text-shadow: 0 1px 3px #000; animation: floatUp 1s ease-out forwards; }
   @keyframes floatUp { from { transform: translateY(0); opacity:1; } to { transform: translateY(-50px); opacity:0; } }
 
-  .overlay-screen { position: fixed; inset: 0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:10; text-align:center; padding:20px; }
+  /* OVERLAY SCREENS - FIXED TO ALLOW SCROLLING ON SMALL HEIGHTS */
+  .overlay-screen { position: fixed; inset: 0; display:flex; flex-direction:column; align-items:center; z-index:10; text-align:center; padding: max(30px, env(safe-area-inset-top)) 20px; overflow-y: auto; pointer-events: auto;}
   .overlay-screen.hidden { display:none !important; }
+  .overlay-screen::before, .overlay-screen::after { content: ''; margin: auto; } /* Centering trick that allows scrolling */
+  .overlay-screen > * { flex-shrink: 0; }
   
   #overlay { background: radial-gradient(circle at 50% 40%, rgba(40,20,60,.9), rgba(5,5,12,.98)); z-index: 300; }
   #overlay h1 { font-size: 60px; background: linear-gradient(90deg,#ffb347,#ff5e62,#ffb347); -webkit-background-clip:text; background-clip:text; color:transparent; letter-spacing: 3px; text-shadow: 0 0 40px rgba(255,120,40,.3); margin-bottom: 10px; }
@@ -73,7 +76,7 @@
   #mapModal { background: rgba(15,20,30,0.95); padding: 20px; border-radius: 12px; border: 1px solid #ffd56b; box-shadow: 0 10px 50px rgba(0,0,0,0.8); position: relative;}
   #minimap { background: #1a1a24; border: 2px solid #444; border-radius: 8px; image-rendering: pixelated;}
 
-  .btn { pointer-events:auto; cursor:pointer; background: linear-gradient(135deg,#ff7a18,#ff3b3b); border:none; color:#fff; font-size:20px; font-weight:bold; padding:16px 48px; border-radius:40px; letter-spacing:1px; box-shadow:0 6px 24px rgba(255,80,40,.4); transition:transform .1s; }
+  .btn { pointer-events:auto; cursor:pointer; background: linear-gradient(135deg,#ff7a18,#ff3b3b); border:none; color:#fff; font-size:20px; font-weight:bold; padding:16px 48px; border-radius:40px; letter-spacing:1px; box-shadow:0 6px 24px rgba(255,80,40,.4); transition:transform .1s; margin-top: 10px;}
   .btn:hover { transform: scale(1.05); }
   .btn:active { transform: scale(.97); }
   
@@ -121,7 +124,7 @@
   #reticle::before { left: 11px; top: 0; width: 4px; height: 26px; }
   #reticle::after  { top: 11px; left: 0; height: 4px; width: 26px; }
   #reticle.show { display: block; }
-  body.mobile #reticle { display: none !important; } /* Hide reticle on mobile */
+  body.mobile #reticle { display: none !important; }
 
   .credit { margin-top: 18px; font-size: 16px; letter-spacing: 1px; opacity: .92; }
   .credit b { color: #ffd56b; }
@@ -133,7 +136,7 @@
   body.mobile #vitals #lvlBadge { font-size: 11px; margin-bottom: 5px; }
   body.mobile #vitals .bar-bg { height: 10px; }
   body.mobile #vitals .bar-label { font-size: 9px; }
-  body.mobile #stats { display: none; } /* Hide stats on mobile to save space */
+  body.mobile #stats { display: none; } 
   
   body.mobile #bPause { right: max(10px, env(safe-area-inset-right)); top: max(10px, env(safe-area-inset-top)); }
   body.mobile #tcol { right: max(10px, env(safe-area-inset-right)); }
@@ -545,7 +548,6 @@ ship.obj.position.copy(ship.pos); scene.add(ship.obj);
 
 function updateShipVisuals() {
     const u = ship.obj.userData;
-    // Clear old armor
     while(u.armorParts.children.length > 0) { u.armorParts.remove(u.armorParts.children[0]); }
     
     if (shipIdx === 0) {
@@ -556,17 +558,14 @@ function updateShipVisuals() {
         u.hull.material.color.setHex(0x44444a); u.sail.material.color.setHex(0xa0a0aa);
         if(u.cannons[1]) { u.cannonRoot.remove(u.cannons[1]); u.cannons.pop(); }
         u.cannons[0].position.x = 0;
-        // Iron plates
         const plates = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.0, 6.6), new THREE.MeshStandardMaterial({color: 0x333333, metalness:0.8, roughness:0.4}));
         plates.position.y = 0.8; u.armorParts.add(plates);
     } else if (shipIdx === 2) {
         u.hull.material.color.setHex(0x222222); u.sail.material.color.setHex(0x882222);
-        // Add second cannon
         if(!u.cannons[1]) { 
             const c2 = u.cannons[0].clone(); u.cannons.push(c2); u.cannonRoot.add(c2); 
         }
         u.cannons[0].position.x = -0.6; u.cannons[1].position.x = 0.6;
-        // Heavy plates and spikes
         const plates = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.2, 6.8), new THREE.MeshStandardMaterial({color: 0x1a1a1a, metalness:0.9, roughness:0.3}));
         plates.position.y = 0.9; u.armorParts.add(plates);
         const spikeGeo = new THREE.ConeGeometry(0.2, 1.0, 4);
@@ -796,7 +795,6 @@ function toggleMap(){
 }
 
 function $(id){return document.getElementById(id);}
-
 $('closeShopBtn').onclick = toggleShop;
 $('shopBtnDesktop').onclick = toggleShop;
 $('closeMapBtn').onclick = toggleMap;
@@ -816,18 +814,9 @@ window.buyUpgrade = function(type){
     const nxt = magicTiers[magIdx+1];
     if (player.gold >= nxt.cost) {
       player.gold -= nxt.cost; magIdx++; player.magAtk += nxt.dmgBonus;
-      
       const magName = nxt.name.split(' ')[0].toUpperCase();
-      if($('mobileMagInd')) {
-          $('mobileMagInd').textContent = magName;
-          $('mobileMagInd').style.color = '#' + nxt.color.toString(16);
-      }
-      if($('magInd')) {
-          $('magInd').textContent = magName;
-          $('magInd').style.color = '#111';
-          $('magInd').style.background = '#' + nxt.color.toString(16);
-      }
-      
+      if($('mobileMagInd')) { $('mobileMagInd').textContent = magName; $('mobileMagInd').style.color = '#' + nxt.color.toString(16); }
+      if($('magInd')) { $('magInd').textContent = magName; $('magInd').style.color = '#111'; $('magInd').style.background = '#' + nxt.color.toString(16); }
       if (audioCtxStarted) sfx.poly.triggerAttackRelease(["G4", "B4", "D5"], "4n");
       addEffect(player.pos.clone(), 3.5, nxt.color); floatText(player.pos, 'MAGIC UPGRADED!', '#'+nxt.color.toString(16), 26);
     } else showToast('Not enough gold!', '#ff7a7a');
@@ -927,9 +916,7 @@ if (isTouch){
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
   sun.shadow.mapSize.set(1024, 1024); if (sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map = null; }
   scene.fog.far = 210;
-
   function buzz(ms){ if (navigator.vibrate) navigator.vibrate(ms); }
-
   const joyZone = $('joyZone'), joyBase = $('joyBase'), joyKnob = $('joyKnob');
   let joyId = null, joyCx = 0, joyCy = 0; const JOY_MAX = 58;
   function setKnob(dx,dy){ joyKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`; }
@@ -1002,6 +989,17 @@ function shootBolt(isEnemy=false, startPos, dirVec, dmg, color, glow, speed){
   projectiles.push({obj:m, vel:dirVec.clone().multiplyScalar(speed), life: 1.5, dmg, r: 0.6, aoe:false, isEnemy, isCannon:false});
 }
 
+function secondaryAttack(){
+  if (!started || !player.alive || player.onShip || paused) return;
+  const tier = magicTiers[magIdx];
+  if (player.shootCooldown>0) return;
+  if (isTouch) faceNearestEnemy(40);
+  player.shootCooldown=tier.cd;
+  const dir=new THREE.Vector3(Math.sin(player.facing),0,Math.cos(player.facing));
+  const startY = player.inTree ? 4.8 : 1.4;
+  shootBolt(false, player.pos.clone().add(new THREE.Vector3(0,startY,0)).addScaledVector(dir,1), dir, player.magAtk, tier.color, tier.glow, tier.speed);
+}
+
 function fireCannon(){
   if (ship.fireCd>0) return; ship.fireCd=1.2;
   const power = 80;
@@ -1013,10 +1011,8 @@ function fireCannon(){
   for(let c of ship.obj.userData.cannons) {
       const startPos = new THREE.Vector3();
       c.getWorldPosition(startPos);
-      
       const m=new THREE.Mesh(new THREE.SphereGeometry(0.6,12,12), new THREE.MeshStandardMaterial({color:0x222228,emissive:0x884400,emissiveIntensity:.5,metalness:.5,roughness:.4}));
       m.position.copy(startPos).addScaledVector(flatDir, 1.0); scene.add(m);
-      
       projectiles.push({obj:m, vel:flatDir.clone().multiplyScalar(power), life:2.5, dmg:dmg, r:2.5, aoe:true, aoeR:6.5, gravity:false, isEnemy:false, isCannon:true});
       addEffect(m.position.clone(), 2.5, 0x884400);  
   }
@@ -1053,9 +1049,7 @@ function killEnemy(e){
   if (e.dead) return; e.dead=true;
   if (audioCtxStarted) sfx.hit.triggerAttackRelease("E1", "8n");
   gainXp(e.xp); player.gold+=e.gold; player.kills++;
-  
   if (e.type === 'toxic') createPuddle(e.pos);
-  
   spawnPickup(e.pos.x,e.pos.z,'gold');
   if (Math.random()<0.3) spawnPickup(e.pos.x+1,e.pos.z,'health');
   floatText(e.pos,'+'+e.xp+' XP','#8be0ff',18);

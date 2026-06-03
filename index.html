@@ -1,24 +1,25 @@
 <!DOCTYPE html>
 <!--
-  EMBERFALL EXPANDED v4.1
+  EMBERFALL — a 3D action RPG
   © 2026 Noam Rapp. All Rights Reserved.
+  This game and its source code are the original work of Noam Rapp.
+  Unauthorized copying, distribution, or modification is prohibited.
 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <meta name="author" content="Noam Rapp" />
+<meta name="copyright" content="© 2026 Noam Rapp. All Rights Reserved." />
 <title>Emberfall™ — by Noam Rapp</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a12; font-family: 'Trebuchet MS', system-ui, sans-serif; color: #fff; }
   #game { display: block; width: 100%; height: 100%; cursor: crosshair; }
 
-  /* UI Base */
   #hud { position: fixed; inset: 0; pointer-events: none; user-select: none; z-index: 20; }
   .panel { position: absolute; background: rgba(0,0,0,.65); border: 1px solid rgba(255,255,255,.15); border-radius: 8px; backdrop-filter: blur(4px); }
 
-  /* Top Left: Vitals */
   #vitals { top: 16px; left: 16px; width: 280px; padding: 10px; }
   .bar-wrap { background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.1); border-radius: 8px; padding: 6px 8px; margin-bottom: 6px; }
   .bar-label { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; opacity: .8; margin-bottom: 3px; display:flex; justify-content:space-between; }
@@ -27,123 +28,126 @@
   #hpFill { background: linear-gradient(90deg,#ff3b3b,#ff7a5c); }
   #xpFill { background: linear-gradient(90deg,#4f9dff,#8be0ff); }
   #lvlBadge { display:inline-block; background:linear-gradient(135deg,#ffb347,#ff7a18); color:#221100; font-weight:bold; padding:2px 10px; border-radius:20px; font-size:13px; box-shadow:0 0 12px rgba(255,150,40,.6); margin-bottom: 8px;}
-  .gold-text { margin-top:8px; font-size:16px; color:#ffd56b; font-weight:bold; }
 
-  /* Top Right: Stats */
-  #stats { top: 16px; right: 16px; text-align: right; padding:10px 14px; min-width:200px; transition: opacity 0.2s;}
+  #stats { top: 16px; right: 16px; text-align: right; padding:10px 14px; min-width:200px;}
   #stats div { margin: 4px 0; font-size: 14px; }
   #stats .num { color:#ffd56b; font-weight:bold; }
-  .magic-indicator { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-left: 5px; text-transform: uppercase; }
-
-  /* Modals & Overlays */
-  .overlay-screen { position: fixed; inset: 0; display:flex; flex-direction:column; z-index:100; text-align:center; padding:20px; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); overflow-y: auto; overflow-x: hidden; pointer-events: auto;}
-  .overlay-content { margin: auto; display: flex; flex-direction: column; align-items: center; max-width: 600px; padding: 20px 0; position: relative;}
-  .overlay-screen.hidden { display:none !important; }
   
-  #startScreen { background: radial-gradient(circle at 50% 40%, rgba(40,20,60,.95), rgba(5,5,12,.98)); z-index: 200; }
-  #startScreen h1 { font-size: 60px; background: linear-gradient(90deg,#ffb347,#ff5e62,#ffb347); -webkit-background-clip:text; background-clip:text; color:transparent; letter-spacing: 3px; text-shadow: 0 0 40px rgba(255,120,40,.3); margin-bottom: 10px; }
-  #startScreen p { margin: 14px 0; opacity:.9; line-height:1.5; font-size: 16px; }
-  .keys { font-size:13px; opacity:.9; margin: 12px 0 30px; line-height:1.8; width: 100%; background: rgba(0,0,0,0.5); padding: 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); text-align: left;}
-  .keys b { color:#ffd56b; display:inline-block; width: 120px;}
-
-  /* Shop */
-  #upgradesModal { width: 350px; padding: 24px; font-size: 14px; border: 1px solid #8be0ff; box-shadow: 0 10px 50px rgba(0,0,0,0.8); background: rgba(15,20,30,0.95); border-radius: 12px; position: relative;}
-  #upgradesModal h3 { font-size: 16px; text-transform: uppercase; letter-spacing: 1px; color: #ffd56b; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px;}
-  .upg-btn { pointer-events:auto; display: flex; justify-content: space-between; gap: 12px; background: rgba(255,255,255,0.05); padding: 12px; margin-bottom: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: background 0.1s;}
+  #upgrades { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 340px; padding: 24px; font-size: 14px; pointer-events: auto; z-index: 200; border: 1px solid #8be0ff; box-shadow: 0 10px 50px rgba(0,0,0,0.8); background: rgba(15,20,30,0.95); border-radius: 12px; }
+  #upgrades.show { display: block; }
+  #upgrades h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #ffd56b; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px;}
+  .upg-btn { display: flex; justify-content: space-between; gap: 16px; background: rgba(255,255,255,0.05); padding: 10px 12px; margin-bottom: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: background 0.1s;}
   .upg-btn:hover { background: rgba(255,255,255,0.15); }
   .upg-btn:active { transform: scale(0.98); }
   .upg-btn b { color: #8be0ff; }
   .upg-btn .cost { color: #ffd56b; font-weight: bold; }
-  .close-btn { position: absolute; top: -15px; right: -15px; width: 36px; height: 36px; background: #ff3b3b; color: #fff; border: 2px solid #fff; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); font-size: 18px; z-index: 50;}
+  
+  #closeShopBtn { position: absolute; top: -12px; right: -12px; width: 34px; height: 34px; background: #ff3b3b; color: #fff; border: 2px solid #fff; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+  #shopBtnDesktop { bottom: 16px; right: 16px; padding: 12px 20px; font-weight: bold; color: #ffd56b; cursor: pointer; border-color: rgba(255,213,107,0.4); pointer-events: auto; transition: background 0.1s; }
+  #shopBtnDesktop:hover { background: rgba(255,213,107,0.15); }
 
-  /* Map Modal */
-  #mapModal { background: rgba(15,20,30,0.95); padding: 20px; border-radius: 12px; border: 1px solid #ffd56b; box-shadow: 0 10px 50px rgba(0,0,0,0.8); position: relative;}
-  #minimap { background: #1a1a24; border: 2px solid #444; border-radius: 8px; image-rendering: pixelated;}
-
-  /* Buttons */
-  .btn { pointer-events:auto; cursor:pointer; background: linear-gradient(135deg,#ff7a18,#ff3b3b); border:none; color:#fff; font-size:20px; font-weight:bold; padding:16px 48px; border-radius:40px; letter-spacing:1px; box-shadow:0 6px 24px rgba(255,80,40,.4); transition:transform .1s; margin: 10px; }
-  .btn:hover { transform: scale(1.05); }
-  .btn:active { transform: scale(.97); }
-  .btn-alt { background: linear-gradient(135deg,#4f9dff,#8b5cf6); }
-  .btn-quit { background: linear-gradient(135deg,#555,#333); }
-
-  /* Feedback */
-  #hint { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.7); padding: 8px 18px; border-radius: 20px; font-size: 13px; opacity:.9; text-align:center; max-width:60vw; border: 1px solid rgba(255,255,255,0.2); pointer-events: auto; z-index: 10; transition: opacity 0.3s;}
-  #hint.hidden { opacity: 0; }
+  #hint { bottom: 16px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.7); padding: 8px 18px; border-radius: 20px; font-size: 13px; opacity:.9; text-align:center; max-width:60vw; border: 1px solid rgba(255,255,255,0.2); pointer-events: auto; }
   #hint b { color:#ffd56b; }
-  #toast { position: fixed; top: 15%; left: 50%; transform: translateX(-50%); text-align:center; font-size: 28px; font-weight: bold; text-shadow: 0 2px 12px #000; opacity:0; transition: opacity .3s; pointer-events: none; z-index: 90; width: 100%;}
-  #toast.show { opacity: 1; }
-  #prompt { position:fixed; top: 25%; left:50%; transform:translateX(-50%); background:rgba(20,30,60,.9); border:1px solid #8be0ff; padding:12px 24px; border-radius:8px; font-size:18px; font-weight: bold; opacity:0; transition:opacity .2s; box-shadow: 0 4px 16px rgba(0,0,0,0.5); z-index: 90;}
-  #prompt.show { opacity:1; }
 
-  #floaters { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 80;}
+  #toast { position: absolute; top: 22%; left: 50%; transform: translateX(-50%); text-align:center; font-size: 32px; font-weight: bold; text-shadow: 0 2px 12px #000; opacity:0; transition: opacity .3s; pointer-events: none; z-index: 90;}
+  #toast.show { opacity: 1; }
+
+  #floaters { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 100;}
   .floater { position: absolute; font-weight: bold; font-size: 18px; text-shadow: 0 1px 3px #000; animation: floatUp 1s ease-out forwards; }
   @keyframes floatUp { from { transform: translateY(0); opacity:1; } to { transform: translateY(-50px); opacity:0; } }
 
-  #reticle { position: fixed; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; z-index: 25; pointer-events: none; }
+  .overlay-screen { position: fixed; inset: 0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:10; text-align:center; padding:20px; }
+  .overlay-screen.hidden { display:none !important; }
+  
+  #overlay { background: radial-gradient(circle at 50% 40%, rgba(40,20,60,.9), rgba(5,5,12,.98)); z-index: 300; }
+  #overlay h1 { font-size: 60px; background: linear-gradient(90deg,#ffb347,#ff5e62,#ffb347); -webkit-background-clip:text; background-clip:text; color:transparent; letter-spacing: 3px; text-shadow: 0 0 40px rgba(255,120,40,.3); margin-bottom: 10px; }
+  #overlay p { max-width: 600px; margin: 14px 0; opacity:.9; line-height:1.5; font-size: 17px; }
+  #overlay .keys { font-size:14px; opacity:.9; margin: 12px 0 30px; line-height:2.0; max-width:600px; background: rgba(0,0,0,0.5); padding: 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); text-align: left;}
+  #overlay .keys b { color:#ffd56b; display:inline-block; width: 110px;}
+
+  #pauseMenu { background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); z-index: 250;}
+  #pauseMenu h2 { font-size: 50px; color: #ffb347; letter-spacing: 4px; text-shadow: 0 0 20px rgba(255,150,40,0.5); margin-bottom: 20px;}
+
+  /* MAP MODAL */
+  #mapScreen { background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); z-index: 260; }
+  #mapModal { background: rgba(15,20,30,0.95); padding: 20px; border-radius: 12px; border: 1px solid #ffd56b; box-shadow: 0 10px 50px rgba(0,0,0,0.8); position: relative;}
+  #minimap { background: #1a1a24; border: 2px solid #444; border-radius: 8px; image-rendering: pixelated;}
+
+  .btn { pointer-events:auto; cursor:pointer; background: linear-gradient(135deg,#ff7a18,#ff3b3b); border:none; color:#fff; font-size:20px; font-weight:bold; padding:16px 48px; border-radius:40px; letter-spacing:1px; box-shadow:0 6px 24px rgba(255,80,40,.4); transition:transform .1s; }
+  .btn:hover { transform: scale(1.05); }
+  .btn:active { transform: scale(.97); }
+  
+  #prompt { position:fixed; bottom:100px; left:50%; transform:translateX(-50%); background:rgba(20,30,60,.9); border:1px solid #8be0ff; padding:10px 24px; border-radius:8px; font-size:16px; font-weight: bold; opacity:0; transition:opacity .2s; box-shadow: 0 4px 16px rgba(0,0,0,0.5); z-index: 90;}
+  #prompt.show { opacity:1; }
+
+  #landscapeWarning { display: none; position: fixed; inset: 0; background: #0a0a12; z-index: 9999; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  #landscapeWarning .icon { font-size: 60px; margin-bottom: 20px; animation: tilt 2s infinite ease-in-out; }
+  @keyframes tilt { 0% { transform: rotate(0deg); } 50% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }
+  
+  @media (max-width: 850px) and (orientation: portrait) {
+      #landscapeWarning { display: flex; }
+  }
+
+  html, body { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
+  #touch { position: fixed; inset: 0; z-index: 30; pointer-events: none; display: none; }
+  body.mobile #touch { display: block; }
+  body.mobile #shopBtnDesktop { display: none; }
+
+  #joyZone { position: absolute; left: 0; top: 0; width: 46%; height: 100%; pointer-events: auto; touch-action: none; }
+  #joyBase { position: absolute; left: 80px; top: 80px; width: 132px; height: 132px; border-radius: 50%; margin: -66px 0 0 -66px;
+             background: radial-gradient(circle, rgba(255,255,255,.12), rgba(255,255,255,.03)); border: 2px solid rgba(255,255,255,.28);
+             pointer-events: none; touch-action: none; opacity: 0; transition: opacity .12s; }
+  #joyBase.active { opacity: .9; }
+  #joyKnob { position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; border-radius: 50%;
+             transform: translate(-50%,-50%); background: radial-gradient(circle at 35% 35%, #8be0ff, #2a6cc4); box-shadow: 0 2px 10px rgba(0,0,0,.5); }
+
+  .tbtn { position: absolute; pointer-events: auto; touch-action: none; display:flex; align-items:center; justify-content:center;
+          border: 2px solid rgba(255,255,255,.3); border-radius: 50%; color:#fff; font-size: 22px; font-weight:bold;
+          background: rgba(20,24,40,.7); box-shadow: 0 3px 10px rgba(0,0,0,.45); }
+  .tbtn:active { transform: scale(.92); filter: brightness(1.3); }
+  
+  #bAtk  { right: 22px;  bottom: 34px;  width: 100px; height: 100px; font-size: 36px; background: linear-gradient(135deg,#ff7a18,#ff3b3b); }
+  #bMag  { right: 132px; bottom: 60px;  width: 74px; height: 74px; font-size: 28px; background: linear-gradient(135deg,#4f9dff,#8b5cf6); }
+  #bDash { right: 44px;  bottom: 150px; width: 62px; height: 62px; }
+  
+  #mobileMagInd { position: absolute; right: 132px; bottom: 140px; width: 74px; text-align: center; color: #8be0ff; font-weight: bold; font-size: 13px; pointer-events: none; text-shadow: 0 2px 4px #000; letter-spacing: 1px;}
+
+  #tcol { position:absolute; right: 10px; top: 47%; transform: translateY(-50%); display:flex; flex-direction:column; gap:11px; }
+  #tcol .tbtn { position: static; width: 58px; height: 58px; font-size: 24px; }
+  #bPause { position:absolute; right: 10px; top: 16px; width: 48px; height: 48px; font-size: 20px; }
+
+  #reticle { position: fixed; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; z-index: 25; pointer-events: none; display: none; }
   #reticle::before, #reticle::after { content:''; position:absolute; background: rgba(255,255,255,.7); box-shadow: 0 0 3px rgba(0,0,0,.8); }
   #reticle::before { left: 11px; top: 0; width: 4px; height: 26px; }
   #reticle::after  { top: 11px; left: 0; height: 4px; width: 26px; }
-
-  /* ---------------- MOBILE TOUCH LAYOUT ---------------- */
-  html, body { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
-  #touch { position: fixed; inset: 0; z-index: 30; pointer-events: none; display: none; }
-  body.mobile #touch { display: block; }
+  #reticle.show { display: block; }
   body.mobile #reticle { display: none !important; }
 
-  /* Landscape Enforcer for Mobile */
-  #landscapeWarning { display: none; position: fixed; inset: 0; background: #050508; z-index: 9999; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-  #landscapeWarning .icon { font-size: 60px; margin-bottom: 20px; animation: tilt 2s infinite ease-in-out; }
-  @keyframes tilt { 0% { transform: rotate(0deg); } 50% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }
-  @media (max-width: 850px) and (orientation: portrait) { #landscapeWarning { display: flex; } }
+  .credit { margin-top: 18px; font-size: 16px; letter-spacing: 1px; opacity: .92; }
+  .credit b { color: #ffd56b; }
+  .copyright { margin-top: 6px; font-size: 11px; letter-spacing: 1px; opacity: .55; }
+  .btn-quit { background: linear-gradient(135deg,#555,#333); margin-top: 14px; font-size: 17px; padding: 12px 38px; }
 
-  /* Left half: Joystick */
-  #joyZone { position: absolute; left: 0; bottom: 0; width: 45%; height: 60%; pointer-events: auto; touch-action: none; }
-  #joyBase { position: absolute; left: 80px; bottom: 60px; width: 120px; height: 120px; border-radius: 50%; margin: 0;
-             background: radial-gradient(circle, rgba(255,255,255,.12), rgba(255,255,255,.03)); border: 2px solid rgba(255,255,255,.28);
-             pointer-events: none; opacity: 0; transition: opacity .12s; }
-  #joyBase.active { opacity: .9; }
-  #joyKnob { position: absolute; left: 50%; top: 50%; width: 50px; height: 50px; border-radius: 50%;
-             transform: translate(-50%,-50%); background: radial-gradient(circle at 35% 35%, #8be0ff, #2a6cc4); box-shadow: 0 2px 10px rgba(0,0,0,.5); }
-
-  /* Right Side: Action Arc */
-  .act-btn { position: absolute; pointer-events: auto; border: 2px solid rgba(255,255,255,.3); border-radius: 50%; color:#fff; display:flex; align-items:center; justify-content:center; box-shadow: 0 4px 12px rgba(0,0,0,.5); transition: transform 0.05s; }
-  .act-btn:active { transform: scale(0.9); filter: brightness(1.2); }
-  
-  #bAtk  { right: 20px; bottom: 30px; width: 85px; height: 85px; font-size: 38px; background: linear-gradient(135deg,#ff7a18,#ff3b3b); }
-  #bMag  { right: 115px; bottom: 90px; width: 65px; height: 65px; font-size: 28px; background: linear-gradient(135deg,#4f9dff,#8b5cf6); }
-  #bDash { right: 25px; bottom: 130px; width: 60px; height: 60px; font-size: 24px; background: rgba(60,60,70,0.8); }
-  #bSwap { right: 125px; bottom: 25px; width: 50px; height: 50px; font-size: 20px; background: linear-gradient(135deg,#a855f7,#d946ef); }
-
-  #mobileMagInd { position: absolute; right: 115px; bottom: 160px; width: 65px; text-align: center; color: #ff3b3b; font-weight: bold; font-size: 13px; pointer-events: none; text-shadow: 0 2px 4px #000; letter-spacing: 1px;}
-
-  /* Bottom Center: Utility Toolbar */
-  #utils-bar { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; pointer-events: auto; z-index: 40; padding: 6px; background: rgba(0,0,0,0.4); border-radius: 12px; backdrop-filter: blur(4px); }
-  .util-btn { width: 44px; height: 44px; border-radius: 8px; background: rgba(30,35,50,0.85); border: 1px solid rgba(255,255,255,0.2); color: #fff; font-size: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.5); transition: transform 0.05s;}
-  .util-btn:active { transform: scale(0.9); background: rgba(60,65,80,0.9); }
-  #bShop { border-color: #ffd56b; background: rgba(60,45,15,0.85); }
-  #bCleanse { border-color: #a855f7; background: rgba(60,20,80,0.85); }
-  #bMap { border-color: #4f9dff; background: rgba(20,40,80,0.85); }
-  
-  /* Top Right System */
-  #sys-bar { position: absolute; top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); display: flex; gap: 10px; pointer-events: auto; }
-  .sys-btn { width: 42px; height: 42px; border-radius: 50%; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.3); font-size: 18px; color: white; display: flex; align-items: center; justify-content: center; }
-
-  /* Mobile HUD Adjustments */
   body.mobile #hint { display: none; }
   body.mobile #vitals { width: 160px; top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); padding: 6px; }
   body.mobile #vitals #lvlBadge { font-size: 11px; margin-bottom: 5px; }
   body.mobile #vitals .bar-bg { height: 10px; }
   body.mobile #vitals .bar-label { font-size: 9px; }
   body.mobile #stats { display: none; }
-  body.mobile #toast { top: 70px; font-size: 20px; width: 90%; }
-  body.mobile #prompt { top: 80px; font-size: 14px; width: auto; max-width: 280px; padding: 8px 16px; }
-  body.mobile #startScreen h1 { font-size: 42px; }
-  body.mobile .keys { font-size: 11px; line-height: 1.6; padding: 12px; }
+  
+  body.mobile #bPause { right: max(10px, env(safe-area-inset-right)); top: max(10px, env(safe-area-inset-top)); }
+  body.mobile #tcol { right: max(10px, env(safe-area-inset-right)); }
+  
+  body.mobile #toast { top: 60px; font-size: 20px; width: 90%; }
+  body.mobile #prompt { top: 70px; bottom: auto; padding: 8px 16px; font-size: 14px; width: auto; max-width: 250px; text-align: center; }
+
+  body.mobile #overlay h1 { font-size: 40px; }
+  body.mobile #overlay p { font-size: 14px; }
+  body.mobile #overlay .keys { font-size: 12px; line-height: 1.7; padding: 12px; }
+  body.mobile #overlay .keys b { width: 80px; }
 </style>
 </head>
 <body>
-
 <div id="landscapeWarning">
   <div class="icon">📱 <span>↻</span></div>
   <h2>Rotate Device</h2>
@@ -152,7 +156,6 @@
 
 <canvas id="game"></canvas>
 
-<!-- HUD -->
 <div id="hud">
   <div id="vitals" class="panel">
     <div id="lvlBadge">LVL 1</div>
@@ -164,118 +167,101 @@
       <div class="bar-label"><span>Experience</span><span id="xpText">0/100</span></div>
       <div class="bar-bg"><div id="xpFill" class="bar-fill" style="width:0%"></div></div>
     </div>
-    <div class="gold-text">💰 Gold: <span id="goldStat">0</span></div>
+    <div style="margin-top:8px;">💰 Gold: <span class="num" id="goldStat" style="font-size:16px; color:#ffd56b;">0</span></div>
   </div>
 
   <div id="stats" class="panel">
     <div>⚔️ Atk (Melee) <span class="num" id="atkStat">12</span></div>
-    <div>✨ Atk (Magic) <span class="num" id="magStat">10</span> <span id="magInd" class="magic-indicator" style="background:#ff3b3b;">FIRE</span></div>
+    <div>✨ Atk (Magic) <span class="num" id="magStat">10</span> <span id="magInd" style="display:inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-left: 5px; background: #8be0ff; color: #111;">ICE</span></div>
     <div>💀 Slain <span class="num" id="killStat">0</span></div>
     <div>⛏️ Tunnels <span class="num" id="tunStat">3</span></div>
     <div>🚢 Ship <span class="num" id="shipStat">300/300</span></div>
   </div>
+  
+  <div id="shopBtnDesktop" class="panel">🛒 OPEN SHOP [TAB]</div>
 
   <div id="hint">
-    <b>Mouse</b> Look · <b>WASD</b> Move · <b>Click</b> Sword · <b>R-Click</b> Magic · <b>C</b> Swap Magic<br>
-    <b>T</b> Tunnel · <b>F</b> Enter Tunnel · <b>E</b> Tree · <b>B</b> Boat · <b>R</b> Cleanse · <b>M</b> Map · <b>TAB</b> Shop
+    <b>Mouse</b> Look · <b>WASD</b> Move · <b>Click</b> Sword · <b>R-Click</b> Magic · <b>T</b> Dig · <b>F</b> Tunnel · <b>E</b> Tree · <b>B</b> Boat · <b>R</b> Cleanse · <b>M</b> Map · <b>ESC</b> Pause
   </div>
+</div>
+
+<div id="upgrades">
+  <div id="closeShopBtn">✕</div>
+  <h3>Blacksmith & Upgrades</h3>
+  <div class="upg-btn" onclick="buyUpgrade(1)"><span><b>[1]</b> Sword: <span id="uWeap">Steel</span></span> <span class="cost" id="cWeap">25g</span></div>
+  <div class="upg-btn" onclick="buyUpgrade(2)"><span><b>[2]</b> Magic: <span id="uMag">Adept</span></span> <span class="cost" id="cMag">20g</span></div>
+  <div class="upg-btn" onclick="buyUpgrade(3)"><span><b>[3]</b> Tunnel: <span id="uTun">Reinforced</span></span> <span class="cost" id="cTun">30g</span></div>
+  <div class="upg-btn" onclick="buyUpgrade(5)"><span><b>[4]</b> Ship Armor: <span id="uShip">Ironclad</span></span> <span class="cost" id="cShip">250g</span></div>
+  <div class="upg-btn" onclick="repairShip()"><span><b>[5]</b> Repair Ship</span> <span class="cost" id="cRepair">-</span></div>
 </div>
 
 <div id="toast"></div>
-<div id="prompt"></div>
-<div id="floaters"></div>
 <div id="reticle"></div>
 
-<!-- Mobile Controls -->
 <div id="touch">
   <div id="joyZone"></div>
   <div id="joyBase"><div id="joyKnob"></div></div>
-  
-  <!-- Right Side Arc -->
-  <div id="bAtk" class="act-btn">🗡️</div>
-  <div id="bMag" class="act-btn">✨</div>
-  <div id="mobileMagInd">FIRE</div>
-  <div id="bDash" class="act-btn">💨</div>
-  <div id="bSwap" class="act-btn">🔄</div>
-
-  <!-- Bottom Toolbar -->
-  <div id="utils-bar">
-    <div id="bShop" class="util-btn">🛒</div>
-    <div id="bMap" class="util-btn">🗺️</div>
-    <div id="bCleanse" class="util-btn">🔮</div>
-    <div id="bDig" class="util-btn">⛏️</div>
-    <div id="bTun" class="util-btn">🚇</div>
-    <div id="bTree" class="util-btn">🌲</div>
-    <div id="bShip" class="util-btn">⛵</div>
+  <div id="bAtk"  class="tbtn">🗡️</div>
+  <div id="bMag"  class="tbtn">✨</div>
+  <div id="mobileMagInd">ICE</div>
+  <div id="bDash" class="tbtn">💨</div>
+  <div id="tcol">
+    <div id="bDig"  class="tbtn">⛏️</div>
+    <div id="bTun"  class="tbtn">🚇</div>
+    <div id="bTree" class="tbtn">🌲</div>
+    <div id="bShip" class="tbtn">⛵</div>
+    <div id="bCleanse" class="tbtn" style="border-color:#a855f7;">🔮</div>
+    <div id="bMap" class="tbtn" style="border-color:#4f9dff;">🗺️</div>
+    <div id="bShop" class="tbtn" style="background: rgba(60,40,20,0.8); border-color:#ffd56b;">🛒</div>
   </div>
-
-  <!-- Top Right System -->
-  <div id="sys-bar">
-    <div id="bPause" class="sys-btn">⏸️</div>
-  </div>
+  <div id="bPause" class="tbtn">⏸️</div>
 </div>
 
-<!-- Overlays -->
-<div id="mapScreen" class="overlay-screen hidden" style="z-index: 160;">
-  <div class="overlay-content">
-    <div id="mapModal">
-      <div class="close-btn" onclick="toggleMap()">✕</div>
-      <h2 style="color:#ffd56b; margin-bottom: 15px; letter-spacing: 2px;">WORLD MAP</h2>
-      <canvas id="minimap" width="320" height="320"></canvas>
-      <p style="font-size:12px; margin-top:10px; opacity:0.8;">
-        <span style="color:#fff;">● You</span> &nbsp;|&nbsp; 
-        <span style="color:#a855f7;">● Obelisks</span> &nbsp;|&nbsp; 
-        <span style="color:#8a5a2b;">● Ship</span>
-      </p>
-    </div>
-  </div>
-</div>
+<div id="floaters"></div>
+<div id="prompt"></div>
 
-<div id="upgradesScreen" class="overlay-screen hidden" style="z-index: 150;">
-  <div class="overlay-content">
-    <div id="upgradesModal">
-      <div class="close-btn" onclick="toggleShop()">✕</div>
-      <h3>Blacksmith & Upgrades</h3>
-      <div class="upg-btn" onclick="buyUpgrade(1)"><span><b>[1]</b> Sword: <span id="uWeap">Steel</span></span> <span class="cost" id="cWeap">25g</span></div>
-      <div class="upg-btn" onclick="buyUpgrade(2)"><span><b>[2]</b> Magic: <span id="uMag">Adept</span></span> <span class="cost" id="cMag">20g</span></div>
-      <div class="upg-btn" onclick="buyUpgrade(3)"><span><b>[3]</b> Tunnel: <span id="uTun">Reinforced</span></span> <span class="cost" id="cTun">30g</span></div>
-      <div class="upg-btn" onclick="buyUpgrade(4)"><span><b>[4]</b> Ship: <span id="uShip">Ironclad</span></span> <span class="cost" id="cShip">200g</span></div>
-      <div class="upg-btn" onclick="repairShip()"><span><b>[5]</b> Repair Ship</span> <span class="cost" id="cRepair">-</span></div>
-    </div>
+<div id="mapScreen" class="overlay-screen hidden">
+  <div id="mapModal">
+    <div id="closeMapBtn" style="position: absolute; top: -12px; right: -12px; width: 34px; height: 34px; background: #ff3b3b; color: #fff; border: 2px solid #fff; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">✕</div>
+    <h2 style="color:#ffd56b; margin-bottom: 15px; letter-spacing: 2px;">WORLD MAP</h2>
+    <canvas id="minimap" width="320" height="320"></canvas>
+    <p style="font-size:12px; margin-top:10px; opacity:0.8;">
+      <span style="color:#fff;">● You</span> &nbsp;|&nbsp; 
+      <span style="color:#a855f7;">● Obelisks</span> &nbsp;|&nbsp; 
+      <span style="color:#8a5a2b;">● Ship</span>
+    </p>
   </div>
 </div>
 
 <div id="pauseMenu" class="overlay-screen hidden">
-  <div class="overlay-content">
-    <h2>PAUSED</h2>
-    <p style="margin-bottom: 26px;">Take a breath, hero.</p>
-    <button class="btn" onclick="togglePause()">RESUME GAME</button>
-    <button class="btn btn-alt" onclick="if(!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen();">TOGGLE FULLSCREEN</button>
-    <button class="btn btn-quit" onclick="location.reload()">QUIT GAME</button>
-  </div>
+  <h2>PAUSED</h2>
+  <p style="margin-bottom: 26px;">Take a breath, hero.</p>
+  <button class="btn" id="resumeBtn">RESUME GAME</button>
+  <button class="btn btn-quit" id="quitBtn">QUIT GAME</button>
+  <div class="copyright">© 2026 Noam Rapp. All Rights Reserved.</div>
 </div>
 
-<div id="victoryScreen" class="overlay-screen hidden">
-  <div class="overlay-content">
-    <h1 style="font-size: 60px; color: #8be0ff; text-shadow: 0 0 30px #4f9dff;">VICTORY</h1>
-    <p style="font-size: 20px; margin-bottom: 30px;">The Leviathan is slain. The waters are safe.</p>
-    <button class="btn" onclick="location.reload()">PLAY AGAIN</button>
-  </div>
+<div id="victoryScreen" class="overlay-screen hidden" style="background: rgba(0,20,40,0.9); z-index: 400;">
+  <h1 style="font-size: 60px; color: #8be0ff; text-shadow: 0 0 30px #4f9dff;">VICTORY</h1>
+  <p style="font-size: 20px; margin-bottom: 30px;">The Leviathan is slain. The waters are safe.</p>
+  <button class="btn" onclick="location.reload()">PLAY AGAIN</button>
 </div>
 
-<div id="startScreen" class="overlay-screen">
-  <div class="overlay-content">
-    <h1>EMBERFALL</h1>
-    <p>Cleanse the 3 <b>Cursed Obelisks</b> hidden across the world to summon the final boss! <br><b style="color:#ff3b3b">WARNING: Upgrade and repair your ship before fighting it!</b></p>
-    <div class="keys">
-      <b>WASD / Joy</b> Move &nbsp;&nbsp; | &nbsp;&nbsp; <b>Mouse / Drag</b> Look &nbsp;&nbsp; | &nbsp;&nbsp; <b>Shift / Dash</b> Dash<br>
-      <b>L-Click / 🗡️</b> Melee &nbsp;&nbsp; | &nbsp;&nbsp; <b>R-Click / ✨</b> Magic &nbsp;&nbsp; | &nbsp;&nbsp; <b>C / 🔄</b> Swap Magic Element<br>
-      <b>T / ⛏️</b> Dig Tunnel &nbsp;&nbsp; | &nbsp;&nbsp; <b>F / 🚇</b> Enter Tunnel &nbsp;&nbsp; | &nbsp;&nbsp; <b>E / 🌲</b> Climb Tree<br>
-      <b>B / ⛵</b> Board Ship &nbsp;&nbsp; | &nbsp;&nbsp; <b>R / 🔮</b> Cleanse Obelisk &nbsp;&nbsp; | &nbsp;&nbsp; <b>M / 🗺️</b> World Map<br>
-      <b>TAB / 🛒</b> Upgrades Shop (Pauses Game)<br>
-    </div>
-    <button class="btn" id="startBtn">ENTER THE FRAY</button>
+<div id="overlay" class="overlay-screen">
+  <h1>EMBERFALL</h1>
+  <p>Find and Cleanse the 3 <b>Cursed Obelisks</b> to summon the Leviathan!<br><b style="color:#ff3b3b">WARNING: You must upgrade and repair your Ship to survive the final battle!</b></p>
+  <div class="keys">
+    <b>Mouse</b> Look around (drag if your browser won't lock the pointer)<br>
+    <b>WASD</b> Move &nbsp;&nbsp;&nbsp; <b>Shift</b> Dash<br>
+    <b>Left-Click</b> Melee &nbsp;&nbsp;&nbsp; <b>Right-Click</b> Magic Bolt<br>
+    <b>T</b> Dig Tunnel &nbsp;&nbsp;&nbsp; <b>F</b> Enter/Travel Tunnels<br>
+    <b>B</b> Board/Leave Ship &nbsp;&nbsp;&nbsp; <b>R</b> Cleanse Obelisk &nbsp;&nbsp;&nbsp; <b>M</b> Map<br>
+    <b>E</b> Climb Tree (Safe from ground foes)<br>
+    <b>TAB</b> Open Upgrades Shop (Pauses Game)<br>
   </div>
+  <button class="btn" id="startBtn">ENTER THE FRAY</button>
+  <div class="credit">A game by <b>Noam Rapp</b></div>
+  <div class="copyright">© 2026 Noam Rapp&nbsp;·&nbsp;All Rights Reserved</div>
 </div>
 
 <script type="importmap">
@@ -286,121 +272,63 @@
 <script type="module">
 import * as THREE from 'three';
 
-// --- SYSTEM & GLOBALS ---
-const canvas = document.getElementById('game');
-const isTouch = /[?&](touch|mobile)/i.test(location.search) || navigator.maxTouchPoints > 0;
-let started = false, paused = false, shopOpen = false, mapOpen = false, gameOver = false;
-let clock = new THREE.Clock();
-
-function $(id) { return document.getElementById(id); }
-
-window.togglePause = function() { 
-    if(!started || !player.alive || shopOpen || mapOpen || gameOver) return; 
-    paused = !paused; 
-    $('pauseMenu').classList.toggle('hidden', !paused); 
-    setReticle(!paused);
-    if(paused && document.pointerLockElement) document.exitPointerLock();
-};
-
-window.toggleMap = function() { 
-    if(!started || !player.alive || gameOver || shopOpen) return; 
-    mapOpen = !mapOpen; 
-    $('mapScreen').classList.toggle('hidden', !mapOpen); 
-    paused = mapOpen; 
-    setReticle(!paused);
-    if(mapOpen) drawMap(); 
-    if(paused && document.pointerLockElement) document.exitPointerLock(); 
-};
-
-window.toggleShop = function() { 
-    if(!started || !player.alive || gameOver || mapOpen) return; 
-    shopOpen = !shopOpen; 
-    $('upgradesScreen').classList.toggle('hidden', !shopOpen); 
-    paused = shopOpen; 
-    setReticle(!paused);
-    if(paused && document.pointerLockElement) document.exitPointerLock(); 
-};
-
-function setReticle(show) {
-    const r = $('reticle');
-    if (r && !isTouch) r.style.display = show ? 'block' : 'none';
-}
-
-function onWindowResize() {
-    renderer.setSize(innerWidth, innerHeight);
-    camera.aspect = innerWidth / innerHeight;
-    camera.updateProjectionMatrix();
-}
-window.addEventListener('resize', onWindowResize);
-
-// --- AUDIO (Tone.js) ---
 let audioCtxStarted = false;
 const sfx = {};
 let drone, lute;
 
-async function initAudio() {
-    if (audioCtxStarted) return;
-    try {
-        await Tone.start();
-        audioCtxStarted = true;
-        const masterVol = new Tone.Volume(-4).toDestination();
+function initAudio() {
+    if(audioCtxStarted) return;
+    Tone.start();
+    audioCtxStarted = true;
+    const masterVol = new Tone.Volume(-14).toDestination();
 
-        sfx.swing = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.01, decay: 0.15, sustain: 0 } }).connect(new Tone.Filter(1200, "lowpass").connect(masterVol));
-        sfx.hit = new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 2, envelope: { attack: 0.01, decay: 0.1, sustain: 0 } }).connect(masterVol);
-        sfx.magic = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.01, decay: 0.2, sustain: 0 } }).connect(masterVol);
-        sfx.cannon = new Tone.MembraneSynth({ pitchDecay: 0.1, octaves: 4, envelope: { attack: 0.01, decay: 0.6, sustain: 0 } }).connect(masterVol);
-        sfx.coin = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.01, decay: 0.4, sustain: 0 } }).connect(masterVol);
-        sfx.heal = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'triangle' }, envelope: { attack: 0.05, decay: 0.4, sustain: 0.2, release: 0.5 } }).connect(masterVol);
-        
-        sfx.levelUp = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'square' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0.2, release: 1 } }).connect(new Tone.Volume(-14).connect(masterVol));
-        
-        sfx.dig = new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0 } }).connect(masterVol);
+    sfx.swing = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.01, decay: 0.15, sustain: 0 } }).connect(masterVol);
+    sfx.hit = new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 2, envelope: { attack: 0.01, decay: 0.2, sustain: 0 } }).connect(masterVol);
+    sfx.magic = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.01, decay: 0.2, sustain: 0 } }).connect(masterVol);
+    sfx.cannon = new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 4, envelope: { attack: 0.01, decay: 0.5, sustain: 0 } }).connect(masterVol);
+    sfx.coin = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.01, decay: 0.4, sustain: 0 } }).connect(masterVol);
+    sfx.heal = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.05, decay: 0.4, sustain: 0.2, release: 0.5 } }).connect(masterVol);
+    sfx.poly = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'square' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0.2, release: 1 } }).connect(masterVol);
+    sfx.dig = new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0 } }).connect(masterVol);
 
-        const droneFilter = new Tone.Filter(300, "lowpass").connect(masterVol);
-        drone = new Tone.Oscillator("D2", "sawtooth").connect(droneFilter);
-        drone.volume.value = -8; drone.start();
+    const droneFilter = new Tone.Filter(300, "lowpass").connect(masterVol);
+    drone = new Tone.Oscillator("D2", "sawtooth").connect(droneFilter);
+    drone.volume.value = -8; drone.start();
+    
+    lute = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.02, decay: 1.5, sustain: 0 } }).connect(masterVol);
+    lute.volume.value = 0;
 
-        lute = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.02, decay: 1.5, sustain: 0 } }).connect(masterVol);
-        lute.volume.value = -4;
-
-        const arpNotes = ["D3", "F3", "A3", "C4", "A3", "G3", "F3", "E3"];
-        let step = 0;
-        Tone.Transport.scheduleRepeat((time) => {
-            if (started && !paused && !gameOver) {
-                lute.triggerAttackRelease(arpNotes[step % arpNotes.length], "8n", time);
-            }
-            step++;
-        }, "4n");
-        Tone.Transport.start();
-    } catch(err) { console.warn("Audio disabled or blocked:", err); }
+    const arpNotes = ["D3", "F3", "A3", "C4", "A3", "G3", "F3", "E3"];
+    let step = 0;
+    Tone.Transport.scheduleRepeat((time) => {
+        if (started && !paused && player.alive) { lute.triggerAttackRelease(arpNotes[step % arpNotes.length], "8n", time); }
+        step++;
+    }, "4n");
+    Tone.Transport.start();
 }
 
-// --- THREE.JS SETUP ---
+const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, isTouch ? 1.5 : 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x3a4f66); 
+scene.background = new THREE.Color(0x3a4f66);
 scene.fog = new THREE.Fog(0x3a4f66, 90, 300);
 
-const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 800);
-let camYaw = 0.6, camPitch = 0.5, camDist = 18;
+const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 800);
 
 const hemiLight = new THREE.HemisphereLight(0xffffff, 0x5a5a6a, 0.8); scene.add(hemiLight);
 const sun = new THREE.DirectionalLight(0xffffff, 1.2);
 sun.position.set(40, 80, 30); sun.castShadow = true;
-sun.shadow.mapSize.set(isTouch ? 1024 : 2048, isTouch ? 1024 : 2048);
+sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.near = 1; sun.shadow.camera.far = 300;
 const d = 150; sun.shadow.camera.left = -d; sun.shadow.camera.right = d; sun.shadow.camera.top = d; sun.shadow.camera.bottom = -d;
 scene.add(sun); scene.add(sun.target);
 
-// --- WORLD DATA ---
 const WORLD = 320;
 const walls = [], enemyZones = [], trees = [], caveLamps = [];
-const LAKE = { x: -80, z: 70, r: 90 }; 
-const ISLAND = { x: -95, z: 65, r: 24 };
 
 const UG_Y = -12;
 const ugRoot = new THREE.Group(); scene.add(ugRoot);
@@ -409,7 +337,10 @@ const ugBigFloor = new THREE.Mesh(new THREE.PlaneGeometry(WORLD*2, WORLD*2), new
 ugBigFloor.rotation.x = -Math.PI/2; ugBigFloor.position.y = UG_Y - 0.1; scene.add(ugBigFloor);
 const ugAmbient = new THREE.AmbientLight(0x6a6280, 0.0); scene.add(ugAmbient);
 const ugLightPool = [];
-for(let i=0; i<3; i++) { const L = new THREE.PointLight(0xffbb55, 0, 38, 2); ugRoot.add(L); ugLightPool.push(L); }
+for (let i=0;i<3;i++){ const L=new THREE.PointLight(0xffbb55, 0, 38, 2); ugRoot.add(L); ugLightPool.push(L); }
+
+const LAKE = { x: -80, z: 70, r: 90 }; 
+const ISLAND = { x: -95, z: 65, r: 24 };
 
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(WORLD*2, WORLD*2), new THREE.MeshStandardMaterial({ color: 0x3a5a3a, roughness: 1 }));
 ground.rotation.x = -Math.PI/2; ground.receiveShadow = true; scene.add(ground);
@@ -426,30 +357,27 @@ function isWater(x,z) {
   return dL < LAKE.r && dI > ISLAND.r;
 }
 
-function buildTreeMesh(){
-  const grp = new THREE.Group();
+function makeTree(x,z, scaleMult=1){
+  const g = new THREE.Group();
   const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.45,2.2,6), new THREE.MeshStandardMaterial({color:0x6b4a2b, roughness:1}));
   trunk.position.y = 1.1; trunk.castShadow = true;
-  const leaves = new THREE.Mesh(new THREE.IcosahedronGeometry(1.8,0), new THREE.MeshStandardMaterial({color:0x2e7d4f, flatShading:true, roughness:1}));
+  const leaves = new THREE.Mesh(new THREE.IcosahedronGeometry(1.8, 0), new THREE.MeshStandardMaterial({color:0x2e7d4f, flatShading:true, roughness:1}));
   leaves.position.y = 3.2; leaves.castShadow = true;
   const leaves2 = leaves.clone(); leaves2.scale.setScalar(.7); leaves2.position.set(.6,4.0,.3);
-  grp.add(trunk, leaves, leaves2); return grp;
-}
-
-function makeTree(x,z, scaleMult=1){
-  const g = buildTreeMesh(); g.position.set(x,0,z);
+  g.add(trunk, leaves, leaves2); g.position.set(x,0,z);
   g.scale.setScalar((0.8+Math.random()*1.2)*scaleMult); g.rotation.y = Math.random()*Math.PI; scene.add(g);
   trees.push({x, z});
 }
+
 function makeRock(x,z){
   const r = new THREE.Mesh(new THREE.DodecahedronGeometry(0.6+Math.random()*1.5,0), new THREE.MeshStandardMaterial({color:0x777788, flatShading:true, roughness:1}));
   r.position.set(x, 0.3, z); r.castShadow = true; r.receiveShadow = true;
   r.rotation.set(Math.random(),Math.random(),Math.random()); scene.add(r);
 }
 
-for (let i=0;i<600;i++){
-  const x=(Math.random()-0.5)*WORLD*1.8, z=(Math.random()-0.5)*WORLD*1.8;
-  if (Math.hypot(x,z)<12 || isWater(x,z)) continue;
+for (let i=0;i<680;i++){
+  const x=(Math.random()-0.5)*WORLD*1.9, z=(Math.random()-0.5)*WORLD*1.9;
+  if (Math.hypot(x,z) < 12 || isWater(x,z)) continue;
   Math.random()<0.65 ? makeTree(x,z) : makeRock(x,z);
 }
 
@@ -527,28 +455,44 @@ function spawnLeviathan() {
     leviathan = { obj: g, pos: g.position.clone(), hp: 8000, maxHp: 8000, phase: 0, shootCd: 3, scale: 5, dead: false };
 }
 
-// --- PLAYER & UPGRADES ---
-const weaponTiers = [{name:'Iron',cost:0,atkBonus:0,color:0xdfe8ff,glow:0x223366,scale:1.0},{name:'Steel',cost:25,atkBonus:10,color:0xcdd5e0,glow:0x556677,scale:1.2},{name:'Gold',cost:75,atkBonus:28,color:0xffd700,glow:0xaa8800,scale:1.4},{name:'Void',cost:250,atkBonus:75,color:0x8be0ff,glow:0x2200aa,scale:1.8}];
-const tunnelTiers = [{name:'Dirt',cost:30,hp:100,r:3.5},{name:'Wood',cost:100,hp:300,r:4.2},{name:'Stone',cost:250,hp:800,r:5.0}];
-const shipTiers = [{name:'Wooden Sloop', cost:0, maxHp: 300, dmg: 48}, {name:'Ironclad', cost: 200, maxHp: 600, dmg: 95}, {name:'Dreadnought', cost: 500, maxHp: 1200, dmg: 180}];
+const weaponTiers = [
+  { name: 'Iron Sword', cost: 0, atkBonus: 0, color: 0xdfe8ff, glow: 0x223366, scale: 1.0 },
+  { name: 'Steel Broadsword', cost: 25, atkBonus: 10, color: 0xcdd5e0, glow: 0x556677, scale: 1.2 },
+  { name: 'Golden Blade', cost: 75, atkBonus: 28, color: 0xffd700, glow: 0xaa8800, scale: 1.4 },
+  { name: 'Bloodletter', cost: 200, atkBonus: 65, color: 0xff3b3b, glow: 0xaa0000, scale: 1.65 },
+  { name: 'Void Edge', cost: 500, atkBonus: 150, color: 0x8be0ff, glow: 0x2200aa, scale: 2.0 }
+];
+const magicTiers = [
+  { name: 'Apprentice', cost: 20, dmgBonus: 0, speed: 30, cd: 0.35, color: 0x8be0ff, glow: 0x33aaff },
+  { name: 'Adept', cost: 60, dmgBonus: 15, speed: 40, cd: 0.28, color: 0x4f9dff, glow: 0x1166dd },
+  { name: 'Master', cost: 150, dmgBonus: 40, speed: 50, cd: 0.22, color: 0xcc66ff, glow: 0x8822cc },
+  { name: 'Archmage', cost: 400, dmgBonus: 100, speed: 65, cd: 0.15, color: 0xff66bb, glow: 0xcc1166 },
+  { name: 'God Tier', cost: 99999, dmgBonus: 250, speed: 80, cd: 0.1, color: 0xffffff, glow: 0xffffff }
+];
+const tunnelTiers = [
+  { name: 'Dirt Hole', cost: 30, hp: 100, r: 3.5 },
+  { name: 'Reinforced', cost: 100, hp: 300, r: 4.2 },
+  { name: 'Bunker', cost: 250, hp: 800, r: 5.0 },
+  { name: 'Fortress', cost: 600, hp: 2000, r: 6.0 },
+  { name: 'Indestructible', cost: 99999, hp: 99999, r: 7.0 }
+];
+const shipTiers = [
+  { name: 'Wooden Sloop', cost: 0, maxHp: 300, dmg: 48 },
+  { name: 'Ironclad', cost: 250, maxHp: 800, dmg: 110 },
+  { name: 'Dreadnought', cost: 700, maxHp: 2000, dmg: 250 }
+];
 
 let wepIdx = 0, magIdx = 0, tunIdx = 0, shipIdx = 0;
-
-const magicTypes = [
-    { name: 'Fire', color: 0xff3b3b, glow: 0xaa0000, ui: 'FIRE', effect: 'burn', dmgMult: 1.5 },
-    { name: 'Ice', color: 0x4f9dff, glow: 0x1166dd, ui: 'ICE', effect: 'slow', dmgMult: 0.8 },
-    { name: 'Lightning', color: 0xa855f7, glow: 0x8822cc, ui: 'ELEC', effect: 'pierce', dmgMult: 1.0 }
-];
-let activeMagic = 0;
 
 function buildHero(){
   const g = new THREE.Group();
   const skin = new THREE.MeshStandardMaterial({color:0xf0c090, roughness:.8});
   const cloth= new THREE.MeshStandardMaterial({color:0x3060c0, roughness:.7});
+  const cloth2=new THREE.MeshStandardMaterial({color:0x224090, roughness:.7});
   const torso = new THREE.Mesh(new THREE.BoxGeometry(0.9,1.1,0.5), cloth); torso.position.y=1.35; torso.castShadow=true; g.add(torso);
   const head = new THREE.Mesh(new THREE.BoxGeometry(0.55,0.55,0.55), skin); head.position.y=2.15; head.castShadow=true; g.add(head);
   const hair = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.2,0.6), new THREE.MeshStandardMaterial({color:0x402810})); hair.position.y=2.45; g.add(hair);
-  const legL = new THREE.Mesh(new THREE.BoxGeometry(0.35,0.9,0.35), new THREE.MeshStandardMaterial({color:0x224090})); legL.position.set(-0.22,0.45,0); legL.castShadow=true; g.add(legL);
+  const legL = new THREE.Mesh(new THREE.BoxGeometry(0.35,0.9,0.35), cloth2); legL.position.set(-0.22,0.45,0); legL.castShadow=true; g.add(legL);
   const legR = legL.clone(); legR.position.x=0.22; g.add(legR);
   const armL = new THREE.Mesh(new THREE.BoxGeometry(0.28,0.9,0.28), cloth); armL.position.set(-0.62,1.45,0); armL.castShadow=true; g.add(armL);
   const armR = armL.clone(); armR.position.x=0.62; g.add(armR);
@@ -564,10 +508,12 @@ const hero = buildHero(); scene.add(hero);
 
 const player = {
   obj: hero, pos: new THREE.Vector3(0,0,0), facing: 0,
-  hp: 100, maxHp: 100, xp: 0, xpNext: 100, level: 1, gold: 0, kills: 0,
-  atk: 12, magAtk: 10, speed: 10, tunnels: 3,
-  atkCd: 0, magCd: 0, dashCd: 0, invuln: 0, atkAnim: 0, walkPhase: 0,
-  alive: true, onShip: false, inTree: false, treePos: null, underground: false, tunnelCd: 0
+  hp: 100, maxHp: 100, xp: 0, xpNext: 100, level: 1,
+  atk: 12, magAtk: 10, gold: 0, kills: 0, speed: 10,
+  attackTimer: 0, attackCooldown: 0, shootCooldown: 0,
+  dashCd: 0, invuln: 0, alive: true, walkPhase: 0,
+  tunnels: 3, tunnelCd: 0, onShip: false,
+  inTree: false, treePos: null, underground: false
 };
 const PLAYER_R = 0.6;
 
@@ -577,30 +523,80 @@ function buildShip() {
   const deck=new THREE.Mesh(new THREE.BoxGeometry(2.8,0.2,5.8), new THREE.MeshStandardMaterial({color:0x8a5a2b,roughness:.9})); deck.position.y=1.35; g.add(deck);
   const mast=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,6), new THREE.MeshStandardMaterial({color:0x5a3a1a})); mast.position.set(0,4,0); g.add(mast);
   const sail=new THREE.Mesh(new THREE.PlaneGeometry(3.2,3.8), new THREE.MeshStandardMaterial({color:0xf2ead0,roughness:1,side:THREE.DoubleSide})); sail.position.set(0,4.5,0.1); g.add(sail);
-  const cannon=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.4,2.2,12), new THREE.MeshStandardMaterial({color:0x2b2b33,metalness:.6,roughness:.4}));
-  cannon.rotation.x=Math.PI/2; cannon.position.set(0,1.7,2.8); g.add(cannon);
-  g.userData={cannon}; return g;
+  
+  const cannons = [];
+  const cannonRoot = new THREE.Group(); cannonRoot.position.set(0, 1.7, 2.8); g.add(cannonRoot);
+  const c1=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.4,2.2,12), new THREE.MeshStandardMaterial({color:0x2b2b33,metalness:.6,roughness:.4}));
+  c1.rotation.x=Math.PI/2; cannons.push(c1); cannonRoot.add(c1);
+  
+  const armorParts = new THREE.Group(); g.add(armorParts);
+
+  g.userData={cannons, cannonRoot, hull, sail, armorParts};
+  return g;
 }
 
-const ship = { 
-    obj: buildShip(), pos: new THREE.Vector3(), facing: 0, hp: 300, maxHp: 300, 
-    fireCd: 0, dmgCd: 0, bob: 0, destroyed: false, respawnTimer: 0 
-};
-const dx=0-LAKE.x, dz=0-LAKE.z, dl=Math.hypot(dx,dz);
-ship.pos.set(LAKE.x+dx/dl*(LAKE.r-5), 0, LAKE.z+dz/dl*(LAKE.r-5));
-ship.facing=Math.atan2(-dx,-dz); ship.obj.position.copy(ship.pos); scene.add(ship.obj);
+const ship = { obj:buildShip(), pos:new THREE.Vector3(), facing:0, fireCd:0, bob:0, hp:300, maxHp:300, dmgCd:0, destroyed:false, respawnTimer:0, invuln:0 };
+{ const dx=0-LAKE.x, dz=0-LAKE.z, dl=Math.hypot(dx,dz); ship.pos.set(LAKE.x+dx/dl*(LAKE.r-5), 0, LAKE.z+dz/dl*(LAKE.r-5)); ship.facing=Math.atan2(-dx,-dz); }
+ship.obj.position.copy(ship.pos); scene.add(ship.obj);
 
-// --- ARRAYS ---
-const enemies = [], projectiles = [], pickups = [], effects = [], activeTunnels = [], puddles = [];
+function updateShipVisuals() {
+    const u = ship.obj.userData;
+    // Clear old armor
+    while(u.armorParts.children.length > 0) { u.armorParts.remove(u.armorParts.children[0]); }
+    
+    if (shipIdx === 0) {
+        u.hull.material.color.setHex(0x6b3f1f); u.sail.material.color.setHex(0xf2ead0);
+        if(u.cannons[1]) { u.cannonRoot.remove(u.cannons[1]); u.cannons.pop(); }
+        u.cannons[0].position.x = 0;
+    } else if (shipIdx === 1) {
+        u.hull.material.color.setHex(0x44444a); u.sail.material.color.setHex(0xa0a0aa);
+        if(u.cannons[1]) { u.cannonRoot.remove(u.cannons[1]); u.cannons.pop(); }
+        u.cannons[0].position.x = 0;
+        // Iron plates
+        const plates = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.0, 6.6), new THREE.MeshStandardMaterial({color: 0x333333, metalness:0.8, roughness:0.4}));
+        plates.position.y = 0.8; u.armorParts.add(plates);
+    } else if (shipIdx === 2) {
+        u.hull.material.color.setHex(0x222222); u.sail.material.color.setHex(0x882222);
+        // Add second cannon
+        if(!u.cannons[1]) { 
+            const c2 = u.cannons[0].clone(); u.cannons.push(c2); u.cannonRoot.add(c2); 
+        }
+        u.cannons[0].position.x = -0.6; u.cannons[1].position.x = 0.6;
+        // Heavy plates and spikes
+        const plates = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.2, 6.8), new THREE.MeshStandardMaterial({color: 0x1a1a1a, metalness:0.9, roughness:0.3}));
+        plates.position.y = 0.9; u.armorParts.add(plates);
+        const spikeGeo = new THREE.ConeGeometry(0.2, 1.0, 4);
+        const spikeMat = new THREE.MeshStandardMaterial({color:0x555555, metalness:0.8});
+        for(let i=0; i<6; i++) {
+            const s1 = new THREE.Mesh(spikeGeo, spikeMat); s1.position.set(-1.8, 1.2, -2 + i*1.2); s1.rotation.z = Math.PI/4; u.armorParts.add(s1);
+            const s2 = new THREE.Mesh(spikeGeo, spikeMat); s2.position.set(1.8, 1.2, -2 + i*1.2); s2.rotation.z = -Math.PI/4; u.armorParts.add(s2);
+        }
+    }
+}
+
+function makeHpBar(){
+  const g = new THREE.Group(); const W = 1.7;
+  const bg = new THREE.Mesh(new THREE.PlaneGeometry(W, 0.24), new THREE.MeshBasicMaterial({ color:0x110000, transparent:true, opacity:.78, depthTest:false }));
+  const fill = new THREE.Mesh(new THREE.PlaneGeometry(W, 0.18), new THREE.MeshBasicMaterial({ color:0x6fcf45, depthTest:false }));
+  bg.renderOrder = 998; fill.renderOrder = 999; fill.position.z = 0.001;
+  g.add(bg, fill); g.userData = { W, fill }; g.visible = false;
+  return g;
+}
+
+const enemies = [], pickups = [], projectiles = [], effects = [], activeTunnels = [], puddles = [];
 
 function buildSlime(type, scale, color){
   const g = new THREE.Group();
-  let geo = (type==='breaker' || type==='stalker') ? new THREE.DodecahedronGeometry(0.8*scale, 0) : 
-            (type==='water' ? new THREE.TorusKnotGeometry(0.4*scale, 0.15*scale, 32, 8) : new THREE.IcosahedronGeometry(0.8*scale, 1));
+  let geo;
+  if(type==='breaker' || type==='stalker') geo = new THREE.DodecahedronGeometry(0.8*scale, 0);
+  else if(type==='water') geo = new THREE.TorusKnotGeometry(0.4*scale, 0.15*scale, 32, 8);
+  else geo = new THREE.IcosahedronGeometry(0.8*scale, 1);
+  
   const body = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color, flatShading:true, roughness:.6, emissive:color, emissiveIntensity: (type==='toxic'||type==='stalker')?0.4:0.15}));
   body.position.y=0.8*scale; body.castShadow=true; g.add(body);
+  const eyeW = new THREE.MeshStandardMaterial({color:0xffffff}), eyeB=new THREE.MeshStandardMaterial({color:type==='toxic'?0xff0000:0x000000});
+  
   if (type !== 'water') {
-    const eyeW = new THREE.MeshStandardMaterial({color:0xffffff}), eyeB=new THREE.MeshStandardMaterial({color:type==='toxic'?0xff0000:0x000000});
     for (const dx of [-0.28,0.28]){
       const w=new THREE.Mesh(new THREE.SphereGeometry(0.14*scale,8,8), eyeW); w.position.set(dx*scale,0.95*scale,0.6*scale); g.add(w);
       const b=new THREE.Mesh(new THREE.SphereGeometry(0.07*scale,8,8), eyeB); b.position.set(dx*scale,0.95*scale,0.72*scale); g.add(b);
@@ -614,8 +610,15 @@ function buildMimic(scale, disguiseType){
   let disguise;
   if (disguiseType === 'rock'){
     disguise = new THREE.Group();
-    const main = new THREE.Mesh(new THREE.DodecahedronGeometry(1.4,0), new THREE.MeshStandardMaterial({color:0x777788, flatShading:true, roughness:1}));
+    const rockMat = new THREE.MeshStandardMaterial({color:0x777788, flatShading:true, roughness:1});
+    const main = new THREE.Mesh(new THREE.DodecahedronGeometry(1.4,0), rockMat);
     main.position.y = 0.7; main.castShadow = true; disguise.add(main);
+    for (let i=0;i<3;i++){
+      const s=0.5+Math.random()*0.7, a=Math.random()*Math.PI*2;
+      const b=new THREE.Mesh(new THREE.DodecahedronGeometry(s,0), rockMat);
+      b.position.set(Math.cos(a)*1.4, s*0.5, Math.sin(a)*1.4);
+      b.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3); b.castShadow=true; disguise.add(b);
+    }
   } else if (disguiseType === 'cave'){ disguise = buildCaveVisual(Math.random()*Math.PI*2); } 
   else { disguise = buildTreeMesh(); }
   g.add(disguise);
@@ -625,298 +628,130 @@ function buildMimic(scale, disguiseType){
   body.position.y = 0.95*scale; body.castShadow = true; monster.add(body);
   const eyeMat = new THREE.MeshStandardMaterial({color:0xff3322, emissive:0xff0000, emissiveIntensity:1.8});
   for (const dx of [-0.32,0.32]){ const eye = new THREE.Mesh(new THREE.SphereGeometry(0.17*scale,8,8), eyeMat); eye.position.set(dx*scale, 1.1*scale, 0.62*scale); monster.add(eye); }
+  const toothMat = new THREE.MeshStandardMaterial({color:0xf2f2f2, roughness:.4});
+  for (let i=0;i<10;i++){ const a = (i/10)*Math.PI*2; const t = new THREE.Mesh(new THREE.ConeGeometry(0.09*scale,0.34*scale,4), toothMat); t.position.set(Math.cos(a)*0.6*scale, 0.62*scale, Math.sin(a)*0.6*scale); t.rotation.x = Math.PI; monster.add(t); }
   monster.visible = false; g.add(monster);
   g.userData = { disguise, monster, body }; return g;
 }
 
-function spawnEnemy(type, x, z) {
-    let e = { type, pos: new THREE.Vector3(x,0,z), phase: Math.random()*10, flash: 0, touchCd: 0, shootCd: 2.5, atkTimer:0, effects: [], dead: false };
-    const pwrMult = 1 + player.level * 0.15 + wepIdx * 0.2;
-    
-    if (type==='brute') { e.scale=1.8; e.hp=80*pwrMult; e.atk=18; e.speed=3.2; e.xp=65; e.gold=35; e.color=0x9b2d2d; }
-    else if (type==='shooter') { e.scale=1.1; e.hp=30*pwrMult; e.atk=10; e.speed=3.8; e.xp=40; e.gold=15; e.color=0x7030a0; }
-    else if (type==='breaker') { e.scale=1.4; e.hp=60*pwrMult; e.atk=15; e.speed=4.5; e.xp=50; e.gold=25; e.color=0xd06010; }
-    else if (type==='toxic') { e.scale=1.2; e.hp=45*pwrMult; e.atk=12; e.speed=4.0; e.xp=45; e.gold=20; e.color=0x33ff33; }
-    else if (type==='water') { e.scale=1.5; e.hp=50*pwrMult; e.atk=14; e.speed=4.5; e.xp=60; e.gold=30; e.color=0x1177ff; }
-    else if (type==='stalker') { e.scale=1.1; e.hp=40*pwrMult; e.atk=20; e.speed=5.2; e.xp=55; e.gold=25; e.color=0x2a1a3a; }
-    else if (type==='mimic') {
-        e.disguise=['tree','rock','cave'][Math.floor(Math.random()*3)]; e.revealed=false; e.color=0x3a0f2a;
-        if (e.disguise==='cave'){ e.scale=2.6; e.hp=900*pwrMult; e.atk=30; e.speed=4.2; e.xp=300; e.gold=250; }
-        else { e.scale=1.7; e.hp=550*pwrMult; e.atk=26; e.speed=5.0; e.xp=160; e.gold=130; }
-    }
-    else { e.scale=1; e.hp=25*pwrMult; e.atk=8; e.speed=4.2; e.xp=25; e.gold=10; e.color=0x6fcf45; e.type='slime'; }
+function spawnEnemy(type, x, z){
+  let e = { type, pos: new THREE.Vector3(x,0,z), phase:Math.random()*Math.PI*2, flash:0, touchCd:0, shootCd: 2.0, atkTimer:0 };
+  const powerMult = 1 + player.level*0.15 + wepIdx*0.2 + magIdx*0.2;
+  
+  if (type==='brute') { e.scale=1.8; e.hp=80*powerMult; e.atk=18; e.speed=3.2; e.xp=65; e.gold=35; e.color=0x9b2d2d; }
+  else if (type==='shooter') { e.scale=1.1; e.hp=30*powerMult; e.atk=10; e.speed=3.8; e.xp=40; e.gold=15; e.color=0x7030a0; }
+  else if (type==='breaker') { e.scale=1.4; e.hp=60*powerMult; e.atk=15; e.speed=4.5; e.xp=50; e.gold=25; e.color=0xd06010; }
+  else if (type==='toxic') { e.scale=1.2; e.hp=45*powerMult; e.atk=12; e.speed=4.0; e.xp=45; e.gold=20; e.color=0x33ff33; }
+  else if (type==='water') { e.scale=1.5; e.hp=50*powerMult; e.atk=14; e.speed=4.5; e.xp=60; e.gold=30; e.color=0x1177ff; }
+  else if (type==='stalker') { e.scale=1.1; e.hp=40*powerMult; e.atk=20; e.speed=5.2; e.xp=55; e.gold=25; e.color=0x2a1a3a; }
+  else if (type==='mimic') {
+    e.disguise=['tree','rock','cave'][Math.floor(Math.random()*3)]; e.revealed=false; e.color=0x3a0f2a;
+    if (e.disguise==='cave'){ e.scale=2.6; e.hp=900*powerMult; e.atk=30; e.speed=4.2; e.xp=300; e.gold=250; }
+    else { e.scale=1.7; e.hp=550*powerMult; e.atk=26; e.speed=5.0; e.xp=160; e.gold=130; }
+  }
+  else { e.scale=1; e.hp=25*powerMult; e.atk=8; e.speed=4.2; e.xp=25; e.gold=10; e.color=0x6fcf45; e.type='slime'; }
 
-    e.maxHp = e.hp = Math.round(e.hp);
-    e.obj = (type==='mimic') ? buildMimic(e.scale, e.disguise) : buildSlime(e.type, e.scale, e.color);
-    e.obj.position.copy(e.pos); scene.add(e.obj);
-    e.obj.userData.dying = 0; 
-    enemies.push(e);
+  e.hp = Math.round(e.hp); e.maxHp=e.hp;
+  e.obj = (e.type==='mimic') ? buildMimic(e.scale, e.disguise) : buildSlime(e.type, e.scale, e.color);
+  e.obj.position.copy(e.pos); scene.add(e.obj); enemies.push(e); return e;
 }
 
-function spawnWave(n, forcePos=null) {
-    const pwr = player.level + wepIdx*3;
-    let pool = ['slime'];
-    if (pwr > 4) pool.push('brute', 'shooter');
-    if (pwr > 8) pool.push('breaker', 'toxic');
-    if (pwr > 10) pool.push('stalker', 'mimic');
-    
-    for(let i=0; i<n; i++) {
-        let x, z, tries=0, type;
-        if (forcePos) {
-            x = forcePos.x + (Math.random()-0.5)*30; z = forcePos.z + (Math.random()-0.5)*30;
-            type = pool[Math.floor(Math.random()*pool.length)];
+function spawnWave(n, forcePos=null){
+  const pwr = player.level + wepIdx*3 + magIdx*3;
+  let pool = ['slime'];
+  if (pwr > 4) pool.push('brute', 'shooter');
+  if (pwr > 8) pool.push('breaker', 'toxic');
+  if (pwr > 10) pool.push('stalker', 'mimic');
+  
+  for (let i=0;i<n;i++){
+    let x,z,tries=0, type;
+    if (forcePos) {
+        x = forcePos.x + (Math.random()-0.5)*30; z = forcePos.z + (Math.random()-0.5)*30;
+        type = pool[Math.floor(Math.random()*pool.length)];
+    } else {
+        if (Math.random() < 0.25) {
+          do { const a=Math.random()*Math.PI*2, r=ISLAND.r+5+Math.random()*(LAKE.r-ISLAND.r-10); x=LAKE.x+Math.cos(a)*r; z=LAKE.z+Math.sin(a)*r; tries++; }
+          while (Math.hypot(x-ship.pos.x,z-ship.pos.z)<20 && tries<30);
+          type = 'water';
         } else {
-            if (Math.random() < 0.25) {
-                do { const a=Math.random()*Math.PI*2, r=ISLAND.r+5+Math.random()*(LAKE.r-ISLAND.r-10); x=LAKE.x+Math.cos(a)*r; z=LAKE.z+Math.sin(a)*r; tries++; } while (Math.hypot(x-ship.pos.x,z-ship.pos.z)<20 && tries<30);
-                type = 'water';
-            } else {
-                do { const a=Math.random()*Math.PI*2, r=20+Math.random()*(WORLD-24); x=player.pos.x+Math.cos(a)*r; z=player.pos.z+Math.sin(a)*r; tries++; } while ((Math.hypot(x-player.pos.x,z-player.pos.z)<25 || isWater(x,z)) && tries<30);
-                type = pool[Math.floor(Math.random()*pool.length)];
-            }
+          do { const a=Math.random()*Math.PI*2, r=20+Math.random()*(WORLD-24); x=Math.cos(a)*r; z=Math.sin(a)*r; tries++; }
+          while ((Math.hypot(x-player.pos.x,z-player.pos.z)<25 || isWater(x,z)) && tries<30);
+          type = pool[Math.floor(Math.random()*pool.length)];
         }
-        spawnEnemy(type, x, z);
     }
+    spawnEnemy(type, x, z);
+  }
+}
+
+function spawnMimics(count){
+  for (let i=0;i<count;i++){
+    let x,z,tries=0; do { x=(Math.random()-0.5)*WORLD*1.8; z=(Math.random()-0.5)*WORLD*1.8; tries++; } while ((Math.hypot(x,z)<35 || isWater(x,z)) && tries<50);
+    spawnEnemy('mimic', x, z);
+  }
 }
 
 function spawnPickup(x,z,kind){
   let mesh;
   if (kind==='gold'){ mesh=new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.25,0.08,12), new THREE.MeshStandardMaterial({color:0xffd24a,metalness:.7,roughness:.3,emissive:0x886600,emissiveIntensity:.4})); mesh.rotation.x=Math.PI/2; }
   else mesh=new THREE.Mesh(new THREE.OctahedronGeometry(0.32,0), new THREE.MeshStandardMaterial({color:0xff4d6d,emissive:0xff2244,emissiveIntensity:.6,roughness:.4}));
-  mesh.position.set(x,0.6,z); mesh.castShadow=true; scene.add(mesh);
-  pickups.push({obj:mesh,kind,spin:Math.random()*Math.PI*2});
+  mesh.position.set(x,0.6,z); mesh.castShadow=true; scene.add(mesh); pickups.push({obj:mesh,kind,spin:Math.random()*Math.PI*2});
 }
 
-// --- INPUT & UI ---
-const keys = {};
-const touchInput = { fwd: 0, right: 0 };
-
-// Desktop Keys
-window.addEventListener('keydown', e => {
-    keys[e.code] = true;
-    if (e.code==='Space') { e.preventDefault(); primaryAttack(); }
-    if (e.code==='KeyT') digTunnel();
-    if (e.code==='KeyF') toggleUnderground();
-    if (e.code==='KeyE') toggleTree();
-    if (e.code==='KeyB') toggleShip();
-    if (e.code==='KeyC') cycleMagic();
-    if (e.code==='KeyR') cleanseObelisk();
-    if (e.code==='KeyM') toggleMap();
-    if (e.code==='Digit4') window.buyUpgrade(4);
-    if (e.code==='Digit5') window.repairShip();
-    if (e.code==='Tab') { e.preventDefault(); toggleShop(); }
-    if (e.code==='Escape') togglePause();
-});
-window.addEventListener('keyup', e => keys[e.code] = false);
-
-// Mouse Aim & Click
-window.addEventListener('mousemove', e => {
-    if (!started || paused || !player.alive || gameOver) return;
-    if (document.pointerLockElement === canvas || (e.buttons & 1 || e.buttons & 2)) {
-        camYaw -= e.movementX * (isTouch ? 0.006 : 0.0035); 
-        camPitch += e.movementY * (isTouch ? 0.006 : 0.0035);
-        camPitch = Math.max(0.05, Math.min(1.4, camPitch));
-    }
-});
-canvas.addEventListener('wheel', e=>{ camDist=Math.max(8,Math.min(45,camDist+e.deltaY*0.02)); e.preventDefault(); }, {passive:false});
-canvas.addEventListener('mousedown', e => {
-    if (!started || paused || !player.alive || gameOver) return;
-    if (!isTouch && document.pointerLockElement !== canvas) try{ canvas.requestPointerLock(); }catch(e){}
-    e.button === 0 ? primaryAttack() : secondaryAttack();
-});
-canvas.addEventListener('contextmenu', e => e.preventDefault());
-
-// Mobile Touch Routing
-if (isTouch) {
-    document.body.classList.add('mobile');
-    const joyZone = $('joyZone'), joyBase = $('joyBase'), joyKnob = $('joyKnob');
-    let jId = null, jCx=0, jCy=0; const JMAX=40;
-    joyZone.addEventListener('touchstart', e=>{ e.preventDefault(); if(jId!==null)return; const t=e.changedTouches[0]; jId=t.identifier; jCx=t.clientX; jCy=t.clientY; joyBase.style.left=jCx+'px'; joyBase.style.top=jCy+'px'; joyBase.classList.add('active'); touchInput.fwd=0; touchInput.right=0; joyKnob.style.transform=`translate(-50%,-50%)`; }, {passive:false});
-    window.addEventListener('touchmove', e=>{ if(jId===null)return; for(const t of e.changedTouches){ if(t.identifier===jId){ e.preventDefault(); let dx=t.clientX-jCx, dy=t.clientY-jCy; const d=Math.hypot(dx,dy); if(d>JMAX){dx=dx/d*JMAX;dy=dy/d*JMAX;} touchInput.right=dx/JMAX; touchInput.fwd=-dy/JMAX; joyKnob.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`; } } }, {passive:false});
-    const jEnd = () => { jId=null; touchInput.fwd=0; touchInput.right=0; joyBase.classList.remove('active'); joyKnob.style.transform=`translate(-50%,-50%)`; };
-    window.addEventListener('touchend', e=>{ for(const t of e.changedTouches) if(t.identifier===jId) jEnd(); });
-    window.addEventListener('touchcancel', e=>{ for(const t of e.changedTouches) if(t.identifier===jId) jEnd(); });
-
-    let lId = null, lx=0, ly=0;
-    canvas.addEventListener('touchstart', e=>{ for(const t of e.changedTouches){ if(t.clientX > innerWidth/2 && lId===null){ lId=t.identifier; lx=t.clientX; ly=t.clientY; } } }, {passive:false});
-    canvas.addEventListener('touchmove', e=>{ e.preventDefault(); for(const t of e.changedTouches){ if(t.identifier===lId){ camYaw -= (t.clientX-lx)*0.007; camPitch += (t.clientY-ly)*0.007; camPitch=Math.max(0.05,Math.min(1.4,camPitch)); lx=t.clientX; ly=t.clientY; } } }, {passive:false});
-    const lEnd = (e)=>{ for(const t of e.changedTouches) if(t.identifier===lId) lId=null; };
-    canvas.addEventListener('touchend', lEnd); canvas.addEventListener('touchcancel', lEnd);
-
-    const bindBtn = (id, fn, repeat=false) => { const el=$(id); if(!el)return; let iv; el.addEventListener('touchstart', e=>{ e.preventDefault(); fn(); if(repeat)iv=setInterval(fn,200); }, {passive:false}); const stop=()=>{clearInterval(iv)}; el.addEventListener('touchend', e=>{e.preventDefault();stop();}); el.addEventListener('touchcancel',stop); };
-    bindBtn('bAtk', primaryAttack, true); bindBtn('bMag', secondaryAttack, true); bindBtn('bDash', ()=>{ keys['ShiftLeft']=true; setTimeout(()=>keys['ShiftLeft']=false, 100); });
-    bindBtn('bSwap', cycleMagic); bindBtn('bDig', digTunnel); bindBtn('bTun', toggleUnderground); bindBtn('bTree', toggleTree); bindBtn('bShip', toggleShip); bindBtn('bShop', toggleShop); bindBtn('bCleanse', cleanseObelisk); bindBtn('bMap', toggleMap); bindBtn('bPause', togglePause);
+function createPuddle(pos){
+  const m = new THREE.Mesh(new THREE.CircleGeometry(2.5, 16), new THREE.MeshBasicMaterial({color: 0x33ff33, transparent: true, opacity: 0.6, depthWrite: false}));
+  m.rotation.x = -Math.PI/2; m.position.set(pos.x, 0.05, pos.z); scene.add(m); puddles.push({obj: m, life: 10, pos: pos.clone()});
 }
 
-// --- LOGIC FUNCTIONS ---
-function cycleMagic() {
-    activeMagic = (activeMagic + 1) % magicTypes.length;
-    const m = magicTypes[activeMagic];
-    $('magInd').textContent = m.ui; $('magInd').style.background = '#' + m.color.toString(16);
-    $('mobileMagInd').textContent = m.ui; $('mobileMagInd').style.color = '#' + m.color.toString(16);
-}
-
-function faceNearestEnemy(maxDist){
-  let best=null, bd=maxDist*maxDist;
-  for (const e of enemies){
-    if (e.dead || (e.type==='mimic' && !e.revealed)) continue;
-    const d2=Math.pow(e.pos.x-player.pos.x, 2)+Math.pow(e.pos.z-player.pos.z, 2);
-    if (d2<bd){ bd=d2; best=e; }
-  }
-  if (best) player.facing = Math.atan2(best.pos.x-player.pos.x, best.pos.z-player.pos.z);
-}
-
-function primaryAttack() {
-    if (!started || !player.alive || paused || gameOver) return;
-    if (player.onShip) return fireCannon();
-    if (player.atkCd > 0) return;
-    if (isTouch) faceNearestEnemy(4.5);
-    
-    player.atkCd = 0.42; player.atkAnim = 0.28;
-    if (audioCtxStarted) sfx.swing.triggerAttackRelease("16n");
-
-    const wScale = weaponTiers[wepIdx].scale || 1.2;
-    const reach = 3.2 * wScale, arc = Math.cos(Math.PI/2.8);
-    const fwd = new THREE.Vector3(Math.sin(player.facing),0,Math.cos(player.facing));
-
-    for (const e of enemies) {
-        if(e.dead || (e.type==='mimic' && !e.revealed)) continue;
-        const dist3D = Math.hypot(e.pos.x - player.pos.x, (e.obj.position.y||0) - player.obj.position.y, e.pos.z - player.pos.z);
-        if (dist3D > reach + e.scale*0.8) continue;
-        const to = e.pos.clone().sub(player.pos); to.y=0; to.normalize();
-        if (fwd.dot(to) < arc) continue; 
-
-        const dmg = player.atk + Math.round(Math.random()*8);
-        e.hp -= dmg; e.flash = 0.15; e.obj.position.addScaledVector(to, 1.2 * wScale);
-        if (audioCtxStarted) sfx.hit.triggerAttackRelease("C2", "8n");
-        floatText(e.pos, '-'+dmg, '#fff', 20);
-        if (e.hp <= 0) killEnemy(e);
-    }
-}
-
-function shootBolt(isEnemy, startPos, dir, dmg, color, glow, speed, effect=null) {
-    if (audioCtxStarted && !isEnemy) sfx.magic.triggerAttackRelease("E5", "16n");
-    const m = new THREE.Mesh(new THREE.SphereGeometry(isEnemy?0.5:0.4, 8, 8), new THREE.MeshStandardMaterial({color, emissive:glow, emissiveIntensity:1.5}));
-    m.position.copy(startPos); scene.add(m);
-    projectiles.push({ obj: m, vel: dir.clone().multiplyScalar(speed), life: 1.5, dmg, isEnemy, effect, r:0.6, aoe:false });
-}
-
-function secondaryAttack() {
-    if (!started || !player.alive || player.onShip || paused || gameOver || player.magCd > 0) return;
-    if (isTouch) faceNearestEnemy(40);
-    player.magCd = 0.35 - (magIdx*0.05);
-    const mType = magicTypes[activeMagic];
-    const dir = new THREE.Vector3(Math.sin(player.facing),0,Math.cos(player.facing));
-    const sy = player.inTree ? 4.8 : 1.4;
-    shootBolt(false, player.pos.clone().add(new THREE.Vector3(0,sy,0)).addScaledVector(dir,1), dir, player.magAtk * mType.dmgMult, mType.color, mType.glow, 40, mType.effect);
-}
-
-function fireCannon() {
-    if (ship.fireCd > 0) return; ship.fireCd = 1.2;
-    const power = 60; // Straight, fast shot
-    const dir = new THREE.Vector3(Math.sin(ship.facing), 0, Math.cos(ship.facing));
-    const vel = dir.clone().multiplyScalar(power);
-    vel.y = 0; // perfectly flat shot
-    
-    const m = new THREE.Mesh(new THREE.SphereGeometry(0.6,12,12), new THREE.MeshStandardMaterial({color:0x222, emissive:0x884400, emissiveIntensity:.5, metalness:.5}));
-    m.position.copy(ship.pos).add(new THREE.Vector3(0,2.2,0)).addScaledVector(dir,3.2); scene.add(m);
-    
-    projectiles.push({ obj: m, vel, life: 3.0, dmg: shipTiers[shipIdx].dmg, isEnemy: false, aoe: true, aoeR: 6.5, grav: false });
-    if(audioCtxStarted) sfx.cannon.triggerAttackRelease("G1", "4n");
-    addEffect(m.position.clone(), 2.5, 0x884400);
-    
-    // Set cannon barrel perfectly horizontal
-    ship.obj.userData.cannon.rotation.x = Math.PI/2; 
-}
-
-function explode(pos,dmg,radius, isEnemy){
-  if (audioCtxStarted) sfx.cannon.triggerAttackRelease("C1", "2n");
-  if (!isEnemy) {
-    for (const e of enemies){
-      if (e.dead || (e.type==='mimic'&&!e.revealed)) continue;
-      if (Math.hypot(e.pos.x-pos.x, e.pos.z-pos.z) < radius+e.scale*0.8){
-        e.hp-=dmg; e.flash=0.15;
-        const k=e.pos.clone().sub(pos); k.y=0; k.normalize(); e.obj.position.addScaledVector(k,2.5);
-        floatText(e.pos,'-'+dmg,'#ffaa00',24);
-        if (e.hp<=0) killEnemy(e);
-      }
-    }
-  } else {
-    const pY = player.inTree ? 3.5 : 0;
-    if (Math.hypot(player.pos.x-pos.x, pY-pos.y, player.pos.z-pos.z) < radius+PLAYER_R) hurtPlayer(dmg);
-  }
-  addEffect(pos.clone(),radius, isEnemy?0x5555ff:0xffaa33);
-}
-
-// Tunnel & Environment Logic
 function buildTunnelRoom(x, z, r){
   const g = new THREE.Group(); g.position.set(x, UG_Y, z); ugRoot.add(g);
   const floor = new THREE.Mesh(new THREE.CircleGeometry(r+1.5, 24), ugFloorMat); floor.rotation.x = -Math.PI/2; floor.position.y = 0.02; g.add(floor);
   const shaft = new THREE.Mesh(new THREE.CylinderGeometry(r*0.55, r*0.55, -UG_Y, 18, 1, true), new THREE.MeshStandardMaterial({ color:0x1a1610, side:THREE.DoubleSide, roughness:1 })); shaft.position.y = (-UG_Y)/2; g.add(shaft);
   const ring = new THREE.Mesh(new THREE.TorusGeometry(r*0.55, 0.18, 8, 20), new THREE.MeshStandardMaterial({ color:0x66ff88, emissive:0x33cc55, emissiveIntensity:0.9 })); ring.rotation.x = Math.PI/2; ring.position.y = 0.12; g.add(ring);
+  const lantern = new THREE.Mesh(new THREE.IcosahedronGeometry(0.42,0), new THREE.MeshStandardMaterial({ color:0xffcc66, emissive:0xffaa33, emissiveIntensity:1.6, roughness:.3 })); lantern.position.set((r+1)*0.8, 2.6, 0); g.add(lantern);
   return g;
 }
+
 function buildCorridor(ax, az, bx, bz){
   const dx = bx-ax, dz = bz-az, len = Math.hypot(dx,dz); if (len < 2) return null;
   const g = new THREE.Group(); g.position.set((ax+bx)/2, UG_Y, (az+bz)/2); g.rotation.y = Math.atan2(dx, dz); ugRoot.add(g);
-  const floor = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.15, len), ugFloorMat); floor.position.y = 0.05; g.add(floor);
-  return g;
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.15, len), ugFloorMat); floor.position.y = 0.05; g.add(floor); return g;
 }
 
 function digTunnel() {
-    if (player.onShip || player.inTree || player.underground || !player.alive || gameOver || player.tunnels<=0 || player.tunnelCd>0 || isWater(player.pos.x,player.pos.z)) return;
-    player.tunnels--; player.tunnelCd=1.5;
-    if (audioCtxStarted) sfx.dig.triggerAttackRelease("8n");
-    const tier = tunnelTiers[tunIdx]; const x=player.pos.x, z=player.pos.z, r=tier.r;
-    const g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
-    const hole=new THREE.Mesh(new THREE.CircleGeometry(r,24), new THREE.MeshStandardMaterial({color:0x14100c, roughness:1})); hole.rotation.x=-Math.PI/2; hole.position.y=0.03; g.add(hole);
-    const rimMat = new THREE.MeshStandardMaterial({color:0x4a3520,roughness:1}); const rim=new THREE.Mesh(new THREE.TorusGeometry(r,0.35,8,24), rimMat); rim.rotation.x=Math.PI/2; rim.position.y=0.1; g.add(rim);
-    const ugGroup = buildTunnelRoom(x, z, r);
-    let corridor = null;
-    if (activeTunnels.length > 0){ corridor = buildCorridor(activeTunnels[activeTunnels.length-1].x, activeTunnels[activeTunnels.length-1].z, x, z); }
-    const zone = { x, z, r:r+0.6 }; enemyZones.push(zone);
-    activeTunnels.push({ group: g, rimMat, hp: tier.hp, maxHp: tier.hp, zone, r, x, z, ugGroup, corridor });
-    floatText(player.pos,'⛏️ Tunnel Dug!','#d8b070',24); showToast(activeTunnels.length>1 ? 'Tunnel linked! Press [F] to enter.' : 'Tunnel created! Press [F] to enter.','#d8b070');
+  if (player.onShip || player.inTree || player.underground || !player.alive || player.tunnels<=0 || player.tunnelCd>0 || isWater(player.pos.x,player.pos.z)) return;
+  player.tunnels--; player.tunnelCd=1.5;
+  
+  const tier = tunnelTiers[tunIdx]; const x=player.pos.x, z=player.pos.z, r=tier.r;
+  const g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
+  const hole=new THREE.Mesh(new THREE.CircleGeometry(r,24), new THREE.MeshStandardMaterial({color:0x14100c, roughness:1})); hole.rotation.x=-Math.PI/2; hole.position.y=0.03; g.add(hole);
+  const rimMat = new THREE.MeshStandardMaterial({color:0x4a3520,roughness:1});
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(r,0.35,8,24), rimMat); rim.rotation.x=Math.PI/2; rim.position.y=0.1; g.add(rim);
+
+  const ugGroup = buildTunnelRoom(x, z, r);
+  let corridor = null;
+  if (activeTunnels.length > 0){ const prev = activeTunnels[activeTunnels.length-1]; corridor = buildCorridor(prev.x, prev.z, x, z); }
+
+  const zone = { x, z, r:r+0.6 }; enemyZones.push(zone);
+  activeTunnels.push({ group: g, rimMat: rimMat, hp: tier.hp, maxHp: tier.hp, zone: zone, r: r, x: x, z: z, ugGroup, corridor });
+  
+  if (audioCtxStarted) sfx.dig.triggerAttackRelease("8n");
+  floatText(player.pos,'⛏️ Tunnel Dug!','#d8b070',24);
+  showToast(activeTunnels.length>1 ? 'Tunnel dug — linked underground! Press [F] to enter' : 'Tunnel dug — press [F] to go underground','#d8b070');
 }
 
-function toggleUnderground() {
-    if (!started || !player.alive || paused || gameOver) return;
-    if (player.underground){
-        let best=null, bd=Infinity;
-        for (const t of activeTunnels){ const d=Math.hypot(player.pos.x-t.x, player.pos.z-t.z); if (d<bd){ bd=d; best=t; } }
-        if (best && bd < best.r+2){ player.underground=false; player.obj.position.set(best.x, 0, best.z); player.pos.copy(player.obj.position); showToast('Climbed to the surface','#d8b070'); } else showToast('Stand on a glowing shaft to climb up','#ffd56b');
-    } else if (!player.onShip && !player.inTree){
-        let on=null;
-        for (const t of activeTunnels){ if (Math.hypot(player.pos.x-t.x, player.pos.z-t.z) < t.r){ on=t; break; } }
-        if (on){ player.underground=true; player.obj.position.set(on.x, UG_Y, on.z); player.pos.copy(player.obj.position); showToast(activeTunnels.length>1 ? 'In the tunnels — walk the corridors to another shaft' : 'In the tunnels (dig more to connect them)','#d8b070'); }
-    }
-}
-
-function toggleTree() {
-    if(!started || !player.alive || paused || gameOver) return;
-    if(player.inTree) { player.inTree=false; showToast("Jumped down", "#ccc"); }
-    else if(!player.onShip && !player.underground) {
-        for(const t of trees) { if(Math.hypot(player.pos.x-t.x, player.pos.z-t.z) < 2.5) { player.inTree=true; player.treePos=t; player.pos.set(t.x,0,t.z); showToast("Safe in the tree!", "#8be0ff"); break; } }
-    }
-}
-
-function toggleShip() {
-    if (!started || !player.alive || paused || gameOver || player.inTree || player.underground) return;
-    if (!player.onShip){
-        if (ship.destroyed) return showToast('The ship is wrecked — wait for a new one','#ff7a7a');
-        if (Math.hypot(player.pos.x-ship.pos.x, player.pos.z-ship.pos.z) < 9){ player.onShip=true; hero.visible=false; showToast('⚓ Aboard! Ready the cannons!','#8be0ff'); }
-    } else {
-        const dLake = Math.hypot(ship.pos.x-LAKE.x, ship.pos.z-LAKE.z), dIsl = Math.hypot(ship.pos.x-ISLAND.x, ship.pos.z-ISLAND.z);
-        if (dLake > LAKE.r-7 || dIsl < ISLAND.r+7){
-            player.onShip=false; hero.visible=true; player.obj.position.set(ship.pos.x, 0, ship.pos.z);
-            if (dIsl < ISLAND.r+7) { const k = ship.pos.clone().sub(new THREE.Vector3(ISLAND.x,0,ISLAND.z)).normalize(); player.obj.position.set(ISLAND.x + k.x*(ISLAND.r-1), 0, ISLAND.z + k.z*(ISLAND.r-1)); }
-            else { const k = ship.pos.clone().sub(new THREE.Vector3(LAKE.x,0,LAKE.z)).normalize(); player.obj.position.set(LAKE.x + k.x*(LAKE.r+1), 0, LAKE.z + k.z*(LAKE.r+1)); }
-            player.pos.copy(player.obj.position); showToast('Back on land','#d8d8d8');
-        } else showToast('Sail closer to land to disembark','#ffd56b');
-    }
+function toggleUnderground(){
+  if (!started || !player.alive || paused) return;
+  if (player.underground){
+    let best=null, bd=Infinity; for (const t of activeTunnels){ const d=Math.hypot(player.pos.x-t.x, player.pos.z-t.z); if (d<bd){ bd=d; best=t; } }
+    if (best && bd < best.r+2){ player.underground=false; player.obj.position.set(best.x, 0, best.z); player.pos.copy(player.obj.position); showToast('Climbed to the surface','#d8b070'); } else showToast('Stand on a glowing shaft to climb up','#ffd56b');
+  } else if (!player.onShip && !player.inTree){
+    let on=null; for (const t of activeTunnels){ if (Math.hypot(player.pos.x-t.x, player.pos.z-t.z) < t.r){ on=t; break; } }
+    if (on){ player.underground=true; player.obj.position.set(on.x, UG_Y, on.z); player.pos.copy(player.obj.position); showToast(activeTunnels.length>1 ? 'In the tunnels — walk the corridors to another shaft' : 'In the tunnels (dig more to connect them)','#d8b070'); }
+  }
 }
 
 function cleanseObelisk() {
-    if(!started || !player.alive || player.onShip || gameOver) return;
+    if(!started || !player.alive || player.onShip || paused) return;
     for(const ob of obelisks) {
         if(ob.state === 'idle' && Math.hypot(player.pos.x-ob.x, player.pos.z-ob.z) < 10) {
             ob.state = 'cleansing'; showToast("Cleansing started! Survive the wave!", "#a855f7");
@@ -925,137 +760,380 @@ function cleanseObelisk() {
     }
 }
 
-// Combat Resolvers
-function killEnemy(e) {
-    if(e.dead) return; e.dead = true; e.obj.userData.dying = 0.001;
-    if (audioCtxStarted) sfx.hit.triggerAttackRelease("E1", "8n");
-    if(e.type === 'toxic') { const m=new THREE.Mesh(new THREE.CircleGeometry(2.5, 16), new THREE.MeshBasicMaterial({color: 0x33ff33, transparent: true, opacity: 0.6, depthWrite: false})); m.rotation.x = -Math.PI/2; m.position.set(e.pos.x, 0.05, e.pos.z); scene.add(m); puddles.push({obj: m, life: 10, pos: e.pos.clone()}); }
+let paused = false, menuPaused = false, shopPaused = false, mapPaused = false;
+function checkPause() {
+  paused = menuPaused || shopPaused || mapPaused;
+  setReticle(!paused);
+  if (paused && document.pointerLockElement === canvas) { document.exitPointerLock(); } 
+  else if (!paused && started && player.alive && !isTouch) { try { canvas.requestPointerLock(); } catch(_){} }
+}
+
+function togglePause(){
+  if (!started || !player.alive || shopPaused || mapPaused) return;
+  menuPaused = !menuPaused; $('pauseMenu').classList.toggle('hidden', !menuPaused); checkPause();
+}
+function toggleShop(){
+  if (!started || !player.alive || menuPaused || mapPaused) return;
+  shopPaused = !shopPaused; $('upgrades').classList.toggle('show', shopPaused);
+  if (shopPaused) updateHUD(); checkPause();
+}
+function toggleMap(){
+  if (!started || !player.alive || menuPaused || shopPaused) return;
+  mapPaused = !mapPaused; $('mapScreen').classList.toggle('hidden', !mapPaused);
+  if (mapPaused) drawMap(); checkPause();
+}
+
+$('closeShopBtn').onclick = toggleShop;
+$('shopBtnDesktop').onclick = toggleShop;
+$('closeMapBtn').onclick = toggleMap;
+
+window.buyUpgrade = function(type){
+  if (!player.alive) return;
+  if (type === 1 && wepIdx < weaponTiers.length-1) {
+    const nxt = weaponTiers[wepIdx+1];
+    if (player.gold >= nxt.cost) {
+      player.gold -= nxt.cost; wepIdx++; player.atk += nxt.atkBonus;
+      const blade = hero.userData.sword.children[0]; blade.material.color.setHex(nxt.color); blade.material.emissive.setHex(nxt.glow); blade.scale.set(1, nxt.scale, nxt.scale);
+      if (audioCtxStarted) sfx.poly.triggerAttackRelease(["G4", "B4", "D5"], "4n");
+      addEffect(player.pos.clone(), 3.5, nxt.color); floatText(player.pos, 'SWORD UPGRADED!', '#'+nxt.color.toString(16), 26);
+    } else showToast('Not enough gold!', '#ff7a7a');
+  }
+  else if (type === 2 && magIdx < magicTiers.length-1) {
+    const nxt = magicTiers[magIdx+1];
+    if (player.gold >= nxt.cost) {
+      player.gold -= nxt.cost; magIdx++; player.magAtk += nxt.dmgBonus;
+      if (audioCtxStarted) sfx.poly.triggerAttackRelease(["G4", "B4", "D5"], "4n");
+      addEffect(player.pos.clone(), 3.5, nxt.color); floatText(player.pos, 'MAGIC UPGRADED!', '#'+nxt.color.toString(16), 26);
+    } else showToast('Not enough gold!', '#ff7a7a');
+  }
+  else if (type === 3 && tunIdx < tunnelTiers.length-1) {
+    const nxt = tunnelTiers[tunIdx+1];
+    if (player.gold >= nxt.cost) {
+      player.gold -= nxt.cost; tunIdx++;
+      if (audioCtxStarted) sfx.poly.triggerAttackRelease(["G4", "B4", "D5"], "4n");
+      addEffect(player.pos.clone(), 3.5, 0xd8b070); floatText(player.pos, 'TUNNELS UPGRADED!', '#d8b070', 26);
+    } else showToast('Not enough gold!', '#ff7a7a');
+  }
+  else if (type === 5 && shipIdx < shipTiers.length-1) {
+    const nxt = shipTiers[shipIdx+1];
+    if (player.gold >= nxt.cost) {
+      player.gold -= nxt.cost; shipIdx++;
+      ship.maxHp = nxt.maxHp; ship.hp = nxt.maxHp; ship.destroyed = false; ship.obj.visible = true;
+      updateShipVisuals();
+      if (audioCtxStarted) sfx.poly.triggerAttackRelease(["G4", "B4", "D5"], "4n");
+      addEffect(ship.pos.clone().add(new THREE.Vector3(0,1.6,0)), 6.0, 0x8a5a2b); 
+      floatText(player.pos, 'SHIP UPGRADED!', '#8a5a2b', 26);
+    } else showToast('Not enough gold!', '#ff7a7a');
+  }
+  updateHUD();
+};
+
+window.repairShip = function(){
+  if (!player.alive) return;
+  const cost = repairCost();
+  if (ship.destroyed){
+    if (player.gold < cost){ showToast('Need '+cost+'g to summon a new ship','#ff7a7a'); return; }
+    player.gold -= cost; ship.destroyed=false; ship.hp=ship.maxHp; ship.dmgCd=0; ship.invuln=3.0;
+    const dx=0-LAKE.x, dz=0-LAKE.z, dl=Math.hypot(dx,dz); ship.pos.set(LAKE.x+dx/dl*(LAKE.r-5), 0, LAKE.z+dz/dl*(LAKE.r-5)); ship.facing=Math.atan2(-dx,-dz); ship.obj.position.copy(ship.pos); ship.obj.visible=true;
+    showToast('New ship summoned (3s shield)!','#8be0ff');
+  } else {
+    if (ship.hp >= ship.maxHp){ showToast('Ship already at full health','#8be0ff'); return; }
+    if (player.gold < cost){ showToast('Not enough gold to repair','#ff7a7a'); return; }
+    player.gold -= cost; ship.hp=ship.maxHp; ship.dmgCd=0;
+    addEffect(ship.pos.clone().add(new THREE.Vector3(0,1.6,0)), 3.5, 0x66ccff); showToast('Ship fully repaired!','#8be0ff');
+  }
+  updateHUD();
+};
+
+const keys = {}; const touchInput = { fwd: 0, right: 0 };
+const isTouch = /[?&](touch|mobile)/i.test(location.search) || (matchMedia && matchMedia('(pointer: coarse)').matches) || ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+let started = false, spawnTimer = 2, waveSize = 5;
+
+addEventListener('keydown', e=>{
+  keys[e.code]=true;
+  if (e.code==='Space'){ e.preventDefault(); primaryAttack(); }
+  if (e.code==='KeyT') digTunnel();
+  if (e.code==='KeyF') toggleUnderground();
+  if (e.code==='KeyB') toggleShip();
+  if (e.code==='Digit1') window.buyUpgrade(1);
+  if (e.code==='Digit2') window.buyUpgrade(2);
+  if (e.code==='Digit3') window.buyUpgrade(3);
+  if (e.code==='Digit4') window.buyUpgrade(5);
+  if (e.code==='Digit5') window.repairShip();
+  if (e.code==='Escape') togglePause();
+  if (e.code==='Tab') { e.preventDefault(); toggleShop(); }
+  if (e.code==='KeyM') toggleMap();
+  if (e.code==='KeyR') cleanseObelisk();
+  if (e.code==='KeyE') toggleTree();
+});
+addEventListener('keyup', e=>{ keys[e.code]=false; });
+
+function toggleTree(){
+  if (!started || !player.alive || paused) return;
+  if (player.inTree) { player.inTree = false; showToast("Jumped down from tree", "#ccc"); } 
+  else if (!player.onShip && !player.underground) {
+    for (const t of trees) { if (Math.hypot(player.pos.x - t.x, player.pos.z - t.z) < 2.5) { player.inTree = true; player.treePos = t; player.pos.set(t.x, 0, t.z); showToast("Climbed tree! Safe from ground foes.", "#8be0ff"); break; } }
+  }
+}
+
+let camYaw = 0.6, camPitch = 0.5, camDist = 18;
+canvas.addEventListener('contextmenu', e=>e.preventDefault());
+
+addEventListener('mousemove', e=>{
+  if (!started || paused || !player.alive) return;
+  let mx = e.movementX, my = e.movementY;
+  if (document.pointerLockElement === canvas){ camYaw -= mx * 0.0035; camPitch += my * 0.0035; } 
+  else if (e.buttons & 1 || e.buttons & 2){ camYaw -= mx * 0.005; camPitch += my * 0.005; } else return;
+  camPitch = Math.max(0.05, Math.min(1.4, camPitch));
+});
+canvas.addEventListener('wheel', e=>{ camDist=Math.max(8,Math.min(45,camDist+e.deltaY*0.02)); e.preventDefault(); }, {passive:false});
+
+canvas.addEventListener('mousedown', e=>{
+  if (!started || paused || !player.alive) return;
+  if (!isTouch && document.pointerLockElement !== canvas){ try { canvas.requestPointerLock(); } catch(_){} }
+  if (e.button===0) primaryAttack(); else if (e.button===2) secondaryAttack();
+});
+
+if (isTouch){
+  document.body.classList.add('mobile');
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  sun.shadow.mapSize.set(1024, 1024); if (sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map = null; }
+  scene.fog.far = 210;
+
+  function buzz(ms){ if (navigator.vibrate) navigator.vibrate(ms); }
+
+  const joyZone = $('joyZone'), joyBase = $('joyBase'), joyKnob = $('joyKnob');
+  let joyId = null, joyCx = 0, joyCy = 0; const JOY_MAX = 58;
+  function setKnob(dx,dy){ joyKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`; }
+  function joyUpdate(x,y){ let dx=x-joyCx, dy=y-joyCy; const d=Math.hypot(dx,dy); if (d>JOY_MAX){ dx=dx/d*JOY_MAX; dy=dy/d*JOY_MAX; } touchInput.right = dx/JOY_MAX; touchInput.fwd = -dy/JOY_MAX; setKnob(dx,dy); }
+  function joyEnd(){ joyId=null; touchInput.fwd=0; touchInput.right=0; setKnob(0,0); joyBase.classList.remove('active'); }
+  joyZone.addEventListener('touchstart', e=>{ e.preventDefault(); if(joyId!==null) return; const t=e.changedTouches[0]; joyId=t.identifier; joyCx=t.clientX; joyCy=t.clientY; joyBase.style.left=joyCx+'px'; joyBase.style.top=joyCy+'px'; joyBase.classList.add('active'); setKnob(0,0); }, {passive:false});
+  window.addEventListener('touchmove', e=>{ if(joyId===null) return; for(const t of e.changedTouches){ if(t.identifier===joyId){ e.preventDefault(); joyUpdate(t.clientX,t.clientY); } } }, {passive:false});
+  window.addEventListener('touchend', e=>{ for(const t of e.changedTouches){ if(t.identifier===joyId) joyEnd(); } });
+  window.addEventListener('touchcancel', e=>{ for(const t of e.changedTouches){ if(t.identifier===joyId) joyEnd(); } });
+
+  const ct = []; const cdist = ()=> Math.hypot(ct[0].x-ct[1].x, ct[0].y-ct[1].y); let pinch = null;
+  canvas.addEventListener('touchstart', e=>{ for(const t of e.changedTouches) ct.push({id:t.identifier, x:t.clientX, y:t.clientY, dx:0, dy:0}); if (ct.length>=2) pinch = cdist(); }, {passive:false});
+  canvas.addEventListener('touchmove', e=>{
+    e.preventDefault(); for(const t of e.changedTouches){ const c=ct.find(c=>c.id===t.identifier); if(c){ c.dx=t.clientX-c.x; c.dy=t.clientY-c.y; c.x=t.clientX; c.y=t.clientY; } }
+    if (ct.length>=2){ const nd=cdist(); if (pinch!=null) camDist = Math.max(8, Math.min(45, camDist - (nd-pinch)*0.05)); pinch = nd; } 
+    else if (ct.length===1){ const c=ct[0]; camYaw -= c.dx*0.007; camPitch += c.dy*0.007; camPitch = Math.max(0.05, Math.min(1.4, camPitch)); c.dx=0; c.dy=0; }
+  }, {passive:false});
+  function ctEnd(e){ for(const t of e.changedTouches){ const i=ct.findIndex(c=>c.id===t.identifier); if(i>=0) ct.splice(i,1); } if(ct.length<2) pinch=null; }
+  canvas.addEventListener('touchend', ctEnd, {passive:false}); canvas.addEventListener('touchcancel', e=>{ ct.length=0; pinch=null; });
+
+  function hold(id, fn, repeat){
+    const el=$(id); if(!el) return; let iv=null;
+    el.addEventListener('touchstart', e=>{ e.preventDefault(); buzz(12); fn(); if(repeat){ iv=setInterval(fn, 170); } }, {passive:false});
+    const stop=()=>{ if(iv){ clearInterval(iv); iv=null; } };
+    el.addEventListener('touchend', e=>{ e.preventDefault(); stop(); }, {passive:false}); el.addEventListener('touchcancel', stop);
+  }
+  hold('bAtk', primaryAttack, true); hold('bMag', secondaryAttack, true); hold('bDash', ()=>{ keys['ShiftLeft']=true; setTimeout(()=>keys['ShiftLeft']=false, 60); });
+  hold('bDig', digTunnel); hold('bTun', toggleUnderground); hold('bShip', toggleShip); hold('bTree', toggleTree); hold('bShop', toggleShop); hold('bPause', togglePause);
+  hold('bMap', toggleMap); hold('bCleanse', cleanseObelisk);
+}
+
+function setReticle(show) { const r = $('reticle'); if (r && !isTouch) r.className = show ? 'show' : ''; }
+
+$('resumeBtn').onclick = togglePause; $('quitBtn').onclick = () => { location.reload(); };
+
+function faceNearestEnemy(maxDist){
+  let best=null, bd=maxDist*maxDist;
+  for (const e of enemies){ if (e.hp<=0 || (e.type==='mimic' && !e.revealed)) continue; const dx=e.pos.x-player.pos.x, dz=e.pos.z-player.pos.z, d2=dx*dx+dz*dz; if (d2<bd){ bd=d2; best=e; } }
+  if (best){ player.facing = Math.atan2(best.pos.x-player.pos.x, best.pos.z-player.pos.z); }
+}
+
+function primaryAttack() {
+  if (!started || !player.alive || paused) return;
+  if (player.onShip) return fireCannon();
+  if (player.attackCooldown>0) return;
+  if (isTouch) faceNearestEnemy(4.5);
+  player.attackTimer=0.28; player.attackCooldown=0.42;
+  if (audioCtxStarted) sfx.swing.triggerAttackRelease("16n");
+
+  const wScale = weaponTiers[wepIdx].scale; const reach = 3.2 * wScale, arc = Math.cos(Math.PI/2.8);
+  const fwd = new THREE.Vector3(Math.sin(player.facing),0,Math.cos(player.facing));
+  
+  for (const e of enemies){
+    if (e.hp<=0 || (e.type==='mimic' && !e.revealed)) continue;
+    const dist3D = Math.hypot(e.pos.x - player.pos.x, (e.obj.position.y||0) - player.obj.position.y, e.pos.z - player.pos.z);
+    if (dist3D > reach + e.scale*0.8) continue;
+    const to = e.pos.clone().sub(player.pos); to.y=0; to.normalize();
+    if (fwd.dot(to)<arc) continue;
     
-    player.xp += e.xp; player.gold += e.gold; player.kills++;
-    floatText(e.pos,'+'+e.xp+' XP','#8be0ff',18);
-    spawnPickup(e.pos.x, e.pos.z, 'gold');
-    if(Math.random()<0.35) spawnPickup(e.pos.x+1, e.pos.z, 'health');
-    
-    while(player.xp >= player.xpNext) {
-        player.xp -= player.xpNext; player.level++; player.xpNext = Math.round(player.xpNext*1.45);
-        player.maxHp += 30; player.hp = player.maxHp; player.atk += 8; player.magAtk += 5; player.tunnels++; player.speed += 0.15;
-        if(audioCtxStarted) sfx.levelUp.triggerAttackRelease(["C4","E4","G4","C5"], "2n");
-        showToast("LEVEL UP! Fully Healed!", "#ffd56b"); addEffect(player.pos.clone(), 6, 0xffd56b);
-    }
+    const dmg = player.atk + Math.round(Math.random()*8);
+    e.hp-=dmg; e.flash=0.15; e.obj.position.addScaledVector(to, 1.2 * wScale);
+    if (audioCtxStarted) sfx.hit.triggerAttackRelease("C2", "8n");
+    floatText(e.pos,'-'+dmg,'#ffffff',20);
+    if (e.hp<=0) killEnemy(e);
+  }
 }
 
-function hurtPlayer(dmg) {
-    if(player.invuln > 0 || !player.alive || gameOver) return;
-    player.hp -= dmg; player.invuln = 0.6; floatText(player.pos, '-'+Math.round(dmg), '#ff3b3b', 24);
-    if(audioCtxStarted) sfx.hit.triggerAttackRelease("A1", "8n");
-    if(player.hp <= 0) {
-        player.hp = 0; player.alive = false; gameOver = true;
-        $('startScreen').classList.remove('hidden');
-        $('startScreen').querySelector('h1').textContent = "YOU FELL";
-        $('startScreen').querySelector('p').textContent = `Level ${player.level} | ${player.kills} Slain | ${player.gold} Gold`;
-        $('startScreen').querySelector('.keys').style.display='none';
-        const btn=$('startBtn'); btn.textContent = "RISE AGAIN"; btn.onclick = () => location.reload();
-        if(document.pointerLockElement) document.exitPointerLock();
-        setReticle(false);
-    }
+function shootBolt(isEnemy=false, startPos, dirVec, dmg, color, glow, speed){
+  if (audioCtxStarted && !isEnemy) sfx.magic.triggerAttackRelease("E5", "16n");
+  const m=new THREE.Mesh(new THREE.SphereGeometry(isEnemy?0.4:0.35,10,10), new THREE.MeshStandardMaterial({color:color,emissive:glow,emissiveIntensity:1.5,roughness:.3}));
+  m.position.copy(startPos); scene.add(m);
+  projectiles.push({obj:m, vel:dirVec.clone().multiplyScalar(speed), life: 1.5, dmg, r: 0.6, aoe:false, isEnemy, isCannon:false});
 }
 
-function damageShip(dmg) {
-    if(ship.destroyed) return;
-    ship.hp -= dmg; ship.dmgCd = 3.0; floatText(ship.pos.clone().add(new THREE.Vector3(0,2.5,0)), '-'+Math.round(dmg), '#ff8844', 20);
-    if(ship.hp <= 0) {
-        ship.destroyed = true; ship.hp = 0; ship.respawnTimer = 8;
-        addEffect(ship.pos.clone().add(new THREE.Vector3(0,1.6,0)), 7, 0xff6622);
-        showToast("Your ship was sunk!", "#ff3b3b"); ship.obj.visible = false;
-        if(player.onShip) { player.onShip = false; hero.visible = true; const k = ship.pos.clone().sub(new THREE.Vector3(LAKE.x,0,LAKE.z)).normalize(); player.obj.position.set(LAKE.x + k.x*(LAKE.r+1), 0, LAKE.z + k.z*(LAKE.r+1)); player.pos.copy(player.obj.position); hurtPlayer(20); }
-    }
+function secondaryAttack(){
+  if (!started || !player.alive || player.onShip || paused) return;
+  const tier = magicTiers[magIdx];
+  if (player.shootCooldown>0) return;
+  if (isTouch) faceNearestEnemy(40);
+  player.shootCooldown=tier.cd;
+  const dir=new THREE.Vector3(Math.sin(player.facing),0,Math.cos(player.facing));
+  const startY = player.inTree ? 4.8 : 1.4;
+  shootBolt(false, player.pos.clone().add(new THREE.Vector3(0,startY,0)).addScaledVector(dir,1), dir, player.magAtk, tier.color, tier.glow, tier.speed);
 }
 
-function addEffect(pos, r, col) {
-    const m = new THREE.Mesh(new THREE.SphereGeometry(1,16,16), new THREE.MeshStandardMaterial({color:col, emissive:col, emissiveIntensity:1, transparent:true, opacity:0.8}));
-    m.position.copy(pos); m.position.y=Math.max(0.5,pos.y); scene.add(m); effects.push({obj:m, age:0, life:0.4, maxR:r});
+function fireCannon(){
+  if (ship.fireCd>0) return; ship.fireCd=1.2;
+  const power = 80; // Fast straight shot
+  const flatDir = new THREE.Vector3(Math.sin(ship.facing), 0, Math.cos(ship.facing));
+  
+  if (audioCtxStarted) sfx.cannon.triggerAttackRelease("G1", "4n");
+  const dmg = shipTiers[shipIdx].dmg;
+  
+  for(let c of ship.obj.userData.cannons) {
+      // Get global position of the cannon barrel
+      const startPos = new THREE.Vector3();
+      c.getWorldPosition(startPos);
+      
+      const m=new THREE.Mesh(new THREE.SphereGeometry(0.6,12,12), new THREE.MeshStandardMaterial({color:0x222228,emissive:0x884400,emissiveIntensity:.5,metalness:.5,roughness:.4}));
+      m.position.copy(startPos).addScaledVector(flatDir, 1.0); scene.add(m);
+      
+      projectiles.push({obj:m, vel:flatDir.clone().multiplyScalar(power), life:2.5, dmg:dmg, r:2.5, aoe:true, aoeR:6.5, gravity:false, isEnemy:false, isCannon:true});
+      addEffect(m.position.clone(), 2.5, 0x884400);  
+  }
 }
-const floatersEl=$('floaters'); const tmpVec=new THREE.Vector3();
-function floatText(worldPos,text,col,size) {
-    const el=document.createElement('div'); el.className='floater'; el.textContent=text; el.style.color=col; el.style.fontSize=(size||18)+'px'; floatersEl.appendChild(el);
-    el._wp=worldPos.clone(); el._wp.y+=2.2; projectFloater(el); setTimeout(()=>el.remove(), 1000);
+
+function explode(pos,dmg,radius, isEnemy){
+  if (audioCtxStarted) sfx.cannon.triggerAttackRelease("C1", "2n");
+  if (!isEnemy) {
+    for (const e of enemies){
+      if (e.hp<=0 || (e.type==='mimic' && !e.revealed)) continue;
+      const d=Math.hypot(e.pos.x-pos.x, e.pos.z-pos.z);
+      if (d<radius+e.scale*0.8){
+        e.hp-=dmg; e.flash=0.15; const k=e.pos.clone().sub(pos); k.y=0; k.normalize(); e.obj.position.addScaledVector(k,2.5);
+        floatText(e.pos,'-'+dmg,'#ffcc66',24); if (e.hp<=0) killEnemy(e);
+      }
+    }
+    if (leviathan && !leviathan.dead && Math.hypot(leviathan.pos.x-pos.x, leviathan.pos.z-pos.z) < 8) {
+       leviathan.hp -= dmg; floatText(leviathan.pos, "-"+Math.round(dmg), "#ffaa00", 30);
+       if(leviathan.hp <= 0) { leviathan.dead=true; scene.remove(leviathan.obj); $('victoryScreen').classList.remove('hidden'); paused=true; setReticle(false); if(document.pointerLockElement)document.exitPointerLock(); }
+    }
+  } else {
+    const pY = player.inTree ? 3.5 : 0;
+    if (Math.hypot(player.pos.x-pos.x, pY-pos.y, player.pos.z-pos.z) < radius+PLAYER_R) hurtPlayer(dmg);
+  }
+  addEffect(pos.clone(),radius, isEnemy?0x5555ff:0xffaa33);
+}
+
+function addEffect(pos,maxR,color){
+  const m=new THREE.Mesh(new THREE.SphereGeometry(1,16,16), new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:1,transparent:true,opacity:.8}));
+  m.position.copy(pos); m.position.y=Math.max(0.5,pos.y); scene.add(m); effects.push({obj:m,age:0,life:0.4,maxR});
+}
+
+function killEnemy(e){
+  if (e.dead) return; e.dead=true;
+  if (audioCtxStarted) sfx.hit.triggerAttackRelease("E1", "8n");
+  gainXp(e.xp); player.gold+=e.gold; player.kills++;
+  
+  if (e.type === 'toxic') createPuddle(e.pos);
+  
+  spawnPickup(e.pos.x,e.pos.z,'gold');
+  if (Math.random()<0.3) spawnPickup(e.pos.x+1,e.pos.z,'health');
+  floatText(e.pos,'+'+e.xp+' XP','#8be0ff',18);
+  e.obj.userData.dying=0.0001;
+}
+
+function gainXp(a){
+  player.xp+=a;
+  while (player.xp>=player.xpNext){
+    player.xp-=player.xpNext; player.level++; player.xpNext=Math.round(player.xpNext*1.45);
+    player.maxHp += 30; player.hp = player.maxHp; player.atk += 8; player.magAtk += 5; player.tunnels++; player.speed += 0.15; 
+    if (audioCtxStarted) sfx.poly.triggerAttackRelease(["C4", "E4", "G4", "C5"], "2n");
+    addEffect(player.pos.clone(), 5.0, 0xffd56b); showToast('LEVEL UP! Fully Healed!','#ffd56b'); floatText(player.pos,'LEVEL UP!','#ffd56b',32);
+  }
+}
+
+function hurtPlayer(dmg){
+  if (player.invuln>0||!player.alive) return;
+  if (audioCtxStarted) sfx.hit.triggerAttackRelease("A1", "8n");
+  player.hp-=dmg; player.invuln=0.6; floatText(player.pos,'-'+dmg,'#ff5555',24);
+  if (player.hp<=0){ player.hp=0; die(); }
+}
+
+function die(){
+  player.alive=false; setReticle(false); if (document.pointerLockElement === canvas) document.exitPointerLock();
+  const ov=document.getElementById('overlay'); ov.classList.remove('hidden');
+  ov.querySelector('h1').textContent='YOU FELL';
+  ov.querySelector('p').textContent=`Level ${player.level} | ${player.kills} Slain | ${player.gold} Gold`;
+  ov.querySelector('.keys').style.display='none';
+  const btn=document.getElementById('startBtn'); btn.textContent='RISE AGAIN'; btn.onclick=()=>location.reload();
+}
+
+function damageShip(dmg){
+  if (ship.destroyed || ship.invuln > 0) return;
+  ship.hp -= dmg; ship.dmgCd = 3.0; floatText(ship.pos.clone().add(new THREE.Vector3(0,2.5,0)), '-'+Math.round(dmg), '#ff8844', 20);
+  if (ship.hp <= 0){ ship.hp = 0; destroyShip(); }
+}
+function destroyShip(){
+  ship.destroyed = true; addEffect(ship.pos.clone().add(new THREE.Vector3(0,1.6,0)), 7, 0xff6622); showToast('Your ship was sunk!', '#ff5555');
+  if (player.onShip){
+    player.onShip = false; hero.visible = true;
+    const k = ship.pos.clone().sub(new THREE.Vector3(LAKE.x,0,LAKE.z)).normalize(); player.obj.position.set(LAKE.x + k.x*(LAKE.r+1), 0, LAKE.z + k.z*(LAKE.r+1)); player.pos.copy(player.obj.position); hurtPlayer(20);
+  }
+  ship.obj.visible = false; ship.respawnTimer = 8;
+}
+function repairCost(){
+  if (ship.destroyed) return 100;
+  if (ship.hp >= ship.maxHp) return 0;
+  return Math.ceil((ship.maxHp - ship.hp) * 0.4);
+}
+
+function toggleShip(){
+  if (!started||!player.alive||paused||player.inTree||player.underground) return;
+  if (!player.onShip){
+    if (ship.destroyed){ showToast('The ship is wrecked — wait for a new one','#ff7a7a'); return; }
+    if (Math.hypot(player.pos.x-ship.pos.x, player.pos.z-ship.pos.z) < 9){ player.onShip=true; hero.visible=false; showToast('⚓ Aboard! Use [W/A/S/D] to steer.','#8be0ff'); }
+  } else {
+    const dLake = Math.hypot(ship.pos.x-LAKE.x, ship.pos.z-LAKE.z), dIsl = Math.hypot(ship.pos.x-ISLAND.x, ship.pos.z-ISLAND.z);
+    if (dLake > LAKE.r-7 || dIsl < ISLAND.r+7){
+      player.onShip=false; hero.visible=true; player.obj.position.set(ship.pos.x, 0, ship.pos.z);
+      if (dIsl < ISLAND.r+7) { const k = ship.pos.clone().sub(new THREE.Vector3(ISLAND.x,0,ISLAND.z)).normalize(); player.obj.position.set(ISLAND.x + k.x*(ISLAND.r-1), 0, ISLAND.z + k.z*(ISLAND.r-1)); } 
+      else { const k = ship.pos.clone().sub(new THREE.Vector3(LAKE.x,0,LAKE.z)).normalize(); player.obj.position.set(LAKE.x + k.x*(LAKE.r+1), 0, LAKE.z + k.z*(LAKE.r+1)); }
+      player.pos.copy(player.obj.position); showToast('Back on land','#d8d8d8');
+    } else showToast('Sail closer to land to disembark','#ffd56b');
+  }
+}
+
+const floatersEl=document.getElementById('floaters'); const tmpVec=new THREE.Vector3();
+function floatText(worldPos,text,color,size){
+  const el=document.createElement('div'); el.className='floater'; el.textContent=text; el.style.color=color; el.style.fontSize=(size||18)+'px'; floatersEl.appendChild(el);
+  el._wp=worldPos.clone(); el._wp.y+=2.2; projectFloater(el); setTimeout(()=>el.remove(),1000);
 }
 function projectFloater(el){ tmpVec.copy(el._wp).project(camera); el.style.left=(tmpVec.x*0.5+0.5)*innerWidth+'px'; el.style.top=(-tmpVec.y*0.5+0.5)*innerHeight+'px'; }
-let tTmr=0; function showToast(msg, col){ const t=$('toast'); t.textContent=msg; t.style.color=col||'#fff'; t.classList.add('show'); tTmr=2.5; }
-function setPrompt(msg) { const p=$('prompt'); if(msg){p.textContent=msg; p.classList.add('show');} else p.classList.remove('show'); }
+let toastTimer=0; function showToast(msg,color){ const t=document.getElementById('toast'); t.textContent=msg; t.style.color=color||'#fff'; t.classList.add('show'); toastTimer=2.5; }
+const promptEl=document.getElementById('prompt'); function setPrompt(msg){ if(msg){promptEl.textContent=msg; promptEl.classList.add('show');} else promptEl.classList.remove('show'); }
 
-function updateHUD() {
-    $('hpFill').style.width = Math.max(0,player.hp/player.maxHp*100)+'%'; $('hpText').textContent = Math.max(0,Math.round(player.hp))+'/'+player.maxHp;
-    $('xpFill').style.width = (player.xp/player.xpNext*100)+'%'; $('xpText').textContent = Math.floor(player.xp)+'/'+player.xpNext;
-    $('lvlBadge').textContent = 'LVL '+player.level; $('goldStat').textContent = player.gold;
-    $('atkStat').textContent = player.atk; $('magStat').textContent = player.magAtk;
-    $('killStat').textContent = player.kills; $('tunStat').textContent = player.tunnels;
-    
-    const rc = ship.destroyed ? 100 : (ship.hp>=ship.maxHp ? 0 : Math.ceil((ship.maxHp - ship.hp) * 0.4));
-    const shipEl = $('shipStat');
-    shipEl.textContent = ship.destroyed ? ('SUNK ('+Math.ceil(ship.respawnTimer)+'s)') : (Math.round(ship.hp)+'/'+ship.maxHp);
-    shipEl.style.color = ship.destroyed ? '#ff5555' : (ship.hp < ship.maxHp*0.3 ? '#ff8844' : '#ffd56b');
-    $('cRepair').textContent = ship.destroyed ? (rc+'g (summon)') : (rc>0 ? rc+'g' : 'OK');
-    
-    const nW = weaponTiers[wepIdx+1], nM = magicTypes[activeMagic], nT = tunnelTiers[tunIdx+1], nS = shipTiers[shipIdx+1];
-    $('uWeap').textContent = nW ? nW.name : 'MAX'; $('cWeap').textContent = nW ? nW.cost+'g' : '-';
-    $('uMag').textContent = 'LVL ' + (Math.floor((player.magAtk-10)/5) + 1); $('cMag').textContent = (20 + player.magAtk * 2) + 'g';
-    $('uTun').textContent = nT ? nT.name : 'MAX'; $('cTun').textContent = nT ? nT.cost+'g' : '-';
-    $('uShip').textContent = nS ? nS.name : 'MAX'; $('cShip').textContent = nS ? nS.cost+'g' : '-';
+function $(id){return document.getElementById(id);}
+function updateHUD(){
+  $('hpFill').style.width=Math.max(0,player.hp/player.maxHp*100)+'%'; $('hpText').textContent=Math.max(0,Math.round(player.hp))+'/'+player.maxHp;
+  $('xpFill').style.width=player.xp/player.xpNext*100+'%'; $('xpText').textContent=player.xp+'/'+player.xpNext;
+  $('lvlBadge').textContent='LVL '+player.level; $('atkStat').textContent=player.atk; $('magStat').textContent=player.magAtk;
+  $('goldStat').textContent=player.gold; $('killStat').textContent=player.kills; $('tunStat').textContent=player.tunnels;
+  const shipEl=$('shipStat'); shipEl.textContent = ship.destroyed ? ('SUNK ('+Math.ceil(ship.respawnTimer)+'s)') : (Math.round(ship.hp)+'/'+ship.maxHp);
+  shipEl.style.color = ship.destroyed ? '#ff5555' : (ship.hp < ship.maxHp*0.3 ? '#ff8844' : '#ffd56b');
+  const rc = repairCost(); $('cRepair').textContent = ship.destroyed ? (rc+'g (summon)') : (rc>0 ? rc+'g' : 'OK');
+
+  const nW = weaponTiers[wepIdx+1], nM = magicTiers[magIdx+1], nT = tunnelTiers[tunIdx+1], nS = shipTiers[shipIdx+1];
+  $('uWeap').textContent = nW ? nW.name : 'MAX'; $('cWeap').textContent = nW ? nW.cost+'g' : '-';
+  $('uMag').textContent = nM ? nM.name : 'MAX'; $('cMag').textContent = nM ? nM.cost+'g' : '-';
+  $('uTun').textContent = nT ? nT.name : 'MAX'; $('cTun').textContent = nT ? nT.cost+'g' : '-';
+  $('uShip').textContent = nS ? nS.name : 'MAX'; $('cShip').textContent = nS ? nS.cost+'g' : '-';
 }
-
-window.buyUpgrade = (type) => {
-    if (!player.alive || gameOver) return;
-    if (type === 1 && wepIdx < weaponTiers.length - 1) {
-        const nxt = weaponTiers[wepIdx + 1];
-        if (player.gold >= nxt.cost) {
-            player.gold -= nxt.cost; wepIdx++; player.atk += nxt.atkBonus;
-            const blade = hero.userData.sword.children[0]; blade.material.color.setHex(nxt.color); blade.material.emissive.setHex(nxt.glow); blade.scale.set(1, nxt.scale, nxt.scale);
-            if(audioCtxStarted) sfx.levelUp.triggerAttackRelease(["C4","E4","G4"], "8n");
-            addEffect(player.pos.clone(), 3.5, nxt.color); floatText(player.pos, 'SWORD UPGRADED!', '#'+nxt.color.toString(16), 26);
-        } else showToast("Not enough gold!", "#ff7a7a");
-    } else if (type === 2) {
-        const cost = 20 + player.magAtk * 2;
-        if (player.gold >= cost) {
-            player.gold -= cost; player.magAtk += 5;
-            if(audioCtxStarted) sfx.levelUp.triggerAttackRelease(["C4","E4","G4"], "8n");
-            addEffect(player.pos.clone(), 3.5, 0x4f9dff); floatText(player.pos, 'MAGIC UPGRADED!', '#4f9dff', 26);
-        } else showToast("Not enough gold!", "#ff7a7a");
-    } else if (type === 3 && tunIdx < tunnelTiers.length - 1) {
-        const nxt = tunnelTiers[tunIdx + 1];
-        if (player.gold >= nxt.cost) {
-            player.gold -= nxt.cost; tunIdx++;
-            if(audioCtxStarted) sfx.levelUp.triggerAttackRelease(["C4","E4","G4"], "8n");
-            addEffect(player.pos.clone(), 3.5, 0xd8b070); floatText(player.pos, 'TUNNELS UPGRADED!', '#d8b070', 26);
-        } else showToast("Not enough gold!", "#ff7a7a");
-    } else if (type === 4 && shipIdx < shipTiers.length - 1) {
-        const nxt = shipTiers[shipIdx + 1];
-        if (player.gold >= nxt.cost) {
-            player.gold -= nxt.cost; shipIdx++;
-            ship.maxHp = nxt.maxHp; ship.hp = nxt.maxHp; ship.destroyed = false; ship.obj.visible = true;
-            if(audioCtxStarted) sfx.levelUp.triggerAttackRelease(["C4","E4","G4"], "8n");
-            addEffect(ship.pos.clone().add(new THREE.Vector3(0,1.6,0)), 6.0, 0x8a5a2b); 
-            floatText(player.pos, 'SHIP ARMOR UPGRADED!', '#8a5a2b', 26);
-        } else showToast("Not enough gold!", "#ff7a7a");
-    }
-    updateHUD();
-};
-
-window.repairShip = () => {
-    if (!player.alive || gameOver) return;
-    const cost = ship.destroyed ? 100 : (ship.hp>=ship.maxHp ? 0 : Math.ceil((ship.maxHp - ship.hp) * 0.4));
-    if (ship.hp >= ship.maxHp && !ship.destroyed) return showToast("Ship is pristine!", "#8be0ff");
-    if (player.gold >= cost) {
-        player.gold -= cost; ship.hp = ship.maxHp; ship.dmgCd = 0;
-        if (ship.destroyed) {
-            ship.destroyed = false;
-            const dl = Math.hypot(LAKE.x, LAKE.z); ship.pos.set(LAKE.x - (LAKE.x/dl)*(LAKE.r-5), 0, LAKE.z - (LAKE.z/dl)*(LAKE.r-5)); ship.facing = Math.atan2(LAKE.x, LAKE.z); ship.obj.position.copy(ship.pos); ship.obj.visible=true;
-            showToast("New ship summoned to dock!", "#8be0ff");
-        } else { addEffect(ship.pos.clone().add(new THREE.Vector3(0,1.6,0)), 3.5, 0x66ccff); showToast("Ship fully repaired!", "#8be0ff"); }
-        if(audioCtxStarted) sfx.dig.triggerAttackRelease("C3", "8n");
-    } else showToast("Not enough gold!", "#ff7a7a");
-    updateHUD();
-};
 
 function drawMap() {
     const ctx = $('minimap').getContext('2d'); ctx.clearRect(0, 0, 320, 320);
@@ -1063,18 +1141,17 @@ function drawMap() {
     const toX = (wx) => (wx + WORLD) * scale;
     const toY = (wz) => (wz + WORLD) * scale;
     
-    // Water
     ctx.fillStyle = '#1a5ca4'; ctx.beginPath(); ctx.arc(toX(LAKE.x), toY(LAKE.z), LAKE.r * scale, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = '#3a5a3a'; ctx.beginPath(); ctx.arc(toX(ISLAND.x), toY(ISLAND.z), ISLAND.r * scale, 0, Math.PI*2); ctx.fill();
     
-    // Obelisks
-    ctx.fillStyle = '#a855f7';
-    for(const ob of obelisks) { if(ob.state!=='cleansed') { ctx.beginPath(); ctx.arc(toX(ob.x), toY(ob.z), 6, 0, Math.PI*2); ctx.fill(); } }
-    
-    // Ship
+    ctx.fillStyle = '#a855f7'; for(const ob of obelisks) { if(ob.state!=='cleansed') { ctx.beginPath(); ctx.arc(toX(ob.x), toY(ob.z), 6, 0, Math.PI*2); ctx.fill(); } }
     if(!ship.destroyed) { ctx.fillStyle = '#8a5a2b'; ctx.beginPath(); ctx.arc(toX(ship.pos.x), toY(ship.pos.z), 5, 0, Math.PI*2); ctx.fill(); }
     
-    // Player
+    if(leviathan && !leviathan.dead) {
+        ctx.fillStyle = '#ff0000'; ctx.font = "18px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText("☠", toX(leviathan.pos.x), toY(leviathan.pos.z));
+    }
+    
     ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(toX(player.pos.x), toY(player.pos.z), 5, 0, Math.PI*2); ctx.fill();
 }
 
@@ -1088,12 +1165,13 @@ function resolveZoneOut(p, radius, z){
   const dx=p.x-z.x, dz=p.z-z.z, d=Math.hypot(dx,dz), min=z.r+radius;
   if (d<min){ if(d>1e-4){p.x=z.x+dx/d*min; p.z=z.z+dz/d*min;} else p.x=z.x+min; }
 }
+
 function resolveWaterBoundary(p, radius, isShip) {
   const dLake = Math.hypot(p.x - LAKE.x, p.z - LAKE.z), dIsl = Math.hypot(p.x - ISLAND.x, p.z - ISLAND.z);
   if (!isShip) {
     if (dLake < LAKE.r + radius && dIsl > ISLAND.r - radius) {
       const distToLake = (LAKE.r + radius) - dLake, distToIsl = dIsl - (ISLAND.r - radius);
-      if (distToLake < distToIsl) { const push = LAKE.r + radius; p.x = LAKE.x + ((p.x - LAKE.x) / dLake) * push; p.z = LAKE.z + ((p.z - LAKE.z) / dLake) * push; }
+      if (distToLake < distToIsl) { const push = LAKE.r + radius; p.x = LAKE.x + ((p.x - LAKE.x) / dLake) * push; p.z = LAKE.z + ((p.z - LAKE.z) / dLake) * push; } 
       else { const push = ISLAND.r - radius; p.x = ISLAND.x + ((p.x - ISLAND.x) / dIsl) * push; p.z = ISLAND.z + ((p.z - ISLAND.z) / dIsl) * push; }
     }
   } else {
@@ -1102,305 +1180,215 @@ function resolveWaterBoundary(p, radius, isShip) {
   }
 }
 
-// --- MAIN LOOP ---
-let spawnTmr = 2;
-function update(dt) {
-    if(!started || paused || gameOver) return;
+const clock=new THREE.Clock();
 
-    player.atkCd -= dt; player.magCd -= dt; player.dashCd -= dt; player.invuln -= dt; player.atkAnim -= dt; player.tunnelCd -= dt;
-    ship.fireCd -= dt; ship.dmgCd -= dt;
-    if(tTmr>0){ tTmr-=dt; if(tTmr<=0) $('toast').classList.remove('show'); }
+function update(dt){
+  if (!started || paused || !player.alive) return;
+  player.attackTimer=Math.max(0,player.attackTimer-dt); player.attackCooldown=Math.max(0,player.attackCooldown-dt); player.shootCooldown=Math.max(0,player.shootCooldown-dt);
+  player.dashCd=Math.max(0,player.dashCd-dt); player.invuln=Math.max(0,player.invuln-dt); player.tunnelCd=Math.max(0,player.tunnelCd-dt);
+  ship.fireCd=Math.max(0,ship.fireCd-dt); ship.dmgCd=Math.max(0,ship.dmgCd-dt); ship.invuln=Math.max(0,ship.invuln-dt);
+  
+  if (ship.invuln > 0) { ship.obj.userData.hull.material.emissive.setHex(0x00aaff); ship.obj.userData.hull.material.emissiveIntensity = 0.5 + Math.sin(performance.now()*0.01)*0.5; } 
+  else { ship.obj.userData.hull.material.emissiveIntensity = 0; }
 
-    ugAmbient.intensity += ((player.underground ? 0.85 : 0.0) - ugAmbient.intensity) * Math.min(1, dt*6);
-    if (player.underground){
-        scene.fog.near=6; scene.fog.far=75;
-        const sorted = activeTunnels.slice().sort((a,b)=> (Math.hypot(player.pos.x-a.x,player.pos.z-a.z)) - (Math.hypot(player.pos.x-b.x,player.pos.z-b.z)));
-        const flick = 1 + Math.sin(performance.now()*0.006)*0.1;
-        for (let i=0;i<ugLightPool.length;i++){
-            const t=sorted[i];
-            if (t){ ugLightPool[i].position.set(t.x, UG_Y+3, t.z); ugLightPool[i].intensity = 7*flick; }
-            else ugLightPool[i].intensity = 0;
-        }
-    } else { scene.fog.near=90; scene.fog.far=300; for (const L of ugLightPool) L.intensity = 0; }
+  ugAmbient.intensity += ((player.underground ? 0.85 : 0.0) - ugAmbient.intensity) * Math.min(1, dt*6);
+  if (player.underground){
+    scene.fog.near=6; scene.fog.far=75; const sorted = activeTunnels.slice().sort((a,b)=> (Math.hypot(player.pos.x-a.x,player.pos.z-a.z)) - (Math.hypot(player.pos.x-b.x,player.pos.z-b.z)));
+    const flick = 1 + Math.sin(performance.now()*0.006)*0.1;
+    for (let i=0;i<ugLightPool.length;i++){ const t=sorted[i]; if (t){ ugLightPool[i].position.set(t.x, UG_Y+3, t.z); ugLightPool[i].intensity = 7*flick; } else ugLightPool[i].intensity = 0; }
+  } else { scene.fog.near=90; scene.fog.far=300; for (const L of ugLightPool) L.intensity = 0; }
 
-    if (ship.destroyed){
-        ship.respawnTimer-=dt;
-        if (ship.respawnTimer<=0){
-            ship.destroyed=false; ship.hp=ship.maxHp;
-            const dx=0-LAKE.x, dz=0-LAKE.z, dl=Math.hypot(dx,dz);
-            ship.pos.set(LAKE.x+dx/dl*(LAKE.r-5), 0, LAKE.z+dz/dl*(LAKE.r-5));
-            ship.facing=Math.atan2(-dx,-dz); ship.obj.position.copy(ship.pos); ship.obj.visible=true;
-            showToast('A fresh ship has docked','#8be0ff');
-        }
-    } else if (ship.dmgCd<=0 && ship.hp<ship.maxHp){ ship.hp=Math.min(ship.maxHp, ship.hp + ship.maxHp*0.04*dt); }
+  if (ship.destroyed){
+    ship.respawnTimer-=dt;
+    if (ship.respawnTimer<=0){
+      ship.destroyed=false; ship.hp=ship.maxHp; ship.invuln=3.0; const dx=0-LAKE.x, dz=0-LAKE.z, dl=Math.hypot(dx,dz);
+      ship.pos.set(LAKE.x+dx/dl*(LAKE.r-5), 0, LAKE.z+dz/dl*(LAKE.r-5)); ship.facing=Math.atan2(-dx,-dz); ship.obj.position.copy(ship.pos); ship.obj.visible=true;
+      showToast('A fresh ship has docked (3s shield)','#8be0ff');
+    }
+  } else if (ship.dmgCd<=0 && ship.hp<ship.maxHp){ ship.hp=Math.min(ship.maxHp, ship.hp + ship.maxHp*0.04*dt); }
 
-    const f=new THREE.Vector3(Math.sin(camYaw),0,Math.cos(camYaw)); const r=new THREE.Vector3(f.z,0,-f.x);
-    const move = new THREE.Vector3();
-    if (player.alive && !player.inTree) {
-        if(keys['KeyW']) move.sub(f); if(keys['KeyS']) move.add(f); if(keys['KeyD']) move.add(r); if(keys['KeyA']) move.sub(r);
-        if(touchInput.fwd || touchInput.right) { move.addScaledVector(f, -touchInput.fwd); move.addScaledVector(r, touchInput.right); }
+  const f=new THREE.Vector3(Math.sin(camYaw),0,Math.cos(camYaw)); const r=new THREE.Vector3(f.z,0,-f.x); const move=new THREE.Vector3();
+  if (player.alive && !player.inTree){
+    if (keys['KeyW']) move.sub(f); if (keys['KeyS']) move.add(f); if (keys['KeyD']) move.add(r); if (keys['KeyA']) move.sub(r);
+    if (touchInput.fwd !== 0 || touchInput.right !== 0){ move.addScaledVector(f, -touchInput.fwd); move.addScaledVector(r, touchInput.right); }
+  }
+
+  if (player.onShip){
+    if (move.lengthSq()>0){ move.normalize(); ship.facing=Math.atan2(move.x,move.z); ship.pos.addScaledVector(move, 12*dt); }
+    resolveWaterBoundary(ship.pos, 1.8, true); ship.bob+=dt*2; ship.obj.position.set(ship.pos.x, 0.1+Math.sin(ship.bob)*0.12, ship.pos.z);
+    ship.obj.rotation.y += (((ship.facing-ship.obj.rotation.y+Math.PI)%(Math.PI*2))-Math.PI)*Math.min(1,dt*8); ship.obj.rotation.z=Math.sin(ship.bob)*0.04;
+    player.pos.copy(ship.pos);
+    const dLake = Math.hypot(ship.pos.x-LAKE.x, ship.pos.z-LAKE.z), dIsl = Math.hypot(ship.pos.x-ISLAND.x, ship.pos.z-ISLAND.z);
+    setPrompt((dLake > LAKE.r-7 || dIsl < ISLAND.r+7) ? 'Press [B] to step ashore' : '');
+  } else if (player.underground){
+    let speed=player.speed;
+    if (move.lengthSq()>0){ move.normalize(); player.facing=Math.atan2(move.x,move.z); player.obj.position.addScaledVector(move, speed*dt); player.walkPhase+=dt*12; } else player.walkPhase*=0.8;
+    let cur=player.obj.rotation.y, diff=((player.facing-cur+Math.PI)%(Math.PI*2))-Math.PI; player.obj.rotation.y=cur+diff*Math.min(1,dt*14);
+    player.obj.position.y += (UG_Y - player.obj.position.y)*Math.min(1,dt*8);
+    const lim=WORLD-2; player.obj.position.x=Math.max(-lim,Math.min(lim,player.obj.position.x)); player.obj.position.z=Math.max(-lim,Math.min(lim,player.obj.position.z)); player.pos.copy(player.obj.position);
+    let best=null,bd=Infinity; for(const t of activeTunnels){ const d=Math.hypot(player.pos.x-t.x,player.pos.z-t.z); if(d<bd){bd=d;best=t;} }
+    setPrompt(best && bd<best.r+2 ? 'Press [F] to climb to the surface' : 'Follow a corridor to a glowing shaft');
+  } else {
+    if (player.inTree) { player.obj.position.y += (3.5 - player.obj.position.y) * dt * 8; player.obj.position.x = player.treePos.x; player.obj.position.z = player.treePos.z; player.pos.copy(player.obj.position); player.walkPhase *= 0.8; setPrompt('Press [E] to jump down'); } 
+    else {
+       player.obj.position.y += (0 - player.obj.position.y) * dt * 8; if(player.obj.position.y < 0.01) player.obj.position.y = 0;
+       let speed=player.speed;
+       if (keys['ShiftLeft'] && player.dashCd<=0 && move.lengthSq()>0){ player.dashCd=1.2; player.invuln=0.25; player.obj.position.addScaledVector(move.clone().normalize(), 5.0); floatText(player.pos,'DASH','#8be0ff',16); }
+       if (move.lengthSq()>0){ move.normalize(); player.facing=Math.atan2(move.x,move.z); player.obj.position.addScaledVector(move, speed*dt); player.walkPhase+=dt*12; } else player.walkPhase*=0.8;
+       let cur=player.obj.rotation.y, diff=((player.facing-cur+Math.PI)%(Math.PI*2))-Math.PI; player.obj.rotation.y=cur+diff*Math.min(1,dt*14);
+       const p=player.obj.position; for (const b of walls) resolveBox(p, PLAYER_R, b); resolveWaterBoundary(p, PLAYER_R, false);                      
+       const lim=WORLD-2; p.x=Math.max(-lim,Math.min(lim,p.x)); p.z=Math.max(-lim,Math.min(lim,p.z)); player.pos.copy(p);
+       let nearTree = false; for(const t of trees) { if (Math.hypot(p.x - t.x, p.z - t.z) < 2.5) { nearTree = true; setPrompt('Press [E] to climb tree'); break; } }
+       if (!nearTree) {
+          let onTunnel=false; for(const t of activeTunnels){ if(Math.hypot(p.x-t.x,p.z-t.z)<t.r){ onTunnel=true; setPrompt('Press [F] to go underground'); break; } }
+          if (!onTunnel){
+             let nearObelisk = false; for(const ob of obelisks) if(ob.state==='idle' && Math.hypot(p.x-ob.x, p.z-ob.z)<10){ nearObelisk=true; setPrompt('Press [R] or 🔮 to Cleanse Obelisk'); break; }
+             if (!nearObelisk) { if (Math.hypot(p.x-ship.pos.x,p.z-ship.pos.z) < 9 && !ship.destroyed) setPrompt('Press [B] to board ship'); else setPrompt(''); }
+          }
+       }
+    }
+  }
+
+  const ud=player.obj.userData; const sw=Math.sin(player.walkPhase)*0.6;
+  ud.legL.rotation.x=sw; ud.legR.rotation.x=-sw; ud.armL.rotation.x=-sw*0.7;
+  if (player.attackTimer>0){ const t=1-player.attackTimer/0.28; ud.armR.rotation.x=-2.4*Math.sin(t*Math.PI); ud.armR.rotation.z=0.5*Math.sin(t*Math.PI); ud.sword.children[0].material.emissiveIntensity=0.4+Math.sin(t*Math.PI)*1.5; } 
+  else { ud.armR.rotation.x+=(sw*0.7-ud.armR.rotation.x)*0.3; ud.armR.rotation.z*=0.8; }
+  ud.head.material.emissiveIntensity=player.invuln>0?0.6:0; ud.head.material.emissive.set(player.invuln>0?0xff0000:0x000000);
+
+  for (const c of caveLamps){ c.phase += dt*8; const f = 1 + Math.sin(c.phase)*0.12 + Math.sin(c.phase*2.3)*0.06; c.light.intensity = c.base * f; c.lantern.material.emissiveIntensity = 1.4 * f; }
+
+  for(let i=puddles.length-1; i>=0; i--){ const p = puddles[i]; p.life -= dt; if (p.life <= 0) { scene.remove(p.obj); puddles.splice(i, 1); continue; } p.obj.material.opacity = Math.min(0.6, p.life/2); if (!player.onShip && !player.inTree && player.alive && Math.hypot(player.pos.x-p.pos.x, player.pos.z-p.pos.z) < 2.5) { hurtPlayer(15 * dt); } }
+
+  for(let i=activeTunnels.length-1; i>=0; i--){
+    const t = activeTunnels[i];
+    if (t.hp <= 0) { scene.remove(t.group); if (t.ugGroup) ugRoot.remove(t.ugGroup); if (t.corridor) ugRoot.remove(t.corridor); const zIdx = enemyZones.indexOf(t.zone); if(zIdx > -1) enemyZones.splice(zIdx, 1); activeTunnels.splice(i, 1); if (player.underground && Math.hypot(player.pos.x-t.x, player.pos.z-t.z) < t.r+2){ player.underground=false; player.obj.position.set(t.x,0,t.z); player.pos.copy(player.obj.position); showToast('The tunnel collapsed — forced up!','#ff5555'); } floatText(new THREE.Vector3(t.x, 0, t.z), "TUNNEL COLLAPSED!", "#ff3333", 24); continue; }
+    t.rimMat.color.setHex(0x4a3520).lerp(new THREE.Color(0xff0000), 1-(t.hp/t.maxHp));
+  }
+
+  let cleansedCount = 0;
+  for(const ob of obelisks) {
+      if(ob.state === 'cleansing') { ob.progress += dt * 3.3; ob.mesh.material.emissiveIntensity = 0.5 + Math.sin(ob.progress)*2; if(ob.progress >= 100) { ob.state = 'cleansed'; ob.mesh.material.color.setHex(0x4f9dff); ob.mesh.material.emissive.setHex(0x0044ff); showToast("Obelisk Cleansed!", "#4f9dff"); } }
+      if(ob.state === 'cleansed') cleansedCount++;
+  }
+  if(cleansedCount === 3 && !leviathan) spawnLeviathan();
+  if(leviathan && !leviathan.dead) {
+      leviathan.phase += dt * 3;
+      const toPlayer = player.pos.clone().sub(leviathan.pos); toPlayer.y = 0; const dist = toPlayer.length();
+      if (dist > 15) { leviathan.pos.addScaledVector(toPlayer.normalize(), 8 * dt); }
+      resolveWaterBoundary(leviathan.pos, 5, true); leviathan.obj.position.copy(leviathan.pos); leviathan.obj.rotation.y = Math.atan2(toPlayer.x, toPlayer.z);
+      leviathan.obj.position.y = Math.sin(leviathan.phase) * 2; for(let i=1; i<=4; i++) { leviathan.obj.children[i].position.x = Math.sin(leviathan.phase - i * 0.8) * 2; }
+      leviathan.shootCd -= dt;
+      if(leviathan.shootCd <= 0) {
+          leviathan.shootCd = 2.5; if(audioCtxStarted) sfx.cannon.triggerAttackRelease("A0", "2n");
+          for(let i=-1; i<=1; i++) { const dir = player.pos.clone().sub(leviathan.pos).normalize(); dir.applyAxisAngle(new THREE.Vector3(0,1,0), i * 0.25); shootBolt(true, leviathan.pos.clone().add(new THREE.Vector3(0,6,0)), dir, 45, 0x00ffff, 0x00aaff, 28); }
+      }
+  }
+
+  for (const e of enemies){
+    if (e.dead){ if (e.hpBar) e.hpBar.visible=false; const u=e.obj.userData; u.dying+=dt; const k=u.dying/0.35; e.obj.scale.setScalar(Math.max(0.001,1-k)); e.obj.position.y=k*2; continue; }
+    e.touchCd=Math.max(0,e.touchCd-dt); e.shootCd=Math.max(0,e.shootCd-dt); e.atkTimer=Math.max(0,e.atkTimer-dt); e.flash=Math.max(0,e.flash-dt); e.phase+=dt*8;
+    
+    let target = player.pos; let distToTarget = Math.hypot(target.x-e.pos.x, target.z-e.pos.z); let attackingTunnel = false;
+    if (e.type === 'mimic' && !e.revealed){ if (player.alive && distToTarget < 6.5){ e.revealed = true; e.obj.userData.disguise.visible = false; e.obj.userData.monster.visible = true; e.flash = 0.3; addEffect(e.pos.clone(), 3.5, 0xff2244); floatText(e.pos, "IT'S A MIMIC!", '#ff3344', 26); showToast('A Mimic ambush!', '#ff5555'); } else { e.pos.copy(e.obj.position); continue; } }
+
+    if (e.type === 'breaker' && activeTunnels.length > 0) {
+      let nearestT = null, minDist = Infinity; for (const t of activeTunnels) { const d = Math.hypot(t.x-e.pos.x, t.z-e.pos.z); if (d < minDist) { minDist = d; nearestT = t; } }
+      if (nearestT && minDist < 15) { target = new THREE.Vector3(nearestT.x, 0, nearestT.z); distToTarget = minDist; if (distToTarget < nearestT.r + e.scale + 0.5) { attackingTunnel = true; if (e.atkTimer <= 0) { e.atkTimer = 1.0; nearestT.hp -= e.atk; floatText(target, '-'+e.atk, '#ffaa00', 16); } } }
     }
 
-    if (player.onShip) {
-        if(move.lengthSq()>0) { move.normalize(); ship.facing=Math.atan2(move.x,move.z); ship.pos.addScaledVector(move, 12*dt); }
-        resolveWaterBoundary(ship.pos, 1.8, true);
-        ship.bob+=dt*2; ship.obj.position.set(ship.pos.x, 0.1+Math.sin(ship.bob)*0.12, ship.pos.z);
-        ship.obj.rotation.y += (((ship.facing-ship.obj.rotation.y+Math.PI)%(Math.PI*2))-Math.PI)*Math.min(1,dt*8);
-        ship.obj.rotation.z=Math.sin(ship.bob)*0.04;
-        
-        // Cannon recoil recovery
-        if (ship.fireCd <= 0.9) ship.obj.userData.cannon.rotation.x += (Math.PI/2 - ship.obj.userData.cannon.rotation.x)*dt*5;
-        
-        player.pos.copy(ship.pos);
-        const dLake = Math.hypot(ship.pos.x-LAKE.x, ship.pos.z-LAKE.z), dIsl = Math.hypot(ship.pos.x-ISLAND.x, ship.pos.z-ISLAND.z);
-        setPrompt((dLake > LAKE.r-7 || dIsl < ISLAND.r+7) ? 'Press [B] to step ashore' : '');
-    } else if (player.alive && player.underground) {
-        if (move.lengthSq()>0){ move.normalize(); player.facing=Math.atan2(move.x,move.z); player.obj.position.addScaledVector(move, player.speed*dt); player.walkPhase+=dt*12; } else player.walkPhase*=0.8;
-        let cur=player.obj.rotation.y, diff=((player.facing-cur+Math.PI)%(Math.PI*2))-Math.PI; player.obj.rotation.y=cur+diff*Math.min(1,dt*14);
-        player.obj.position.y += (UG_Y - player.obj.position.y)*Math.min(1,dt*8);
-        const lim=WORLD-2; player.obj.position.x=Math.max(-lim,Math.min(lim,player.obj.position.x)); player.obj.position.z=Math.max(-lim,Math.min(lim,player.obj.position.z));
-        player.pos.copy(player.obj.position);
-        let best=null,bd=Infinity; for(const t of activeTunnels){ const d=Math.hypot(player.pos.x-t.x,player.pos.z-t.z); if(d<bd){bd=d;best=t;} }
-        setPrompt(best && bd<best.r+2 ? 'Press [F] to climb to the surface' : 'Follow a corridor to a glowing shaft');
-    } else if (player.alive) {
-        if (player.inTree) {
-            player.obj.position.y += (3.5 - player.obj.position.y) * dt * 8; player.obj.position.x = player.treePos.x; player.obj.position.z = player.treePos.z; player.pos.copy(player.obj.position); player.walkPhase *= 0.8;
-            setPrompt('Press [E] to jump down');
-        } else {
-            player.obj.position.y += (0 - player.obj.position.y) * dt * 8; if(player.obj.position.y < 0.01) player.obj.position.y = 0;
-            if(keys['ShiftLeft'] && player.dashCd<=0 && move.lengthSq()>0) { player.dashCd = 1.2; player.invuln = 0.25; player.obj.position.addScaledVector(move.clone().normalize(), 5.0); floatText(player.pos,"DASH","#8be0ff",16); }
-            if(move.lengthSq()>0) { move.normalize(); player.facing=Math.atan2(move.x,move.z); player.obj.position.addScaledVector(move, player.speed*dt); player.walkPhase+=dt*12; } else player.walkPhase*=0.8;
-            let cur=player.obj.rotation.y, diff=((player.facing-cur+Math.PI)%(Math.PI*2))-Math.PI; player.obj.rotation.y=cur+diff*Math.min(1,dt*14);
-            const p=player.obj.position;
-            for (const b of walls) resolveBox(p, PLAYER_R, b); resolveWaterBoundary(p, PLAYER_R, false);
-            const lim=WORLD-2; p.x=Math.max(-lim,Math.min(lim,p.x)); p.z=Math.max(-lim,Math.min(lim,p.z)); player.pos.copy(p);
-
-            let nearTree = false; for(const t of trees) { if (Math.hypot(p.x - t.x, p.z - t.z) < 2.5) { nearTree = true; setPrompt('Press [E] to climb tree'); break; } }
-            if (!nearTree) {
-                let onTunnel=false; for(const t of activeTunnels){ if(Math.hypot(p.x-t.x,p.z-t.z)<t.r){ onTunnel=true; setPrompt('Press [F] to go underground'); break; } }
-                if (!onTunnel){
-                    let nearObelisk = false; for(const ob of obelisks) if(ob.state==='idle' && Math.hypot(p.x-ob.x, p.z-ob.z)<10){ nearObelisk=true; setPrompt('Press [R] or 🔮 to Cleanse Obelisk'); break; }
-                    if(!nearObelisk) { if (Math.hypot(p.x-ship.pos.x,p.z-ship.pos.z) < 9 && !ship.destroyed) setPrompt('Press [B] to board ship'); else setPrompt(''); }
-                }
-            }
-        }
+    if (!attackingTunnel && player.alive) {
+      if (e.type === 'shooter' || e.type === 'water') {
+        if (distToTarget > 12) { const to=target.clone().sub(e.pos); to.y=0; to.normalize(); e.obj.position.addScaledVector(to, e.speed*dt); e.obj.rotation.y=Math.atan2(to.x,to.z); } 
+        else if (distToTarget < 8) { const to=e.pos.clone().sub(target); to.y=0; to.normalize(); e.obj.position.addScaledVector(to, e.speed*dt*0.5); e.obj.rotation.y=Math.atan2(-to.x,-to.z); } 
+        else { e.obj.rotation.y=Math.atan2(target.x-e.pos.x, target.z-e.pos.z); if (e.shootCd <= 0) { e.shootCd = 2.5; const pY = player.inTree ? 3.5 : 0; const dir = new THREE.Vector3(target.x-e.pos.x, pY - 1.2, target.z-e.pos.z).normalize(); shootBolt(true, e.pos.clone().add(new THREE.Vector3(0,1.2,0)), dir, e.atk, e.type==='water'?0x1177ff:0xcc00ff, 0xaa00aa, 20); } }
+      } else { if (distToTarget > 1.2) { const to=target.clone().sub(e.pos); to.y=0; to.normalize(); e.obj.position.addScaledVector(to, e.speed*dt); e.obj.rotation.y=Math.atan2(to.x,to.z); } }
     }
 
-    // Hero Animations
-    const ud=player.obj.userData, sw=Math.sin(player.walkPhase)*0.6;
-    ud.legL.rotation.x=sw; ud.legR.rotation.x=-sw; ud.armL.rotation.x=-sw*0.7;
-    if (player.atkAnim>0){
-        const t=1-player.atkAnim/0.28; ud.armR.rotation.x=-2.4*Math.sin(t*Math.PI); ud.armR.rotation.z=0.5*Math.sin(t*Math.PI); ud.sword.children[0].material.emissiveIntensity=0.4+Math.sin(t*Math.PI)*1.5;
-    } else { ud.armR.rotation.x+=(sw*0.7-ud.armR.rotation.x)*0.3; ud.armR.rotation.z*=0.8; }
-    ud.head.material.emissiveIntensity=player.invuln>0?0.6:0; ud.head.material.emissive.set(player.invuln>0?0xff0000:0x000000);
+    if (e.type !== 'water') { for (const b of walls) resolveBox(e.obj.position, e.scale, b); for (const z of enemyZones) resolveZoneOut(e.obj.position, e.scale*0.6, z); resolveWaterBoundary(e.obj.position, e.scale, false); } 
+    else { resolveWaterBoundary(e.obj.position, e.scale, true); }
+    
+    let eTargetY = 0; if (e.type === 'stalker' && player.inTree && distToTarget < 2.5) { eTargetY = player.obj.position.y; }
+    const bounce = Math.abs(Math.sin(e.phase*0.5))*0.15; e.obj.position.y += ((eTargetY + bounce) - e.obj.position.y) * Math.min(1, dt * 5); e.pos.copy(e.obj.position);
+    const sq=1+Math.sin(e.phase)*0.12; e.obj.userData.body.scale.set(1/Math.sqrt(sq),sq,1/Math.sqrt(sq)); e.obj.userData.body.material.emissiveIntensity=e.flash>0?1.2:(e.type==='toxic'||e.type==='stalker'?0.5:0.15);
 
-    for (const c of caveLamps){ c.phase += dt*8; const f = 1 + Math.sin(c.phase)*0.12 + Math.sin(c.phase*2.3)*0.06; c.light.intensity = c.base * f; c.lantern.material.emissiveIntensity = 1.4 * f; }
-    for(let i=puddles.length-1; i>=0; i--){
-        const p = puddles[i]; p.life -= dt; if (p.life <= 0) { scene.remove(p.obj); puddles.splice(i, 1); continue; }
-        p.obj.material.opacity = Math.min(0.6, p.life/2);
-        if (!player.onShip && !player.inTree && player.alive && Math.hypot(player.pos.x-p.pos.x, player.pos.z-p.pos.z) < 2.5) hurtPlayer(15 * dt);
+    if (!e.hpBar){ e.hpBar = makeHpBar(); scene.add(e.hpBar); }
+    const showBar = e.hp < e.maxHp; e.hpBar.visible = showBar;
+    if (showBar){ e.hpBar.position.set(e.obj.position.x, e.obj.position.y + e.scale*1.9 + 0.8, e.obj.position.z); e.hpBar.quaternion.copy(camera.quaternion); const ratio=Math.max(0,e.hp/e.maxHp), bw=e.hpBar.userData.W, fill=e.hpBar.userData.fill; fill.scale.x=ratio; fill.position.x=-bw*(1-ratio)/2; fill.material.color.setHex(e.type==='mimic' ? 0xff2244 : (ratio>0.5?0x6fcf45:(ratio>0.25?0xffd24a:0xff3b3b))); }
+
+    const dist3D = Math.hypot(e.pos.x - player.pos.x, (e.obj.position.y||0) - player.obj.position.y, e.pos.z - player.pos.z);
+    if (!player.onShip && player.alive && dist3D < 1.4+e.scale*0.5 && e.touchCd<=0 && e.type !== 'shooter' && e.type !== 'water'){ 
+      hurtPlayer(e.atk); e.touchCd=0.8; if (player.inTree && e.type === 'stalker') { player.inTree = false; showToast("Knocked out of the tree!", "#ff5555"); }
     }
-    for(let i=activeTunnels.length-1; i>=0; i--){
-        const t = activeTunnels[i];
-        if (t.hp <= 0) {
-            scene.remove(t.group); if (t.ugGroup) ugRoot.remove(t.ugGroup); if (t.corridor) ugRoot.remove(t.corridor);
-            const zIdx = enemyZones.indexOf(t.zone); if(zIdx > -1) enemyZones.splice(zIdx, 1);
-            activeTunnels.splice(i, 1);
-            if (player.underground && Math.hypot(player.pos.x-t.x, player.pos.z-t.z) < t.r+2){ player.underground=false; player.obj.position.set(t.x,0,t.z); player.pos.copy(player.obj.position); showToast('Tunnel collapsed — forced up!','#ff5555'); }
-            floatText(new THREE.Vector3(t.x, 0, t.z), "TUNNEL COLLAPSED!", "#ff3333", 24); continue;
+    for (const o of enemies){ if (o===e||o.dead) continue; const dx=e.pos.x-o.pos.x, dz=e.pos.z-o.pos.z, dd=Math.hypot(dx,dz), min=e.scale+o.scale; if (dd>0.001 && dd<min){ const push=(min-dd)/dd*0.5*dt*8; e.obj.position.x+=dx*push; e.obj.position.z+=dz*push; } }
+  }
+  for (let i=enemies.length-1;i>=0;i--){ const e=enemies[i]; if(e.dead&&e.obj.userData.dying>0.35){scene.remove(e.obj); if(e.hpBar) scene.remove(e.hpBar); enemies.splice(i,1);} }
+
+  for (let i=projectiles.length-1;i>=0;i--){
+    const pr=projectiles[i]; pr.life-=dt; if (pr.gravity) pr.vel.y -= 45 * dt; pr.obj.position.addScaledVector(pr.vel,dt); 
+    let hit=false;
+    if (pr.isEnemy) {
+      const pY = player.inTree ? 3.5 : 0;
+      if (Math.hypot(player.pos.x-pr.obj.position.x, (pY+1.0)-pr.obj.position.y, player.pos.z-pr.obj.position.z) < pr.r + PLAYER_R + (player.onShip?2:0) ) { if (player.onShip) damageShip(pr.dmg); else hurtPlayer(pr.dmg); hit=true; }
+    } else {
+      for (const e of enemies){
+        if (e.hp<=0 || (e.type==='mimic' && !e.revealed)) continue;
+        if (Math.hypot(e.pos.x-pr.obj.position.x, e.pos.z-pr.obj.position.z) < pr.r+e.scale*0.8){
+          if (pr.aoe) { explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false); hit=true; break; }
+          else { e.hp-=pr.dmg; e.flash=0.15; const k=pr.vel.clone(); k.y=0; k.normalize(); e.obj.position.addScaledVector(k,1.2); floatText(e.pos,'-'+pr.dmg,'#8be0ff',20); if(e.hp<=0) killEnemy(e); hit=true; break; }
         }
-        t.rimMat.color.setHex(0x4a3520).lerp(new THREE.Color(0xff0000), 1-(t.hp/t.maxHp));
+      }
+      if (!hit && leviathan && !leviathan.dead && pr.isCannon) {
+          if (Math.hypot(leviathan.pos.x-pr.obj.position.x, leviathan.pos.z-pr.obj.position.z) < pr.r+5.0) { explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false); hit=true; }
+      }
     }
-
-    // Obelisks & Boss
-    let cleansedCount = 0;
-    for(const ob of obelisks) {
-        if(ob.state === 'cleansing') {
-            ob.progress += dt * 3.3; ob.mesh.material.emissiveIntensity = 0.5 + Math.sin(ob.progress)*2;
-            if(ob.progress >= 100) { ob.state = 'cleansed'; ob.mesh.material.color.setHex(0x4f9dff); ob.mesh.material.emissive.setHex(0x0044ff); showToast("Obelisk Cleansed!", "#4f9dff"); }
-        }
-        if(ob.state === 'cleansed') cleansedCount++;
-    }
-    if(cleansedCount === 3 && !leviathan) spawnLeviathan();
-    if(leviathan && !leviathan.dead) {
-        leviathan.phase += dt * 3;
-        
-        // Chasing the player
-        const toPlayer = player.pos.clone().sub(leviathan.pos);
-        toPlayer.y = 0;
-        const dist = toPlayer.length();
-        if (dist > 15) {
-            leviathan.pos.addScaledVector(toPlayer.normalize(), 8 * dt);
-        }
-        resolveWaterBoundary(leviathan.pos, 5, true);
-        leviathan.obj.position.copy(leviathan.pos);
-        leviathan.obj.rotation.y = Math.atan2(toPlayer.x, toPlayer.z);
-
-        // Body undulation animation
-        leviathan.obj.position.y = Math.sin(leviathan.phase) * 2;
-        for(let i=1; i<=4; i++) {
-            leviathan.obj.children[i].position.x = Math.sin(leviathan.phase - i * 0.8) * 2;
-        }
-
-        // Spread shooting
-        leviathan.shootCd -= dt;
-        if(leviathan.shootCd <= 0) {
-            leviathan.shootCd = 2.5;
-            if(audioCtxStarted) sfx.cannon.triggerAttackRelease("A0", "2n");
-            for(let i=-1; i<=1; i++) {
-                const dir = player.pos.clone().sub(leviathan.pos).normalize();
-                dir.applyAxisAngle(new THREE.Vector3(0,1,0), i * 0.25);
-                shootBolt(true, leviathan.pos.clone().add(new THREE.Vector3(0,6,0)), dir, 45, 0x00ffff, 0x00aaff, 28);
-            }
-        }
-    }
-
-    // Enemies
-    for(const e of enemies) {
-        if(e.dead) {
-            e.obj.userData.dying += dt; const k = e.obj.userData.dying / 0.35; e.obj.scale.setScalar(Math.max(0.001, 1-k)); e.obj.position.y = k*2; continue;
-        }
-        e.touchCd=Math.max(0,e.touchCd-dt); e.shootCd=Math.max(0,e.shootCd-dt); e.atkTimer=Math.max(0,e.atkTimer-dt); e.flash=Math.max(0,e.flash-dt); e.phase+=dt*8;
-        
-        let spdMult = 1.0;
-        for(let i=e.effects.length-1; i>=0; i--){
-            const ef = e.effects[i]; ef.time -= dt;
-            if(ef.type === 'slow') spdMult = 0.4;
-            if(ef.type === 'burn') { e.hp -= 10*dt; floatText(e.pos, "-1", "#ff5500", 12); }
-            if(ef.time <= 0 || e.hp <= 0) e.effects.splice(i,1);
-        }
-        if(e.hp <= 0) { killEnemy(e); continue; }
-
-        let target = player.pos; let distToTarget = Math.hypot(target.x-e.pos.x, target.z-e.pos.z);
-        let attackingTunnel = false;
-
-        if (e.type === 'mimic' && !e.revealed) {
-            if (player.alive && distToTarget < 6.5){ e.revealed = true; e.obj.userData.disguise.visible = false; e.obj.userData.monster.visible = true; e.flash = 0.3; addEffect(e.pos.clone(), 3.5, 0xff2244); floatText(e.pos, "IT'S A MIMIC!", '#ff3344', 26); showToast('A Mimic ambush!', '#ff5555'); }
-            else { e.pos.copy(e.obj.position); continue; }
-        }
-
-        if (e.type === 'breaker' && activeTunnels.length > 0) {
-            let nearestT = null, minDist = Infinity;
-            for (const t of activeTunnels) { const d = Math.hypot(t.x-e.pos.x, t.z-e.pos.z); if (d < minDist) { minDist = d; nearestT = t; } }
-            if (nearestT && minDist < 15) {
-                target = new THREE.Vector3(nearestT.x, 0, nearestT.z); distToTarget = minDist;
-                if (distToTarget < nearestT.r + e.scale + 0.5) { attackingTunnel = true; if (e.atkTimer <= 0) { e.atkTimer = 1.0; nearestT.hp -= e.atk; floatText(target, '-'+e.atk, '#ffaa00', 16); } }
-            }
-        }
-
-        if (!attackingTunnel && player.alive) {
-            if (e.type === 'shooter' || e.type === 'water') {
-                if (distToTarget > 12) { const to=target.clone().sub(e.pos); to.y=0; to.normalize(); e.obj.position.addScaledVector(to, e.speed*spdMult*dt); e.obj.rotation.y=Math.atan2(to.x,to.z); }
-                else if (distToTarget < 8) { const to=e.pos.clone().sub(target); to.y=0; to.normalize(); e.obj.position.addScaledVector(to, e.speed*spdMult*dt*0.5); e.obj.rotation.y=Math.atan2(-to.x,-to.z); }
-                else { e.obj.rotation.y=Math.atan2(target.x-e.pos.x, target.z-e.pos.z); if (e.shootCd <= 0) { e.shootCd = 2.5; const pY = player.inTree ? 3.5 : 0; const dir = new THREE.Vector3(target.x-e.pos.x, pY - 1.2, target.z-e.pos.z).normalize(); shootBolt(true, e.pos.clone().add(new THREE.Vector3(0,1.2,0)), dir, e.atk, e.type==='water'?0x1177ff:0xcc00ff, 0xaa00aa, 20); } }
-            } else { if (distToTarget > 1.2) { const to=target.clone().sub(e.pos); to.y=0; to.normalize(); e.obj.position.addScaledVector(to, e.speed*spdMult*dt); e.obj.rotation.y=Math.atan2(to.x,to.z); } }
-        }
-
-        if (e.type !== 'water') {
-            for (const b of walls) resolveBox(e.obj.position, e.scale, b);
-            for (const z of enemyZones) resolveZoneOut(e.obj.position, e.scale*0.6, z);
-            resolveWaterBoundary(e.obj.position, e.scale, false);
-        } else resolveWaterBoundary(e.obj.position, e.scale, true);
-        
-        let eTargetY = (e.type === 'stalker' && player.inTree && distToTarget < 2.5) ? player.obj.position.y : 0;
-        e.obj.position.y += ((eTargetY + Math.abs(Math.sin(e.phase*0.5))*0.15) - e.obj.position.y) * Math.min(1, dt * 5); e.pos.copy(e.obj.position);
-        
-        const sq=1+Math.sin(e.phase)*0.12; e.obj.userData.body.scale.set(1/Math.sqrt(sq),sq,1/Math.sqrt(sq)); e.obj.userData.body.material.emissiveIntensity=e.flash>0?1.2:(e.type==='toxic'||e.type==='stalker'?0.5:0.15);
-
-        const dist3D = Math.hypot(e.pos.x - player.pos.x, (e.obj.position.y||0) - player.obj.position.y, e.pos.z - player.pos.z);
-        if (!player.onShip && player.alive && dist3D < 1.4+e.scale*0.5 && e.touchCd<=0 && e.type !== 'shooter' && e.type !== 'water'){ 
-            hurtPlayer(e.atk); e.touchCd=0.8; if (player.inTree && e.type === 'stalker') { player.inTree = false; showToast("Knocked out of the tree!", "#ff5555"); }
-        }
-
-        for (const o of enemies){
-            if (o===e||o.dead) continue;
-            const dx=e.pos.x-o.pos.x, dz=e.pos.z-o.pos.z, dd=Math.hypot(dx,dz), min=e.scale+o.scale;
-            if (dd>0.001 && dd<min){ const push=(min-dd)/dd*0.5*dt*8; e.obj.position.x+=dx*push; e.obj.position.z+=dz*push; }
-        }
-    }
-    for (let i=enemies.length-1; i>=0; i--) { if(enemies[i].dead && enemies[i].obj.userData.dying > 0.35) { scene.remove(enemies[i].obj); enemies.splice(i,1); } }
-
-    // Projectiles
-    for(let i=projectiles.length-1; i>=0; i--) {
-        const p = projectiles[i]; p.life -= dt;
-        if(p.grav) p.vel.y -= 45*dt;
-        p.obj.position.addScaledVector(p.vel, dt);
-        let hit = false;
-        
-        if(p.isEnemy) {
-            const pY = player.inTree ? 3.5 : 0;
-            if (Math.hypot(player.pos.x-p.obj.position.x, (pY+1.0)-p.obj.position.y, player.pos.z-p.obj.position.z) < p.r + PLAYER_R + (player.onShip?2:0) ) {
-                if(player.onShip) damageShip(p.dmg); else hurtPlayer(p.dmg); hit=true;
-            }
-        } else {
-            if(leviathan && !leviathan.dead && Math.hypot(leviathan.pos.x-p.obj.position.x, leviathan.pos.z-p.obj.position.z) < 6) {
-                leviathan.hp -= p.dmg; hit=true; floatText(leviathan.pos, "-"+Math.round(p.dmg), "#ffaa00", 30);
-                if(leviathan.hp <= 0) { leviathan.dead=true; scene.remove(leviathan.obj); $('victoryScreen').classList.remove('hidden'); paused=true; setReticle(false); if(document.pointerLockElement)document.exitPointerLock(); }
-            } else {
-                for(const e of enemies) {
-                    if(e.dead || (e.type==='mimic'&&!e.revealed)) continue;
-                    if(Math.hypot(e.pos.x-p.obj.position.x, e.pos.z-p.obj.position.z) < p.r+e.scale*0.8) {
-                        if(p.aoe) { explode(p.obj.position.clone(), p.dmg, p.aoeR, false); hit=true; break; } 
-                        else { e.hp -= p.dmg; e.flash=0.15; floatText(e.pos, "-"+Math.round(p.dmg), "#8be0ff", 20); const k=p.vel.clone(); k.y=0; k.normalize(); e.obj.position.addScaledVector(k,1.2); if(p.effect) e.effects.push({type: p.effect, time: 3.0}); if(e.hp<=0) killEnemy(e); hit=true; break; }
-                    }
-                }
-            }
-        }
-        if(p.grav && p.obj.position.y <= 0.1) { p.obj.position.y = 0.1; hit=true; if(p.aoe) explode(p.obj.position.clone(), p.dmg, p.aoeR, p.isEnemy); }
-        if(hit || p.life<=0 || Math.abs(p.obj.position.x)>WORLD || Math.abs(p.obj.position.z)>WORLD) { if(p.aoe&&!hit&&p.life<=0&&!p.grav) explode(p.obj.position.clone(),p.dmg,p.aoeR, p.isEnemy); scene.remove(p.obj); projectiles.splice(i,1); }
-    }
-
-    // Pickups
-    const colCenter = player.onShip ? ship.pos : player.pos; const pullR = player.onShip ? 7.0 : 4.5, grabR = player.onShip ? 3.0 : 1.4;
-    for (let i=pickups.length-1; i>=0; i--){
-        const p=pickups[i]; p.spin+=dt*3; p.obj.rotation.z=p.spin; p.obj.rotation.y=p.spin; p.obj.position.y=0.6+Math.sin(p.spin)*0.15;
-        const d=Math.hypot(p.obj.position.x-colCenter.x, p.obj.position.z-colCenter.z);
-        if (d < pullR) { p.obj.position.x+=(colCenter.x-p.obj.position.x)*Math.min(1,dt*6); p.obj.position.z+=(colCenter.z-p.obj.position.z)*Math.min(1,dt*6); }
-        if (d < grabR) {
-            if (p.kind==='gold'){ const g=10+Math.floor(Math.random()*15); player.gold+=g; if(audioCtxStarted) sfx.coin.triggerAttackRelease("B5", "16n"); floatText(player.pos,'+'+g+'g','#ffd24a',16); }
-            else { const h=Math.round(player.maxHp*0.3); player.hp=Math.min(player.maxHp,player.hp+h); if(audioCtxStarted) sfx.heal.triggerAttackRelease("E5", "8n"); floatText(player.pos,'+'+h+' HP','#ff8a9d',16); }
-            scene.remove(p.obj); pickups.splice(i,1);
+    
+    // Check ground collision for straight cannonballs
+    if (!hit && pr.isCannon) {
+        // Cannonballs pass over small ground units but hit water/ground if they travel far enough (they naturally lower over time or hit hills, but since terrain is flat, we just wait for life to end to explode, UNLESS they pass very close to an enemy which triggers proximity explosion)
+        for(const e of enemies) {
+            if (e.hp>0 && Math.hypot(e.pos.x-pr.obj.position.x, e.pos.z-pr.obj.position.z) < pr.aoeR * 0.6) { explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false); hit=true; break; }
         }
     }
 
-    // Effects
-    for (let i=effects.length-1; i>=0; i--) {
-        const ef = effects[i]; ef.life -= dt; ef.obj.scale.setScalar(1 + (1-ef.life)*ef.maxR); ef.obj.material.opacity = ef.life;
-        if(ef.life <= 0) { scene.remove(ef.obj); effects.splice(i,1); }
+    if (pr.gravity && pr.obj.position.y <= 0.1) { pr.obj.position.y = 0.1; hit = true; if(pr.aoe) explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, pr.isEnemy); }
+    const oob=Math.abs(pr.obj.position.x)>WORLD||Math.abs(pr.obj.position.z)>WORLD;
+    if (hit||pr.life<=0||oob){ if(pr.aoe&&!hit&&pr.life<=0&&!pr.gravity) explode(pr.obj.position.clone(),pr.dmg,pr.aoeR, pr.isEnemy); scene.remove(pr.obj); projectiles.splice(i,1); }
+  }
+
+  const collectCenter = player.onShip ? ship.pos : player.pos; const pullRadius = player.onShip ? 7.0 : 4.5, grabRadius = player.onShip ? 3.0 : 1.4;
+  for (let i=pickups.length-1;i>=0;i--){
+    const p=pickups[i]; p.spin+=dt*3; p.obj.rotation.z=p.spin; p.obj.rotation.y=p.spin; p.obj.position.y=0.6+Math.sin(p.spin)*0.15;
+    const d=Math.hypot(p.obj.position.x-collectCenter.x, p.obj.position.z-collectCenter.z);
+    if (d < pullRadius) { p.obj.position.x+=(collectCenter.x-p.obj.position.x)*Math.min(1,dt*6); p.obj.position.z+=(collectCenter.z-p.obj.position.z)*Math.min(1,dt*6); }
+    if (d < grabRadius) {
+      if (p.kind==='gold'){ const g=10+Math.floor(Math.random()*15); player.gold+=g; if (audioCtxStarted) sfx.coin.triggerAttackRelease("B5", "16n"); floatText(player.pos,'+'+g+'g','#ffd24a',16); }
+      else { const h=Math.round(player.maxHp*0.3); player.hp=Math.min(player.maxHp,player.hp+h); if (audioCtxStarted) sfx.heal.triggerAttackRelease("E5", "8n"); floatText(player.pos,'+'+h+' HP','#ff8a9d',16); }
+      scene.remove(p.obj); pickups.splice(i,1);
     }
+  }
 
-    // Spawning
-    spawnTmr -= dt;
-    if(spawnTmr <= 0 && enemies.length < 55) {
-        spawnWave(Math.min(20, 5 + Math.floor(player.level*1.2)));
-        spawnTmr = Math.max(1.5, 7.0 - player.level * 0.3);
-    }
+  spawnTimer-=dt; if (spawnTimer<=0 && enemies.length<50){ spawnWave(waveSize); waveSize=Math.min(20,waveSize+1); spawnTimer= 7.0 - Math.min(3, player.level*0.1); }
 
-    // Camera
-    const focus = player.onShip ? ship.pos : player.pos;
-    const cx=Math.sin(camYaw)*Math.cos(camPitch), cz=Math.cos(camYaw)*Math.cos(camPitch), cy=Math.sin(camPitch);
-    camera.position.lerp(focus.clone().add(new THREE.Vector3(0, player.inTree?3:2, 0)).add(new THREE.Vector3(cx,cy,cz).multiplyScalar(camDist)), Math.min(1,dt*10));
-    camera.lookAt(focus.clone().add(new THREE.Vector3(0, player.inTree?3:2, 0)));
-    sun.position.set(focus.x+40,80,focus.z+30); sun.target.position.copy(focus);
+  const focus = player.onShip ? ship.pos : player.pos; const cx=Math.sin(camYaw)*Math.cos(camPitch), cz=Math.cos(camYaw)*Math.cos(camPitch), cy=Math.sin(camPitch); const pOffY = player.inTree ? 3.0 : 2.0; const target=focus.clone().add(new THREE.Vector3(0,pOffY,0));
+  camera.position.lerp(target.clone().add(new THREE.Vector3(cx,cy,cz).multiplyScalar(camDist)), Math.min(1,dt*10)); camera.lookAt(target);
+  sun.position.set(focus.x+40,80,focus.z+30); sun.target.position.copy(focus);
 
-    updateHUD();
-    for (const el of floatersEl.children){ if(el._wp) projectFloater(el); }
+  if (toastTimer>0){ toastTimer-=dt; if(toastTimer<=0) $('toast').classList.remove('show'); }
+  for (const el of floatersEl.children){ if(el._wp) projectFloater(el); }
+  updateHUD();
 }
 
-function loop() { requestAnimationFrame(loop); update(Math.min(0.05, clock.getDelta())); renderer.render(scene, camera); }
-onWindowResize(); loop();
+function loop(){ requestAnimationFrame(loop); update(Math.min(0.05,clock.getDelta())); renderer.render(scene,camera); }
+loop();
 
-// START GAME
-$('startBtn').onclick = async () => {
-    $('startScreen').classList.add('hidden');
-    if (!document.fullscreenElement && isTouch) try{ document.documentElement.requestFullscreen(); }catch(e){}
-    await initAudio();
-    started = true; clock.getDelta();
-    spawnWave(8);
-    for(let i=0; i<10; i++) { let x,z, tries=0; do{ x=(Math.random()-0.5)*WORLD*1.8; z=(Math.random()-0.5)*WORLD*1.8; tries++; }while((Math.hypot(x,z)<35||isWater(x,z))&&tries<50); spawnEnemy('mimic', x, z); }
-    setReticle(true);
-    if (!isTouch) try{ await canvas.requestPointerLock(); }catch(e){}
-    showToast(isTouch ? 'Slay the shadows! Joystick to move · drag to look' : 'Slay the shadows! (drag mouse to look · ESC to pause)', "#ffd56b");
+function resize(){ renderer.setSize(innerWidth,innerHeight,false); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
+addEventListener('resize',resize); resize();
+
+$('startBtn').onclick=()=>{ 
+  initAudio(); document.getElementById('overlay').classList.add('hidden'); 
+  started=true; clock.getDelta(); spawnWave(6); spawnMimics(10);
+  if (!isTouch) { try { canvas.requestPointerLock(); } catch(_){} }
+  showToast('Slay the shadows!','#ffd56b'); 
 };
 </script>
 </body>

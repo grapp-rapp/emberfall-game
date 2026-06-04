@@ -483,7 +483,7 @@ function spawnLeviathan() {
     }
     g.position.set(LAKE.x, 0, LAKE.z); scene.add(g);
     leviathan = { obj: g, pos: g.position.clone(), hp: 8000, maxHp: 8000, phase: 0, shootCd: 3, scale: 5, dead: false,
-                  slamCd: 5, slamWindup: 0, slamPoint: null, slamRing: null };
+                  slamCd: 5, slamWindup: 0, slamLunge: 0, slammed: false, slamPoint: null, slamRing: null };
 }
 
 const weaponTiers = [
@@ -1037,18 +1037,28 @@ function secondaryAttack(){
 function fireCannon(){
   if (ship.fireCd>0) return; ship.fireCd=1.2;
   const power = 80;
-  const flatDir = new THREE.Vector3(Math.sin(ship.facing), 0, Math.cos(ship.facing));
-  
+
+  // Aim where the CAMERA looks (not where the hull points)…
+  let flatDir = new THREE.Vector3(-Math.sin(camYaw), 0, -Math.cos(camYaw)).normalize();
+  // …with a soft auto-lock: snap onto the Leviathan (wide cone) or nearest enemy (tight cone) in front.
+  let lock = null;
+  if (leviathan && !leviathan.dead){
+    const to=new THREE.Vector3(leviathan.pos.x-ship.pos.x,0,leviathan.pos.z-ship.pos.z); if(to.length()>2){ to.normalize(); if(to.dot(flatDir) > Math.cos(0.6)) lock=leviathan.pos; }
+  }
+  if (!lock){
+    let bd=Math.cos(0.4);
+    for (const e of enemies){ if(e.dead||(e.type==='mimic'&&!e.revealed)) continue; const to=new THREE.Vector3(e.pos.x-ship.pos.x,0,e.pos.z-ship.pos.z); const d=to.length(); if(d<2||d>140) continue; to.normalize(); const dot=to.dot(flatDir); if(dot>bd){ bd=dot; lock=e.pos; } }
+  }
+  if (lock) flatDir = new THREE.Vector3(lock.x-ship.pos.x,0,lock.z-ship.pos.z).normalize();
+
   if (audioCtxStarted) sfx.cannon.triggerAttackRelease("G1", "4n");
   const dmg = shipTiers[shipIdx].dmg;
-  
   for(let c of ship.obj.userData.cannons) {
-      const startPos = new THREE.Vector3();
-      c.getWorldPosition(startPos);
+      const startPos = new THREE.Vector3(); c.getWorldPosition(startPos);
       const m=new THREE.Mesh(new THREE.SphereGeometry(0.6,12,12), new THREE.MeshStandardMaterial({color:0x222228,emissive:0x884400,emissiveIntensity:.5,metalness:.5,roughness:.4}));
       m.position.copy(startPos).addScaledVector(flatDir, 1.0); scene.add(m);
       projectiles.push({obj:m, vel:flatDir.clone().multiplyScalar(power), life:2.5, dmg:dmg, r:2.5, aoe:true, aoeR:6.5, gravity:false, isEnemy:false, isCannon:true});
-      addEffect(m.position.clone(), 2.5, 0x884400);  
+      addEffect(m.position.clone(), 2.5, 0x884400);
   }
 }
 
@@ -1227,6 +1237,14 @@ function resolveWaterBoundary(p, radius, isShip) {
   }
 }
 
+// Shortest distance from point (px,pz) to segment (ax,az)->(bx,bz) — used for swept projectile hits.
+function segDist(px,pz, ax,az, bx,bz){
+  const dx=bx-ax, dz=bz-az, len2=dx*dx+dz*dz;
+  let t = len2>1e-9 ? ((px-ax)*dx+(pz-az)*dz)/len2 : 0;
+  t = t<0?0:(t>1?1:t);
+  return Math.hypot(px-(ax+dx*t), pz-(az+dz*t));
+}
+
 const clock=new THREE.Clock();
 
 function update(dt){
@@ -1261,9 +1279,18 @@ function update(dt){
   }
 
   if (player.onShip){
-    if (move.lengthSq()>0){ move.normalize(); ship.facing=Math.atan2(move.x,move.z); ship.pos.addScaledVector(move, 12*dt); }
+    if (move.lengthSq()>0){
+      move.normalize(); ship.facing=Math.atan2(move.x,move.z); ship.pos.addScaledVector(move, 12*dt);
+      // Dreadnought-only dash: quick burst + brief shield to dodge slams
+      if (shipIdx===shipTiers.length-1 && keys['ShiftLeft'] && player.dashCd<=0){
+        player.dashCd=1.5; ship.invuln=Math.max(ship.invuln,0.35); ship.pos.addScaledVector(move, 7.0);
+        floatText(ship.pos,'DASH','#8be0ff',16);
+      }
+    }
     resolveWaterBoundary(ship.pos, 1.8, true); ship.bob+=dt*2; ship.obj.position.set(ship.pos.x, 0.1+Math.sin(ship.bob)*0.12, ship.pos.z);
     ship.obj.rotation.y += (((ship.facing-ship.obj.rotation.y+Math.PI)%(Math.PI*2))-Math.PI)*Math.min(1,dt*8); ship.obj.rotation.z=Math.sin(ship.bob)*0.04;
+    // Aim the cannon barrels along your camera view (decouples aiming from steering)
+    ship.obj.userData.cannonRoot.rotation.y = (camYaw + Math.PI) - ship.obj.rotation.y;
     player.pos.copy(ship.pos);
     const dLake = Math.hypot(ship.pos.x-LAKE.x, ship.pos.z-LAKE.z), dIsl = Math.hypot(ship.pos.x-ISLAND.x, ship.pos.z-ISLAND.z);
     setPrompt((dLake > LAKE.r-7 || dIsl < ISLAND.r+7) ? 'Press [B] to step ashore' : '');
@@ -1332,43 +1359,62 @@ function update(dt){
 
       leviathan.phase += dt * 3;
       const toPlayer = player.pos.clone().sub(leviathan.pos); toPlayer.y = 0; const dist = toPlayer.length();
-      if (dist > 15) { leviathan.pos.addScaledVector(toPlayer.normalize(), 8 * dt); }
-      resolveWaterBoundary(leviathan.pos, 5, true); leviathan.obj.position.copy(leviathan.pos); leviathan.obj.rotation.y = Math.atan2(toPlayer.x, toPlayer.z);
-      leviathan.obj.position.y = Math.sin(leviathan.phase) * 2; for(let i=1; i<=4; i++) { leviathan.obj.children[i].position.x = Math.sin(leviathan.phase - i * 0.8) * 2; }
+      const slamming = leviathan.slamWindup > 0 || leviathan.slamLunge > 0;
+      if (dist > 12 && !slamming) { leviathan.pos.addScaledVector(toPlayer.normalize(), 8 * dt); }
+      resolveWaterBoundary(leviathan.pos, 5, true);
+      leviathan.obj.position.x = leviathan.pos.x; leviathan.obj.position.z = leviathan.pos.z;
+      leviathan.obj.rotation.y = Math.atan2(toPlayer.x, toPlayer.z);
+      for(let i=1; i<=4; i++) { leviathan.obj.children[i].position.x = Math.sin(leviathan.phase - i * 0.8) * 2; }
 
       // --- Ranged volley: aim DOWN at the player's torso so the bolts actually connect ---
       leviathan.shootCd -= dt;
-      if(leviathan.shootCd <= 0) {
-          leviathan.shootCd = 2.5; if(audioCtxStarted) sfx.cannon.triggerAttackRelease("A0", "2n");
+      if(leviathan.shootCd <= 0 && !slamming) {
+          leviathan.shootCd = 2.0; if(audioCtxStarted) sfx.cannon.triggerAttackRelease("A0", "2n");
           const muzzle = leviathan.pos.clone().add(new THREE.Vector3(0, 3.5, 0));
           const aimY = player.inTree ? 3.5 : (player.onShip ? 1.4 : 1.0);
           const aimPt = new THREE.Vector3(player.pos.x, aimY, player.pos.z);
           for(let i=-1; i<=1; i++) {
               const dir = aimPt.clone().sub(muzzle).normalize();
               dir.applyAxisAngle(new THREE.Vector3(0,1,0), i * 0.18);
-              shootBolt(true, muzzle.clone(), dir, 45, 0x00ffff, 0x00aaff, 30, 1.5, 2.2);
+              shootBolt(true, muzzle.clone(), dir, 60, 0x00ffff, 0x00aaff, 32, 1.6, 2.2);
           }
       }
 
-      // --- Telegraphed slam: a giant area attack when it closes on your ship ---
+      // --- SLAM: rear up out of the water (windup), then physically DIVE onto the ring ---
       leviathan.slamCd -= dt;
-      if (leviathan.slamWindup > 0) {
-          leviathan.slamWindup -= dt;
-          if (leviathan.slamRing) { leviathan.slamRing.material.opacity = 0.3 + Math.abs(Math.sin(performance.now()*0.012))*0.5; }
-          if (leviathan.slamWindup <= 0) {
-              const sp = leviathan.slamPoint;
-              addEffect(sp.clone().add(new THREE.Vector3(0,0.5,0)), 11, 0x00ffff);
+      if (leviathan.slamLunge > 0) {
+          leviathan.slamLunge -= dt;
+          const p = 1 - leviathan.slamLunge/0.5;                 // 0..1 over the dive
+          const reach = Math.sin(p*Math.PI);                      // lunge out toward the ring and back
+          const sp = leviathan.slamPoint;
+          leviathan.obj.position.x = leviathan.pos.x + (sp.x - leviathan.pos.x) * reach;
+          leviathan.obj.position.z = leviathan.pos.z + (sp.z - leviathan.pos.z) * reach;
+          leviathan.obj.position.y = 6*(1-p) - 5*Math.sin(p*Math.PI);   // arc down into the water then back up
+          leviathan.obj.rotation.x = -1.0*(1-p) + 1.1*Math.sin(p*Math.PI); // pitch the head down through the dive
+          if (!leviathan.slammed && p >= 0.5) {                   // impact at the bottom of the dive
+              leviathan.slammed = true;
+              addEffect(new THREE.Vector3(sp.x,0.5,sp.z), 13, 0x00ffff);
               if (audioCtxStarted) sfx.cannon.triggerAttackRelease("C1", "2n");
               const d = Math.hypot(player.pos.x - sp.x, player.pos.z - sp.z);
-              if (d < 9.5) { if (player.onShip) damageShip(80); else hurtPlayer(45); }
-              if (leviathan.slamRing) { scene.remove(leviathan.slamRing); leviathan.slamRing = null; }
+              if (d < 9.5) { if (player.onShip) damageShip(120); else hurtPlayer(70); }
           }
-      } else if (leviathan.slamCd <= 0 && dist < 20) {
-          leviathan.slamCd = 7; leviathan.slamWindup = 1.2; leviathan.slamPoint = player.pos.clone();
-          const ring = new THREE.Mesh(new THREE.RingGeometry(7.8, 9.5, 36), new THREE.MeshBasicMaterial({color:0xff3333, transparent:true, opacity:0.5, side:THREE.DoubleSide, depthWrite:false}));
-          ring.rotation.x = -Math.PI/2; ring.position.set(player.pos.x, 0.2, player.pos.z); scene.add(ring);
-          leviathan.slamRing = ring;
-          showToast("⚠ The Leviathan rears to SLAM — move!", "#ff5e62");
+          if (leviathan.slamLunge <= 0) leviathan.obj.rotation.x = 0;
+      } else if (leviathan.slamWindup > 0) {
+          leviathan.slamWindup -= dt;
+          const w = 1 - leviathan.slamWindup/1.1;                 // 0..1 rear-up
+          leviathan.obj.position.y = w * 6;                       // rise high out of the water
+          leviathan.obj.rotation.x = -1.1 * w;                    // throw the head back
+          if (leviathan.slamRing) leviathan.slamRing.material.opacity = 0.3 + Math.abs(Math.sin(performance.now()*0.012))*0.5;
+          if (leviathan.slamWindup <= 0) { leviathan.slamLunge = 0.5; leviathan.slammed = false; if (leviathan.slamRing){ scene.remove(leviathan.slamRing); leviathan.slamRing=null; } }
+      } else {
+          leviathan.obj.position.y = Math.sin(leviathan.phase) * 2; leviathan.obj.rotation.x = 0;
+          if (leviathan.slamCd <= 0 && dist < 22) {
+              leviathan.slamCd = 5; leviathan.slamWindup = 1.1; leviathan.slamPoint = player.pos.clone();
+              const ring = new THREE.Mesh(new THREE.RingGeometry(7.8, 9.5, 36), new THREE.MeshBasicMaterial({color:0xff3333, transparent:true, opacity:0.5, side:THREE.DoubleSide, depthWrite:false}));
+              ring.rotation.x = -Math.PI/2; ring.position.set(player.pos.x, 0.2, player.pos.z); scene.add(ring);
+              leviathan.slamRing = ring;
+              showToast("⚠ The Leviathan rears to SLAM — move!", "#ff5e62");
+          }
       }
   }
 
@@ -1412,28 +1458,34 @@ function update(dt){
   for (let i=enemies.length-1;i>=0;i--){ const e=enemies[i]; if(e.dead&&e.obj.userData.dying>0.35){scene.remove(e.obj); if(e.hpBar) scene.remove(e.hpBar); enemies.splice(i,1);} }
 
   for (let i=projectiles.length-1;i>=0;i--){
-    const pr=projectiles[i]; pr.life-=dt; if (pr.gravity) pr.vel.y -= 45 * dt; pr.obj.position.addScaledVector(pr.vel,dt); 
+    const pr=projectiles[i]; pr.life-=dt; if (pr.gravity) pr.vel.y -= 45 * dt;
+    const ax=pr.obj.position.x, az=pr.obj.position.z;          // segment start (this frame's old pos)
+    pr.obj.position.addScaledVector(pr.vel,dt);
+    const bx=pr.obj.position.x, bz=pr.obj.position.z;          // segment end (new pos)
     let hit=false;
     if (pr.isEnemy) {
       const pY = player.inTree ? 3.5 : 0;
-      if (Math.hypot(player.pos.x-pr.obj.position.x, (pY+1.0)-pr.obj.position.y, player.pos.z-pr.obj.position.z) < pr.r + PLAYER_R + (player.onShip?2:0) ) { if (player.onShip) damageShip(pr.dmg); else hurtPlayer(pr.dmg); hit=true; }
+      const cx = player.onShip ? ship.pos.x : player.pos.x, cz = player.onShip ? ship.pos.z : player.pos.z;
+      if (segDist(cx, cz, ax, az, bx, bz) < pr.r + PLAYER_R + (player.onShip?2:0) && Math.abs((pY+1.0)-pr.obj.position.y) < pr.r + 2.0) {
+          if (player.onShip) damageShip(pr.dmg); else hurtPlayer(pr.dmg); hit=true;
+      }
     } else {
       for (const e of enemies){
         if (e.hp<=0 || (e.type==='mimic' && !e.revealed)) continue;
-        if (Math.hypot(e.pos.x-pr.obj.position.x, e.pos.z-pr.obj.position.z) < pr.r+e.scale*0.8){
+        if (segDist(e.pos.x, e.pos.z, ax, az, bx, bz) < pr.r+e.scale*0.8){
           if (pr.aoe) { explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false, pr.isCannon); hit=true; break; }
           else { e.hp-=pr.dmg; e.flash=0.15; const k=pr.vel.clone(); k.y=0; k.normalize(); e.obj.position.addScaledVector(k,1.2); floatText(e.pos,'-'+pr.dmg,'#8be0ff',20); if(e.hp<=0) killEnemy(e); hit=true; break; }
         }
       }
       if (!hit && leviathan && !leviathan.dead && pr.isCannon) {
-          if (Math.hypot(leviathan.pos.x-pr.obj.position.x, leviathan.pos.z-pr.obj.position.z) < pr.r+5.0) { explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false, true); hit=true; }
+          if (segDist(leviathan.pos.x, leviathan.pos.z, ax, az, bx, bz) < pr.r+5.0) { explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false, true); hit=true; }
       }
     }
-    
-    // Check ground collision for straight cannonballs
+
+    // Ground/straight cannonball proximity detonation (also swept)
     if (!hit && pr.isCannon) {
         for(const e of enemies) {
-            if (e.hp>0 && Math.hypot(e.pos.x-pr.obj.position.x, e.pos.z-pr.obj.position.z) < pr.aoeR * 0.6) { explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false, true); hit=true; break; }
+            if (e.hp>0 && segDist(e.pos.x, e.pos.z, ax, az, bx, bz) < pr.aoeR * 0.6) { explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false, true); hit=true; break; }
         }
     }
 

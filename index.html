@@ -128,6 +128,13 @@
   #reticle.show { display: block; }
   body.mobile #reticle { display: none !important; }
 
+  #bossBar { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); width: min(560px, 80vw); height: 24px; background: rgba(0,0,0,.6); border: 1px solid #00ffff; border-radius: 12px; display: none; z-index: 95; overflow: hidden; box-shadow: 0 0 16px rgba(0,255,255,.4); }
+  #bossBar.show { display: block; }
+  #bossFill { height: 100%; width: 100%; background: linear-gradient(90deg,#003366,#00ffff); transition: width .2s; }
+  #bossLabel { position: absolute; inset: 0; text-align: center; font-size: 13px; font-weight: bold; line-height: 24px; letter-spacing: 1px; text-shadow: 0 1px 2px #000; }
+  body.mobile #bossBar { top: 8px; height: 18px; width: 52vw; }
+  body.mobile #bossLabel { line-height: 18px; font-size: 11px; }
+
   .credit { margin-top: 18px; font-size: 16px; letter-spacing: 1px; opacity: .92; }
   .credit b { color: #ffd56b; }
   .copyright { margin-top: 6px; font-size: 11px; letter-spacing: 1px; opacity: .55; }
@@ -198,6 +205,7 @@
 </div>
 
 <div id="toast"></div>
+<div id="bossBar"><div id="bossFill"></div><div id="bossLabel">🐙 THE LEVIATHAN</div></div>
 <div id="reticle"></div>
 
 <div id="touch">
@@ -474,7 +482,8 @@ function spawnLeviathan() {
         seg.position.set(0, 5-i, -i*4); g.add(seg);
     }
     g.position.set(LAKE.x, 0, LAKE.z); scene.add(g);
-    leviathan = { obj: g, pos: g.position.clone(), hp: 8000, maxHp: 8000, phase: 0, shootCd: 3, scale: 5, dead: false };
+    leviathan = { obj: g, pos: g.position.clone(), hp: 8000, maxHp: 8000, phase: 0, shootCd: 3, scale: 5, dead: false,
+                  slamCd: 5, slamWindup: 0, slamPoint: null, slamRing: null };
 }
 
 const weaponTiers = [
@@ -1007,11 +1016,11 @@ function primaryAttack() {
   }
 }
 
-function shootBolt(isEnemy=false, startPos, dirVec, dmg, color, glow, speed){
+function shootBolt(isEnemy=false, startPos, dirVec, dmg, color, glow, speed, radius=0.6, life=1.5){
   if (audioCtxStarted && !isEnemy) sfx.magic.triggerAttackRelease("E5", "16n");
   const m=new THREE.Mesh(new THREE.SphereGeometry(isEnemy?0.4:0.35,10,10), new THREE.MeshStandardMaterial({color:color,emissive:glow,emissiveIntensity:1.5,roughness:.3}));
-  m.position.copy(startPos); scene.add(m);
-  projectiles.push({obj:m, vel:dirVec.clone().multiplyScalar(speed), life: 1.5, dmg, r: 0.6, aoe:false, isEnemy, isCannon:false});
+  m.position.copy(startPos); m.scale.setScalar(radius/0.6); scene.add(m);
+  projectiles.push({obj:m, vel:dirVec.clone().multiplyScalar(speed), life, dmg, r: radius, aoe:false, isEnemy, isCannon:false});
 }
 
 function secondaryAttack(){
@@ -1044,7 +1053,7 @@ function fireCannon(){
 }
 
 function explode(pos,dmg,radius, isEnemy, isCannon=false){
-  if (audioCtxStarted) sfx.cannon.triggerAttackRelease("C1", "2n");
+  if (audioCtxStarted && isCannon) sfx.cannon.triggerAttackRelease("C1", "2n");
   if (!isEnemy) {
     for (const e of enemies){
       if (e.hp<=0 || (e.type==='mimic' && !e.revealed)) continue;
@@ -1056,7 +1065,12 @@ function explode(pos,dmg,radius, isEnemy, isCannon=false){
     }
     if (isCannon && leviathan && !leviathan.dead && Math.hypot(leviathan.pos.x-pos.x, leviathan.pos.z-pos.z) < radius+3) {
        leviathan.hp -= dmg; floatText(leviathan.pos, "-"+Math.round(dmg), "#ffaa00", 30);
-       if(leviathan.hp <= 0) { leviathan.dead=true; scene.remove(leviathan.obj); $('victoryScreen').classList.remove('hidden'); paused=true; setReticle(false); if(document.pointerLockElement)document.exitPointerLock(); }
+       if(leviathan.hp <= 0) {
+           leviathan.dead=true; scene.remove(leviathan.obj);
+           if(leviathan.slamRing){ scene.remove(leviathan.slamRing); leviathan.slamRing=null; }
+           $('bossBar').classList.remove('show');
+           $('victoryScreen').classList.remove('hidden'); paused=true; setReticle(false); if(document.pointerLockElement)document.exitPointerLock();
+       }
     }
   } else {
     const pY = player.inTree ? 3.5 : 0;
@@ -1313,15 +1327,48 @@ function update(dt){
   }
   if(cleansedCount === 3 && !leviathan && gameMode === 'mission') spawnLeviathan();
   if(leviathan && !leviathan.dead) {
+      $('bossBar').classList.add('show');
+      $('bossFill').style.width = Math.max(0, leviathan.hp/leviathan.maxHp*100)+'%';
+
       leviathan.phase += dt * 3;
       const toPlayer = player.pos.clone().sub(leviathan.pos); toPlayer.y = 0; const dist = toPlayer.length();
       if (dist > 15) { leviathan.pos.addScaledVector(toPlayer.normalize(), 8 * dt); }
       resolveWaterBoundary(leviathan.pos, 5, true); leviathan.obj.position.copy(leviathan.pos); leviathan.obj.rotation.y = Math.atan2(toPlayer.x, toPlayer.z);
       leviathan.obj.position.y = Math.sin(leviathan.phase) * 2; for(let i=1; i<=4; i++) { leviathan.obj.children[i].position.x = Math.sin(leviathan.phase - i * 0.8) * 2; }
+
+      // --- Ranged volley: aim DOWN at the player's torso so the bolts actually connect ---
       leviathan.shootCd -= dt;
       if(leviathan.shootCd <= 0) {
           leviathan.shootCd = 2.5; if(audioCtxStarted) sfx.cannon.triggerAttackRelease("A0", "2n");
-          for(let i=-1; i<=1; i++) { const dir = player.pos.clone().sub(leviathan.pos).normalize(); dir.applyAxisAngle(new THREE.Vector3(0,1,0), i * 0.25); shootBolt(true, leviathan.pos.clone().add(new THREE.Vector3(0,6,0)), dir, 45, 0x00ffff, 0x00aaff, 28); }
+          const muzzle = leviathan.pos.clone().add(new THREE.Vector3(0, 3.5, 0));
+          const aimY = player.inTree ? 3.5 : (player.onShip ? 1.4 : 1.0);
+          const aimPt = new THREE.Vector3(player.pos.x, aimY, player.pos.z);
+          for(let i=-1; i<=1; i++) {
+              const dir = aimPt.clone().sub(muzzle).normalize();
+              dir.applyAxisAngle(new THREE.Vector3(0,1,0), i * 0.18);
+              shootBolt(true, muzzle.clone(), dir, 45, 0x00ffff, 0x00aaff, 30, 1.5, 2.2);
+          }
+      }
+
+      // --- Telegraphed slam: a giant area attack when it closes on your ship ---
+      leviathan.slamCd -= dt;
+      if (leviathan.slamWindup > 0) {
+          leviathan.slamWindup -= dt;
+          if (leviathan.slamRing) { leviathan.slamRing.material.opacity = 0.3 + Math.abs(Math.sin(performance.now()*0.012))*0.5; }
+          if (leviathan.slamWindup <= 0) {
+              const sp = leviathan.slamPoint;
+              addEffect(sp.clone().add(new THREE.Vector3(0,0.5,0)), 11, 0x00ffff);
+              if (audioCtxStarted) sfx.cannon.triggerAttackRelease("C1", "2n");
+              const d = Math.hypot(player.pos.x - sp.x, player.pos.z - sp.z);
+              if (d < 9.5) { if (player.onShip) damageShip(80); else hurtPlayer(45); }
+              if (leviathan.slamRing) { scene.remove(leviathan.slamRing); leviathan.slamRing = null; }
+          }
+      } else if (leviathan.slamCd <= 0 && dist < 20) {
+          leviathan.slamCd = 7; leviathan.slamWindup = 1.2; leviathan.slamPoint = player.pos.clone();
+          const ring = new THREE.Mesh(new THREE.RingGeometry(7.8, 9.5, 36), new THREE.MeshBasicMaterial({color:0xff3333, transparent:true, opacity:0.5, side:THREE.DoubleSide, depthWrite:false}));
+          ring.rotation.x = -Math.PI/2; ring.position.set(player.pos.x, 0.2, player.pos.z); scene.add(ring);
+          leviathan.slamRing = ring;
+          showToast("⚠ The Leviathan rears to SLAM — move!", "#ff5e62");
       }
   }
 

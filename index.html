@@ -262,7 +262,6 @@
     <b>E</b> Climb Tree (Safe from ground foes)<br>
     <b>TAB</b> Open Upgrades Shop (Pauses Game)<br>
   </div>
-  <!-- Added buttons for game modes -->
   <button class="btn" id="startBtn" style="margin-bottom: 10px;">MISSION PLAY (STORY)</button>
   <button class="btn" id="startFreeBtn" style="background: linear-gradient(135deg,#4f9dff,#8b5cf6);">FREE PLAY (ENDLESS)</button>
   <div class="credit">A game by <b>Noam Rapp</b></div>
@@ -449,14 +448,13 @@ function makeObelisk(x,z) {
 }
 
 let leviathan = null;
-let gameMode = 'mission'; // 'mission' or 'free'
+let gameMode = 'mission';
 
 function setupGameMode(mode) {
     gameMode = mode;
     if (gameMode === 'mission') {
         makeObelisk(120, 120); makeObelisk(-140, -100); makeObelisk(140, -120);
     } else {
-        // Free play: clear obelisks, hide related UI elements
         obelisks.forEach(ob => { scene.remove(ob.obj); });
         obelisks.length = 0;
         if($('bCleanse')) $('bCleanse').style.display = 'none';
@@ -1291,6 +1289,14 @@ function update(dt){
   ud.head.material.emissiveIntensity=player.invuln>0?0.6:0; ud.head.material.emissive.set(player.invuln>0?0xff0000:0x000000);
 
   for (const c of caveLamps){ c.phase += dt*8; const f = 1 + Math.sin(c.phase)*0.12 + Math.sin(c.phase*2.3)*0.06; c.light.intensity = c.base * f; c.lantern.material.emissiveIntensity = 1.4 * f; }
+
+  // ADDED: Effects processing loop to clear up spheres!
+  for (let i=effects.length-1; i>=0; i--){
+    const ef = effects[i]; ef.age += dt;
+    const pct = ef.age / ef.life;
+    if (pct >= 1) { scene.remove(ef.obj); effects.splice(i, 1); }
+    else { ef.obj.scale.setScalar(1 + pct * (ef.maxR - 1)); ef.obj.material.opacity = 0.8 * (1 - pct); }
+  }
 
   for(let i=puddles.length-1; i>=0; i--){ const p = puddles[i]; p.life -= dt; if (p.life <= 0) { scene.remove(p.obj); puddles.splice(i, 1); continue; } p.obj.material.opacity = Math.min(0.6, p.life/2); if (!player.onShip && !player.inTree && player.alive && Math.hypot(player.pos.x-p.pos.x, player.pos.z-p.pos.z) < 2.5) { hurtPlayer(15 * dt); } }
 

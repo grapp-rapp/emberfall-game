@@ -262,7 +262,9 @@
     <b>E</b> Climb Tree (Safe from ground foes)<br>
     <b>TAB</b> Open Upgrades Shop (Pauses Game)<br>
   </div>
-  <button class="btn" id="startBtn">ENTER THE FRAY</button>
+  <!-- Added buttons for game modes -->
+  <button class="btn" id="startBtn" style="margin-bottom: 10px;">MISSION PLAY (STORY)</button>
+  <button class="btn" id="startFreeBtn" style="background: linear-gradient(135deg,#4f9dff,#8b5cf6);">FREE PLAY (ENDLESS)</button>
   <div class="credit">A game by <b>Noam Rapp</b></div>
   <div class="copyright">© 2026 Noam Rapp&nbsp;·&nbsp;All Rights Reserved</div>
 </div>
@@ -445,9 +447,24 @@ function makeObelisk(x,z) {
     const ob = { obj: g, x, z, state: 'idle', progress: 0, mesh };
     obelisks.push(ob); walls.push({minx:x-2.5, maxx:x+2.5, minz:z-2.5, maxz:z+2.5});
 }
-makeObelisk(120, 120); makeObelisk(-140, -100); makeObelisk(140, -120);
 
 let leviathan = null;
+let gameMode = 'mission'; // 'mission' or 'free'
+
+function setupGameMode(mode) {
+    gameMode = mode;
+    if (gameMode === 'mission') {
+        makeObelisk(120, 120); makeObelisk(-140, -100); makeObelisk(140, -120);
+    } else {
+        // Free play: clear obelisks, hide related UI elements
+        obelisks.forEach(ob => { scene.remove(ob.obj); });
+        obelisks.length = 0;
+        if($('bCleanse')) $('bCleanse').style.display = 'none';
+        const keysText = document.querySelector('#overlay .keys').innerHTML;
+        document.querySelector('#overlay .keys').innerHTML = keysText.replace('<b>R</b> Cleanse Obelisk &nbsp;&nbsp;&nbsp; ', '');
+    }
+}
+
 function spawnLeviathan() {
     showToast("THE LEVIATHAN AWAKENS! Board your Ship to fight!", "#ff5e62");
     if(audioCtxStarted) sfx.cannon.triggerAttackRelease("C0", "2n");
@@ -762,7 +779,7 @@ function toggleUnderground(){
 }
 
 function cleanseObelisk() {
-    if(!started || !player.alive || player.onShip || paused) return;
+    if(!started || !player.alive || player.onShip || paused || gameMode === 'free') return;
     for(const ob of obelisks) {
         if(ob.state === 'idle' && Math.hypot(player.pos.x-ob.x, player.pos.z-ob.z) < 10) {
             ob.state = 'cleansing'; showToast("Cleansing started! Survive the wave!", "#a855f7");
@@ -1090,6 +1107,7 @@ function die(){
   ov.querySelector('p').textContent=`Level ${player.level} | ${player.kills} Slain | ${player.gold} Gold`;
   ov.querySelector('.keys').style.display='none';
   const btn=document.getElementById('startBtn'); btn.textContent='RISE AGAIN'; btn.onclick=()=>location.reload();
+  const startFreeBtn=document.getElementById('startFreeBtn'); startFreeBtn.style.display='none';
 }
 
 function damageShip(dmg){
@@ -1287,7 +1305,7 @@ function update(dt){
       if(ob.state === 'cleansing') { ob.progress += dt * 3.3; ob.mesh.material.emissiveIntensity = 0.5 + Math.sin(ob.progress)*2; if(ob.progress >= 100) { ob.state = 'cleansed'; ob.mesh.material.color.setHex(0x4f9dff); ob.mesh.material.emissive.setHex(0x0044ff); showToast("Obelisk Cleansed!", "#4f9dff"); } }
       if(ob.state === 'cleansed') cleansedCount++;
   }
-  if(cleansedCount === 3 && !leviathan) spawnLeviathan();
+  if(cleansedCount === 3 && !leviathan && gameMode === 'mission') spawnLeviathan();
   if(leviathan && !leviathan.dead) {
       leviathan.phase += dt * 3;
       const toPlayer = player.pos.clone().sub(leviathan.pos); toPlayer.y = 0; const dist = toPlayer.length();
@@ -1400,12 +1418,17 @@ loop();
 function resize(){ renderer.setSize(innerWidth,innerHeight,false); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
 addEventListener('resize',resize); resize();
 
-$('startBtn').onclick=()=>{ 
-  initAudio(); document.getElementById('overlay').classList.add('hidden'); 
+function startGame(mode) {
+  initAudio(); 
+  document.getElementById('overlay').classList.add('hidden'); 
+  setupGameMode(mode);
   started=true; clock.getDelta(); spawnWave(6); spawnMimics(10);
   if (!isTouch) { try { canvas.requestPointerLock(); } catch(_){} }
   showToast('Slay the shadows!','#ffd56b'); 
-};
+}
+
+$('startBtn').onclick=()=>startGame('mission');
+$('startFreeBtn').onclick=()=>startGame('free');
 </script>
 </body>
 </html>

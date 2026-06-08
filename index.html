@@ -188,6 +188,26 @@
   #gameOverScreen p { font-size: 18px; opacity: .9; margin-bottom: 18px; }
   body.mobile .menu-title { font-size: 26px; }
   body.mobile .menu-btn { font-size: 16px; padding: 12px 18px; }
+
+  /* Stage 3: shop */
+  .shop-coins { font-size: 18px; color: #ffd56b; font-weight: bold; margin-bottom: 12px; }
+  .shop-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+  .shop-tab { pointer-events: auto; cursor: pointer; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.18); color: #fff; padding: 8px 18px; border-radius: 20px; font-weight: bold; font-size: 14px; transition: filter .09s, transform .09s; }
+  .shop-tab:hover { filter: brightness(1.2); transform: scale(1.04); }
+  .shop-tab.active { background: linear-gradient(135deg,#ff7a18,#ff3b3b); border-color: transparent; }
+  .shop-grid { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; max-width: 560px; }
+  .skin-card { width: 160px; background: rgba(15,20,30,.92); border: 1px solid rgba(255,255,255,.15); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; align-items: center; gap: 9px; }
+  .skin-swatch { width: 58px; height: 58px; border-radius: 50%; border: 2px solid rgba(255,255,255,.3); box-shadow: inset 0 0 14px rgba(0,0,0,.55); }
+  .skin-name { font-weight: bold; font-size: 14px; text-align: center; }
+  .skin-action { pointer-events: auto; cursor: pointer; width: 100%; padding: 9px; border-radius: 8px; border: none; font-weight: bold; font-size: 13px; transition: filter .09s, transform .09s; }
+  .skin-action:hover:not(:disabled) { filter: brightness(1.18); transform: scale(1.03); }
+  .skin-buy { background: linear-gradient(135deg,#ffb347,#ff7a18); color: #221100; }
+  .skin-equip { background: linear-gradient(135deg,#4f9dff,#8b5cf6); color: #fff; }
+  .skin-equipped { background: #2e7d4f; color: #fff; }
+  .skin-locked { background: #4a4a52; color: #aaa; }
+  body.mobile .skin-card { width: 128px; padding: 10px; gap: 6px; }
+  body.mobile .shop-grid { gap: 8px; }
+  body.mobile .skin-swatch { width: 46px; height: 46px; }
 </style>
 </head>
 <body>
@@ -344,6 +364,19 @@
     <b>TAB</b> Upgrades Shop &nbsp;&nbsp;&nbsp; <b>ESC</b> Pause<br>
   </div>
   <div class="menu-buttons"><button class="btn menu-btn btn-back" id="btnHowtoBack">← Back</button></div>
+</div>
+
+<!-- SHOP -->
+<div id="shopScreen" class="overlay-screen hidden" style="z-index:300;">
+  <h2 class="menu-title">🛒 Skin Shop</h2>
+  <div class="shop-coins">💰 <span id="shopCoins">0</span> coins</div>
+  <div class="shop-tabs">
+    <button class="shop-tab active" data-cat="character">Character</button>
+    <button class="shop-tab" data-cat="weapon">Weapon</button>
+    <button class="shop-tab" data-cat="magic">Magic</button>
+  </div>
+  <div id="shopGrid" class="shop-grid"></div>
+  <div class="menu-buttons"><button class="btn menu-btn btn-back" id="btnShopBack">← Back</button></div>
 </div>
 
 <!-- GAME OVER -->
@@ -601,6 +634,45 @@ const shipTiers = [
 
 let wepIdx = 0, magIdx = 0, tunIdx = 0, shipIdx = 0;
 
+// ============================================================
+//  COSMETIC SKINS (Stage 3) — purely visual, no stat effects
+//  Each category's index 0 is the free default. Skins recolor only.
+// ============================================================
+const SKINS = {
+  character: [
+    { id:'default', name:'Blue Soldier',   cost:0,   cloth:0x3060c0, cloth2:0x224090, swatch:'#3a6cd0' },
+    { id:'crimson', name:'Crimson Knight',  cost:150, cloth:0xb33030, cloth2:0x7a1d1d, swatch:'#b33030' },
+    { id:'forest',  name:'Forest Ranger',   cost:150, cloth:0x2e7d4f, cloth2:0x1d5436, swatch:'#2e7d4f' },
+  ],
+  weapon: [
+    { id:'default', name:'Standard Steel',  cost:0,                            swatch:'#cdd5e0' }, // uses weapon-tier color
+    { id:'ember',   name:'Ember Blade',     cost:120, color:0xff5522, glow:0xaa2200, swatch:'#ff5522' },
+    { id:'frost',   name:'Frost Blade',     cost:120, color:0x66ccff, glow:0x2266aa, swatch:'#66ccff' },
+  ],
+  magic: [
+    { id:'default', name:'Arcane',          cost:0,                            swatch:'#8be0ff' }, // uses magic-tier color
+    { id:'verdant', name:'Verdant Bolt',    cost:120, color:0x66ff88, glow:0x22aa44, swatch:'#66ff88' },
+    { id:'shadow',  name:'Shadow Bolt',     cost:120, color:0xaa44ff, glow:0x551188, swatch:'#aa44ff' },
+  ],
+};
+function skinById(cat, id){ return SKINS[cat].find(s=>s.id===id) || SKINS[cat][0]; }
+function updateBladeVisual(){           // blade COLOR = skin (or tier if default); SCALE always from tier (gameplay)
+  const blade = hero.userData.sword.children[0], tier = weaponTiers[wepIdx], ws = skinById('weapon', cosmetics.equipped.weapon);
+  blade.material.color.setHex(ws.id==='default' ? tier.color : ws.color);
+  blade.material.emissive.setHex(ws.id==='default' ? tier.glow : ws.glow);
+  blade.scale.set(1, tier.scale, tier.scale);
+}
+function currentMagic(){                 // bolt color = skin (or tier if default); speed/cd stay tier (gameplay)
+  const tier = magicTiers[magIdx], ms = skinById('magic', cosmetics.equipped.magic);
+  return { color: ms.id==='default'?tier.color:ms.color, glow: ms.id==='default'?tier.glow:ms.glow, speed: tier.speed, cd: tier.cd };
+}
+function applyCosmetics(){
+  const cs = skinById('character', cosmetics.equipped.character);
+  if (hero.userData.clothMat)  hero.userData.clothMat.color.setHex(cs.cloth);
+  if (hero.userData.cloth2Mat) hero.userData.cloth2Mat.color.setHex(cs.cloth2);
+  updateBladeVisual();                   // magic color is read at fire-time via currentMagic()
+}
+
 function buildHero(){
   const g = new THREE.Group();
   const skin = new THREE.MeshStandardMaterial({color:0xf0c090, roughness:.8});
@@ -619,7 +691,7 @@ function buildHero(){
   const guard = new THREE.Mesh(new THREE.BoxGeometry(0.45,0.1,0.12), new THREE.MeshStandardMaterial({color:0xffcc55, metalness:.5}));
   const grip  = new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.35), new THREE.MeshStandardMaterial({color:0x553311})); grip.position.y=-0.2;
   sword.add(blade,guard,grip); sword.position.set(0,-0.35,0.1); armR.add(sword);
-  g.userData = { armR, armL, legL, legR, sword, head }; return g;
+  g.userData = { armR, armL, legL, legR, sword, head, clothMat: cloth, cloth2Mat: cloth2 }; return g;
 }
 const hero = buildHero(); scene.add(hero);
 
@@ -915,7 +987,7 @@ window.buyUpgrade = function(type){
     const nxt = weaponTiers[wepIdx+1];
     if (player.gold >= nxt.cost) {
       player.gold -= nxt.cost; wepIdx++; player.atk += nxt.atkBonus;
-      const blade = hero.userData.sword.children[0]; blade.material.color.setHex(nxt.color); blade.material.emissive.setHex(nxt.glow); blade.scale.set(1, nxt.scale, nxt.scale);
+      updateBladeVisual();   // respects equipped weapon skin + new tier (scale from tier)
       if (audioCtxStarted) sfx.poly.triggerAttackRelease(["G4", "B4", "D5"], "4n");
       addEffect(player.pos.clone(), 3.5, nxt.color); floatText(player.pos, 'SWORD UPGRADED!', '#'+nxt.color.toString(16), 26);
     } else showToast('Not enough gold!', '#ff7a7a');
@@ -1117,7 +1189,8 @@ function secondaryAttack(){
   player.shootCooldown=tier.cd;
   const dir=new THREE.Vector3(Math.sin(player.facing),0,Math.cos(player.facing));
   const startY = player.inTree ? 4.8 : 1.4;
-  shootBolt(false, player.pos.clone().add(new THREE.Vector3(0,startY,0)).addScaledVector(dir,1), dir, player.magAtk, tier.color, tier.glow, tier.speed);
+  const mc = currentMagic();   // bolt color from equipped magic skin (or tier)
+  shootBolt(false, player.pos.clone().add(new THREE.Vector3(0,startY,0)).addScaledVector(dir,1), dir, player.magAtk, mc.color, mc.glow, tier.speed);
 }
 
 function fireCannon(){
@@ -1646,8 +1719,7 @@ function applySave(d){
     wepIdx=_idx(up.wepIdx,weaponTiers.length); magIdx=_idx(up.magIdx,magicTiers.length);
     tunIdx=_idx(up.tunIdx,tunnelTiers.length); shipIdx=_idx(up.shipIdx,shipTiers.length);
     // re-derive visuals / derived state from saved tiers
-    const blade=hero.userData.sword.children[0], wt=weaponTiers[wepIdx];
-    blade.material.color.setHex(wt.color); blade.material.emissive.setHex(wt.glow); blade.scale.set(1, wt.scale, wt.scale);
+    applyCosmetics();   // re-derive hero/blade visuals from saved tiers + equipped skins
     ship.maxHp=shipTiers[shipIdx].maxHp; ship.hp=ship.maxHp; ship.destroyed=false; ship.obj.visible=true; updateShipVisuals();
     const mName=magicTiers[magIdx].name.split(' ')[0].toUpperCase(), mHex='#'+magicTiers[magIdx].color.toString(16).padStart(6,'0');
     if($('magInd')){ $('magInd').textContent=mName; $('magInd').style.background=mHex; }
@@ -1671,6 +1743,7 @@ addEventListener('pagehide', ()=>{ if(_saveDirty) saveGame(); });
 addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden' && _saveDirty) saveGame(); });
 
 loadGame();   // boot: restore profile if a save exists, else clean defaults
+applyCosmetics();
 updateHUD();
 
 function startGame(mode) {
@@ -1685,7 +1758,7 @@ function startGame(mode) {
 // ============================================================
 //  MENU SHELL (Stage 2)
 // ============================================================
-const MENU_SCREENS = ['overlay','modeScreen','settingsScreen','howtoScreen','gameOverScreen'];
+const MENU_SCREENS = ['overlay','modeScreen','settingsScreen','howtoScreen','shopScreen','gameOverScreen'];
 function hideAllMenus(){ MENU_SCREENS.forEach(s=>{ const el=$(s); if(el) el.classList.add('hidden'); }); }
 function showScreen(id){ MENU_SCREENS.forEach(s=>{ const el=$(s); if(el) el.classList.toggle('hidden', s!==id); }); }
 
@@ -1700,7 +1773,7 @@ function refreshHome(){
 
 // Home buttons
 $('btnPlay').onclick     = ()=>{ refreshHome(); showScreen('modeScreen'); };
-$('btnShop').onclick     = ()=> menuNotify('🛒 Skin shop arrives in the next update!', '#8be0ff');
+$('btnShop').onclick     = ()=>{ shopCat='character'; renderShop(); showScreen('shopScreen'); };
 $('btnSettings').onclick = ()=>{ syncSettingsUI(); showScreen('settingsScreen'); };
 $('btnHowto').onclick    = ()=> showScreen('howtoScreen');
 $('btnDonate').onclick   = ()=>{ try { window.open('https://paypal.me/gershonrapp','_blank','noopener'); } catch(_){} };
@@ -1722,6 +1795,41 @@ $('btnSettingsBack').onclick = ()=> showScreen('overlay');
 
 // How to Play
 $('btnHowtoBack').onclick = ()=> showScreen('overlay');
+
+// Shop (cosmetic skins — coins only)
+let shopCat = 'character';
+function renderShop(){
+  $('shopCoins').textContent = player.gold;
+  document.querySelectorAll('.shop-tab').forEach(t=> t.classList.toggle('active', t.dataset.cat===shopCat));
+  const grid = $('shopGrid'); grid.innerHTML = '';
+  for (const s of SKINS[shopCat]){
+    const owned = cosmetics.owned[shopCat].includes(s.id);
+    const equipped = cosmetics.equipped[shopCat] === s.id;
+    let cls, label, disabled=false;
+    if (equipped){ cls='skin-equipped'; label='✓ Equipped'; disabled=true; }
+    else if (owned){ cls='skin-equip'; label='Equip'; }
+    else if (player.gold >= s.cost){ cls='skin-buy'; label='Buy · '+s.cost+'g'; }
+    else { cls='skin-locked'; label='🔒 '+s.cost+'g'; disabled=true; }
+    const card = document.createElement('div'); card.className='skin-card';
+    card.innerHTML = `<div class="skin-swatch" style="background:${s.swatch}"></div><div class="skin-name">${s.name}</div>`;
+    const btn = document.createElement('button'); btn.className='skin-action '+cls; btn.textContent=label; btn.disabled=disabled;
+    if(!disabled) btn.onclick = ()=> shopAction(shopCat, s.id);
+    card.appendChild(btn); grid.appendChild(card);
+  }
+}
+function shopAction(cat, id){
+  const s = skinById(cat, id);
+  if (cosmetics.equipped[cat] === id) return;
+  if (!cosmetics.owned[cat].includes(id)){          // need to buy first
+    if (player.gold < s.cost){ menuNotify('Not enough coins','#ff7a7a'); return; }
+    player.gold -= s.cost; cosmetics.owned[cat].push(id);
+    if (audioCtxStarted) sfx.coin.triggerAttackRelease('B5','16n');
+    menuNotify(s.name+' purchased & equipped!','#8be0ff');
+  } else menuNotify(s.name+' equipped','#6fcf45');
+  cosmetics.equipped[cat] = id; applyCosmetics(); saveGame(); renderShop();
+}
+document.querySelectorAll('.shop-tab').forEach(t=> t.onclick = ()=>{ shopCat=t.dataset.cat; renderShop(); });
+$('btnShopBack').onclick = ()=> showScreen('overlay');
 
 // Game Over
 $('btnRetry').onclick = ()=>{ if (_saveDirty) saveGame(); location.reload(); };

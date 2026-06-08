@@ -579,11 +579,37 @@ function makeObelisk(x,z) {
     const mesh = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 2.5, 12, 6), new THREE.MeshStandardMaterial({color:0x55308a, emissive:0x440088, emissiveIntensity:0.5, flatShading:true}));
     mesh.position.y = 6; mesh.castShadow = true; g.add(mesh);
     g.position.set(x,0,z); scene.add(g);
-    const ob = { obj: g, x, z, state: 'idle', progress: 0, mesh };
-    obelisks.push(ob); walls.push({minx:x-2.5, maxx:x+2.5, minz:z-2.5, maxz:z+2.5});
+    const wall = {minx:x-2.5, maxx:x+2.5, minz:z-2.5, maxz:z+2.5}; walls.push(wall);
+    obelisks.push({ obj: g, x, z, state: 'idle', progress: 0, mesh, wall, kind:'obelisk' });
+}
+// World 2 mission node — a metallic reactor (reuses the obelisk gating)
+function makeReactor(x,z) {
+    const g = new THREE.Group();
+    const metal = new THREE.MeshStandardMaterial({color:0x4a4c54, metalness:0.7, roughness:0.4, flatShading:true});
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.8, 3, 8), metal); base.position.y=1.5; base.castShadow=true; g.add(base);
+    const core = new THREE.Mesh(new THREE.IcosahedronGeometry(1.7,0), new THREE.MeshStandardMaterial({color:0x33ddff, emissive:0x1188cc, emissiveIntensity:0.8, flatShading:true})); core.position.y=4.5; core.castShadow=true; g.add(core);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(2.5,0.22,6,16), metal); ring.position.y=4.5; ring.rotation.x=Math.PI/2; g.add(ring);
+    g.position.set(x,0,z); scene.add(g);
+    const wall = {minx:x-2.8, maxx:x+2.8, minz:z-2.8, maxz:z+2.8}; walls.push(wall);
+    obelisks.push({ obj:g, x, z, state:'idle', progress:0, mesh:core, wall, kind:'reactor' });
+}
+// World 2 biome dressing — scrap-strewn wastes + smoggy atmosphere
+let wastesBuilt = false;
+function buildWastes() {
+    if (wastesBuilt) return; wastesBuilt = true;
+    const a = new THREE.MeshStandardMaterial({color:0x5a4a3a, metalness:0.55, roughness:0.6, flatShading:true});
+    const b = new THREE.MeshStandardMaterial({color:0x6a3030, metalness:0.4, roughness:0.7, flatShading:true});
+    for(let i=0;i<90;i++){
+        const ang=Math.random()*Math.PI*2, r=160+Math.random()*150, x=Math.cos(ang)*r, z=Math.sin(ang)*r;
+        if(isWater(x,z)) continue;
+        const s=0.8+Math.random()*2.4;
+        const m=new THREE.Mesh(new THREE.DodecahedronGeometry(s,0), Math.random()<0.3?b:a);
+        m.position.set(x, s*0.4, z); m.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3); m.castShadow=true; scene.add(m);
+    }
+    scene.background.setHex(0x4a3a30); scene.fog.color.setHex(0x4a3a30); hemiLight.color.setHex(0xffd0a0);
 }
 
-let leviathan = null;
+let leviathan = null, robot = null;
 let gameMode = 'mission';
 
 function setupGameMode(mode) {
@@ -625,8 +651,11 @@ const WORLDS = [
   { id:'valley', name:'The Valley', boss:'leviathan', radius:200, expandTo:300, reward:500,
     setup(){ makeObelisk(120, 120); makeObelisk(-140, -100); makeObelisk(140, -120); },
     text:'⚓ Board your ship & slay the Leviathan!' },
-  { id:'wastes', name:'The Wastes', boss:'robot', radius:300, expandTo:320, reward:800, comingSoon:true,
-    text:'🤖 World 2 — the Robot stirs in the wastes. <i>(Coming soon!)</i>' },
+  { id:'wastes', name:'The Wastes', boss:'robot', radius:300, expandTo:320, reward:800,
+    setup(){ buildWastes(); makeReactor(230,40); makeReactor(-60,250); makeReactor(-230,-120); },
+    text:'⚡ Overload the 3 Reactors, then crush the Iron Colossus!' },
+  { id:'emberpeak', name:'Emberpeak', boss:'firelord', radius:320, expandTo:320, reward:1200, comingSoon:true,
+    text:'🔥 World 3 — Emberpeak smolders. <i>(Coming soon!)</i>' },
 ];
 const campaign = { index:0, bossesBeaten:[], worldRadius:WORLDS[0].radius, curRadius:WORLDS[0].radius };
 function campaignWorldRadius(){ return campaign.index>0 ? WORLDS[Math.min(campaign.index-1, WORLDS.length-1)].expandTo : WORLDS[0].radius; }
@@ -652,7 +681,52 @@ function onBossDefeated(bossId){
   addEffect(player.pos.clone(), 9, 0xffd56b);
   if (audioCtxStarted) sfx.poly.triggerAttackRelease(["C4","E4","G4","C5"], "2n");
   campaign.worldRadius = cleared.expandTo || campaign.worldRadius;   // expand (animates in update)
+  // tear down the cleared world's mission nodes, then build the next world's content (seamless, no reload needed)
+  for (const ob of obelisks){ scene.remove(ob.obj); const wi=walls.indexOf(ob.wall); if(wi>-1) walls.splice(wi,1); }
+  obelisks.length = 0;
+  const next = WORLDS[Math.min(campaign.index, WORLDS.length-1)];
+  if (next && next.setup && !next.comingSoon && !campaign.bossesBeaten.includes(next.boss)) next.setup();
   saveGame();
+}
+
+// --- Boss spawning & damage (generic across worlds) ---
+function spawnCurrentBoss(){
+  const w = WORLDS[Math.min(campaign.index, WORLDS.length-1)];
+  if (!w || campaign.bossesBeaten.includes(w.boss)) return;
+  if (w.boss==='leviathan' && !leviathan) spawnLeviathan();
+  else if (w.boss==='robot' && !robot) spawnRobot();
+}
+function damageRobot(dmg){
+  if (!robot || robot.dead) return;
+  robot.hp -= dmg; floatText(robot.pos.clone().add(new THREE.Vector3(0,9,0)), '-'+Math.round(dmg), '#ffaa00', 26);
+  if (robot.hp<=0) robotDefeated();
+}
+function robotDefeated(){
+  if (!robot || robot.dead) return;
+  robot.dead = true; scene.remove(robot.obj);
+  if (robot.smashRing){ scene.remove(robot.smashRing); robot.smashRing=null; }
+  $('bossBar').classList.remove('show');
+  onBossDefeated('robot');
+}
+function spawnRobot(){
+  showToast("⚙️ THE IRON COLOSSUS ACTIVATES!", "#ff8844");
+  if (audioCtxStarted) sfx.cannon.triggerAttackRelease("C0","2n");
+  const g = new THREE.Group();
+  const body = new THREE.MeshStandardMaterial({color:0x6b6b75, metalness:0.7, roughness:0.4, flatShading:true});
+  const dark = new THREE.MeshStandardMaterial({color:0x33343a, metalness:0.8, roughness:0.3});
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(6,6,4), body); torso.position.y=9; torso.castShadow=true; g.add(torso);
+  const head  = new THREE.Mesh(new THREE.BoxGeometry(3,2.5,3), dark); head.position.y=13.5; head.castShadow=true; g.add(head);
+  const eye   = new THREE.Mesh(new THREE.BoxGeometry(2.4,0.6,0.3), new THREE.MeshStandardMaterial({color:0xff3322, emissive:0xff2200, emissiveIntensity:1.5})); eye.position.set(0,13.6,1.6); g.add(eye);
+  for (const sx of [-1.8,1.8]){ const leg=new THREE.Mesh(new THREE.BoxGeometry(1.6,7,1.6), dark); leg.position.set(sx,3.5,0); leg.castShadow=true; g.add(leg); }
+  const armL=new THREE.Mesh(new THREE.BoxGeometry(1.4,5,1.4), body); armL.position.set(-4,9,0); g.add(armL);
+  const armR=new THREE.Mesh(new THREE.BoxGeometry(1.6,5.5,1.6), body); armR.position.set(4.2,9,0); g.add(armR);
+  g.userData = { armR, eye };
+  let rx, rz, a, tries=0;
+  do { a=Math.random()*Math.PI*2; rx=player.pos.x+Math.cos(a)*45; rz=player.pos.z+Math.sin(a)*45; tries++; }
+  while ((isWater(rx,rz) || Math.hypot(rx,rz) > campaign.curRadius-12) && tries<40);
+  g.position.set(rx,0,rz); scene.add(g);
+  robot = { obj:g, pos:g.position.clone(), hp:3500, maxHp:3500, scale:5, phase:0, dead:false, speed:4,
+            shootCd:3, smashCd:5, smashWindup:0, smashLunge:0, smashed:false, smashPoint:null, smashRing:null };
 }
 
 const weaponTiers = [
@@ -824,6 +898,7 @@ function buildSlime(type, scale, color){
   const g = new THREE.Group();
   let geo;
   if(type==='breaker' || type==='stalker') geo = new THREE.DodecahedronGeometry(0.8*scale, 0);
+  else if(type==='drone') geo = new THREE.OctahedronGeometry(0.7*scale, 0);
   else if(type==='water') geo = new THREE.TorusKnotGeometry(0.4*scale, 0.15*scale, 32, 8);
   else geo = new THREE.IcosahedronGeometry(0.8*scale, 1);
   
@@ -886,6 +961,7 @@ function spawnEnemy(type, x, z){
   else if (type==='breaker') { e.scale=1.4; e.hp=60*powerMult; e.atk=15; e.speed=4.5; e.xp=50; e.gold=25; e.color=0xd06010; }
   else if (type==='toxic') { e.scale=1.2; e.hp=45*powerMult; e.atk=12; e.speed=4.0; e.xp=45; e.gold=20; e.color=0x33ff33; }
   else if (type==='water') { e.scale=1.5; e.hp=50*powerMult; e.atk=14; e.speed=4.5; e.xp=60; e.gold=30; e.color=0x1177ff; }
+  else if (type==='drone') { e.scale=1.0; e.hp=35*powerMult; e.atk=11; e.speed=5.0; e.xp=45; e.gold=20; e.color=0x99aacc; }   // World 2 flying ranged bot
   else if (type==='stalker') { e.scale=1.1; e.hp=40*powerMult; e.atk=20; e.speed=5.2; e.xp=55; e.gold=25; e.color=0x2a1a3a; }
   else if (type==='mimic') {
     e.disguise=['tree','rock','cave'][Math.floor(Math.random()*3)]; e.revealed=false; e.color=0x3a0f2a;
@@ -905,6 +981,7 @@ function spawnWave(n, forcePos=null){
   if (pwr > 4) pool.push('brute', 'shooter');
   if (pwr > 8) pool.push('breaker', 'toxic');
   if (pwr > 10) pool.push('stalker', 'mimic');
+  if (gameMode === 'mission' && campaign.index >= 1) pool.push('drone', 'drone', 'shooter');   // The Wastes: robotic foes
   
   for (let i=0;i<n;i++){
     let x,z,tries=0, type;
@@ -997,7 +1074,9 @@ function cleanseObelisk() {
     if(!started || !player.alive || player.onShip || paused || gameMode === 'free') return;
     for(const ob of obelisks) {
         if(ob.state === 'idle' && Math.hypot(player.pos.x-ob.x, player.pos.z-ob.z) < 10) {
-            ob.state = 'cleansing'; showToast("Cleansing started! Survive the wave!", "#a855f7");
+            ob.state = 'cleansing';
+            const isR = ob.kind==='reactor';
+            showToast(isR ? "⚡ Reactor overloading! Survive the wave!" : "Cleansing started! Survive the wave!", isR ? "#33ddff" : "#a855f7");
             spawnWave(15, new THREE.Vector3(ob.x, 0, ob.z)); break;
         }
     }
@@ -1222,6 +1301,14 @@ function primaryAttack() {
     floatText(e.pos,'-'+dmg,'#ffffff',20);
     if (e.hp<=0) killEnemy(e);
   }
+  // melee can damage the land boss (Iron Colossus)
+  if (robot && !robot.dead){
+    const d=Math.hypot(robot.pos.x-player.pos.x, robot.pos.z-player.pos.z);
+    if (d < reach + robot.scale*0.9){
+      const to=new THREE.Vector3(robot.pos.x-player.pos.x,0,robot.pos.z-player.pos.z).normalize();
+      if (fwd.dot(to)>=arc){ damageRobot(player.atk + Math.round(Math.random()*8)); if(audioCtxStarted) sfx.hit.triggerAttackRelease("C2","8n"); }
+    }
+  }
 }
 
 function shootBolt(isEnemy=false, startPos, dirVec, dmg, color, glow, speed, radius=0.6, life=1.5){
@@ -1291,6 +1378,7 @@ function explode(pos,dmg,radius, isEnemy, isCannon=false){
            onBossDefeated('leviathan');   // coin dump + world expands + advance objective (no instant victory)
        }
     }
+    if (robot && !robot.dead && Math.hypot(robot.pos.x-pos.x, robot.pos.z-pos.z) < radius + robot.scale*0.9) damageRobot(dmg);
   } else {
     const pY = player.inTree ? 3.5 : 0;
     if (Math.hypot(player.pos.x-pos.x, pY-pos.y, player.pos.z-pos.z) < radius+PLAYER_R) hurtPlayer(dmg);
@@ -1524,7 +1612,7 @@ function update(dt){
        if (!nearTree) {
           let onTunnel=false; for(const t of activeTunnels){ if(Math.hypot(p.x-t.x,p.z-t.z)<t.r){ onTunnel=true; setPrompt('Press [F] to go underground'); break; } }
           if (!onTunnel){
-             let nearObelisk = false; for(const ob of obelisks) if(ob.state==='idle' && Math.hypot(p.x-ob.x, p.z-ob.z)<10){ nearObelisk=true; setPrompt('Press [R] or 🔮 to Cleanse Obelisk'); break; }
+             let nearObelisk = false; for(const ob of obelisks) if(ob.state==='idle' && Math.hypot(p.x-ob.x, p.z-ob.z)<10){ nearObelisk=true; setPrompt(ob.kind==='reactor' ? 'Press [R] or 🔮 to Overload Reactor' : 'Press [R] or 🔮 to Cleanse Obelisk'); break; }
              if (!nearObelisk) { if (Math.hypot(p.x-ship.pos.x,p.z-ship.pos.z) < 9 && !ship.destroyed) setPrompt('Press [B] to board ship'); else setPrompt(''); }
           }
        }
@@ -1560,7 +1648,7 @@ function update(dt){
       if(ob.state === 'cleansing') { ob.progress += dt * 3.3; ob.mesh.material.emissiveIntensity = 0.5 + Math.sin(ob.progress)*2; if(ob.progress >= 100) { ob.state = 'cleansed'; ob.mesh.material.color.setHex(0x4f9dff); ob.mesh.material.emissive.setHex(0x0044ff); showToast("Obelisk Cleansed!", "#4f9dff"); } }
       if(ob.state === 'cleansed') cleansedCount++;
   }
-  if(cleansedCount === 3 && !leviathan && gameMode === 'mission' && !campaign.bossesBeaten.includes('leviathan')) spawnLeviathan();
+  if(cleansedCount === 3 && gameMode === 'mission') spawnCurrentBoss();
   if(leviathan && !leviathan.dead) {
       $('bossBar').classList.add('show');
       $('bossFill').style.width = Math.max(0, leviathan.hp/leviathan.maxHp*100)+'%';
@@ -1626,6 +1714,54 @@ function update(dt){
       }
   }
 
+  // --- Iron Colossus (World 2 land boss): walk + laser volley + telegraphed ground smash ---
+  if (robot && !robot.dead){
+    $('bossBar').classList.add('show'); $('bossLabel').textContent = '🤖 IRON COLOSSUS';
+    $('bossFill').style.width = Math.max(0, robot.hp/robot.maxHp*100)+'%';
+    robot.phase += dt*2;
+    const toP = player.pos.clone().sub(robot.pos); toP.y=0; const rdist = toP.length();
+    const busy = robot.smashWindup>0 || robot.smashLunge>0;
+    if (rdist>10 && !busy) robot.pos.addScaledVector(toP.normalize(), robot.speed*dt);
+    resolveWaterBoundary(robot.pos, 5, false);                       // stays on land
+    { const dd=Math.hypot(robot.pos.x,robot.pos.z); if(dd>campaign.curRadius-6){ robot.pos.x=robot.pos.x/dd*(campaign.curRadius-6); robot.pos.z=robot.pos.z/dd*(campaign.curRadius-6); } }
+    robot.obj.position.set(robot.pos.x, Math.abs(Math.sin(robot.phase*2))*0.4, robot.pos.z);
+    robot.obj.rotation.y = Math.atan2(toP.x, toP.z);
+    robot.obj.userData.eye.material.emissiveIntensity += (1.5 - robot.obj.userData.eye.material.emissiveIntensity)*dt*4;
+
+    robot.shootCd -= dt;
+    if (robot.shootCd<=0 && !busy){
+      robot.shootCd = 2.8; robot.obj.userData.eye.material.emissiveIntensity = 3.5;
+      if (audioCtxStarted) sfx.magic.triggerAttackRelease("C3","8n");
+      const muzzle = robot.pos.clone().add(new THREE.Vector3(0,13.4,0));
+      const aim = new THREE.Vector3(player.pos.x, player.inTree?3.5:1.2, player.pos.z);
+      for (let i=-1;i<=1;i++){ const dir=aim.clone().sub(muzzle).normalize(); dir.applyAxisAngle(new THREE.Vector3(0,1,0), i*0.14); shootBolt(true, muzzle.clone(), dir, 22, 0xff3322, 0xaa1100, 30, 1.2, 2.2); }
+    }
+
+    robot.smashCd -= dt;
+    if (robot.smashLunge>0){
+      robot.smashLunge -= dt;
+      const p = 1 - robot.smashLunge/0.4;
+      robot.obj.userData.armR.rotation.x = -2.2*(1-p);
+      if (!robot.smashed && p>=0.55){
+        robot.smashed = true; const sp=robot.smashPoint;
+        addEffect(new THREE.Vector3(sp.x,0.5,sp.z), 11, 0xff8833);
+        if (audioCtxStarted) sfx.cannon.triggerAttackRelease("C1","2n");
+        if (Math.hypot(player.pos.x-sp.x, player.pos.z-sp.z) < 9 && !player.onShip) hurtPlayer(35);
+      }
+      if (robot.smashLunge<=0) robot.obj.userData.armR.rotation.x = 0;
+    } else if (robot.smashWindup>0){
+      robot.smashWindup -= dt;
+      robot.obj.userData.armR.rotation.x = -2.2 * (1 - robot.smashWindup/1.1);
+      if (robot.smashRing) robot.smashRing.material.opacity = 0.3 + Math.abs(Math.sin(performance.now()*0.012))*0.5;
+      if (robot.smashWindup<=0){ robot.smashLunge=0.4; robot.smashed=false; if(robot.smashRing){ scene.remove(robot.smashRing); robot.smashRing=null; } }
+    } else if (robot.smashCd<=0 && rdist<22){
+      robot.smashCd=6; robot.smashWindup=1.1; robot.smashPoint=player.pos.clone();
+      const ring=new THREE.Mesh(new THREE.RingGeometry(7.5,9,36), new THREE.MeshBasicMaterial({color:0xff8833, transparent:true, opacity:0.5, side:THREE.DoubleSide, depthWrite:false}));
+      ring.rotation.x=-Math.PI/2; ring.position.set(player.pos.x,0.2,player.pos.z); scene.add(ring);
+      robot.smashRing=ring; showToast("⚠ The Colossus winds up a SMASH — move!", "#ff8844");
+    }
+  }
+
   // --- Campaign: animate world expansion + drive objective text ---
   if (gameMode==='mission'){
     campaign.curRadius += (campaign.worldRadius - campaign.curRadius) * Math.min(1, dt*1.5);
@@ -1636,6 +1772,10 @@ function update(dt){
     else if (cur && cur.boss==='leviathan'){
       if (leviathan && !leviathan.dead) obj = '⚔️ Slay the Leviathan!';
       else { const cc = obelisks.filter(o=>o.state==='cleansed').length; obj = cc<3 ? `🔮 Cleanse the Cursed Obelisks (${cc}/3)` : '⚓ Board your ship & slay the Leviathan!'; }
+    }
+    else if (cur && cur.boss==='robot'){
+      if (robot && !robot.dead) obj = '🤖 Destroy the Iron Colossus!';
+      else { const cc = obelisks.filter(o=>o.state==='cleansed').length; obj = cc<3 ? `⚡ Overload the Reactors (${cc}/3)` : '🤖 The Colossus stirs — destroy it!'; }
     }
     setObjective(obj);
   } else { boundaryRing.visible=false; setObjective(''); }
@@ -1653,7 +1793,7 @@ function update(dt){
     }
 
     if (!attackingTunnel && player.alive) {
-      if (e.type === 'shooter' || e.type === 'water') {
+      if (e.type === 'shooter' || e.type === 'water' || e.type === 'drone') {
         if (distToTarget > 12) { const to=target.clone().sub(e.pos); to.y=0; to.normalize(); e.obj.position.addScaledVector(to, e.speed*dt); e.obj.rotation.y=Math.atan2(to.x,to.z); } 
         else if (distToTarget < 8) { const to=e.pos.clone().sub(target); to.y=0; to.normalize(); e.obj.position.addScaledVector(to, e.speed*dt*0.5); e.obj.rotation.y=Math.atan2(-to.x,-to.z); } 
         else { e.obj.rotation.y=Math.atan2(target.x-e.pos.x, target.z-e.pos.z); if (e.shootCd <= 0) { e.shootCd = 2.5; const pY = player.inTree ? 3.5 : 0; const dir = new THREE.Vector3(target.x-e.pos.x, pY - 1.2, target.z-e.pos.z).normalize(); shootBolt(true, e.pos.clone().add(new THREE.Vector3(0,1.2,0)), dir, e.atk, e.type==='water'?0x1177ff:0xcc00ff, 0xaa00aa, 20); } }
@@ -1663,7 +1803,7 @@ function update(dt){
     if (e.type !== 'water') { for (const b of walls) resolveBox(e.obj.position, e.scale, b); for (const z of enemyZones) resolveZoneOut(e.obj.position, e.scale*0.6, z); resolveWaterBoundary(e.obj.position, e.scale, false); } 
     else { resolveWaterBoundary(e.obj.position, e.scale, true); }
     
-    let eTargetY = 0; if (e.type === 'stalker' && player.inTree && distToTarget < 2.5) { eTargetY = player.obj.position.y; }
+    let eTargetY = 0; if (e.type === 'stalker' && player.inTree && distToTarget < 2.5) { eTargetY = player.obj.position.y; } if (e.type==='drone') eTargetY = 2.6;   // drones hover
     const bounce = Math.abs(Math.sin(e.phase*0.5))*0.15; e.obj.position.y += ((eTargetY + bounce) - e.obj.position.y) * Math.min(1, dt * 5); e.pos.copy(e.obj.position);
     const sq=1+Math.sin(e.phase)*0.12; e.obj.userData.body.scale.set(1/Math.sqrt(sq),sq,1/Math.sqrt(sq)); e.obj.userData.body.material.emissiveIntensity=e.flash>0?1.2:(e.type==='toxic'||e.type==='stalker'?0.5:0.15);
 
@@ -1701,6 +1841,12 @@ function update(dt){
       }
       if (!hit && leviathan && !leviathan.dead && pr.isCannon) {
           if (segDist(leviathan.pos.x, leviathan.pos.z, ax, az, bx, bz) < pr.r+5.0) { explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false, true); hit=true; }
+      }
+      if (!hit && robot && !robot.dead) {   // magic bolts & cannonballs damage the Iron Colossus
+          if (segDist(robot.pos.x, robot.pos.z, ax, az, bx, bz) < pr.r + robot.scale*0.9) {
+              if (pr.aoe) explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false, pr.isCannon); else damageRobot(pr.dmg);
+              hit=true;
+          }
       }
     }
 

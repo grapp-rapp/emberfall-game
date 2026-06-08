@@ -135,6 +135,11 @@
   body.mobile #bossBar { top: 8px; height: 18px; width: 52vw; }
   body.mobile #bossLabel { line-height: 18px; font-size: 11px; }
 
+  #objective { position: fixed; top: 46px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.55); border: 1px solid rgba(255,213,107,.4); color: #ffd56b; font-weight: bold; font-size: 14px; padding: 6px 16px; border-radius: 16px; z-index: 88; opacity: 0; transition: opacity .25s; pointer-events: none; max-width: 90vw; text-align: center; }
+  #objective.show { opacity: 1; }
+  #objective i { color:#fff; opacity:.75; font-weight:normal; }
+  body.mobile #objective { top: 30px; font-size: 12px; padding: 5px 12px; }
+
   .credit { margin-top: 18px; font-size: 16px; letter-spacing: 1px; opacity: .92; }
   .credit b { color: #ffd56b; }
   .copyright { margin-top: 6px; font-size: 11px; letter-spacing: 1px; opacity: .55; }
@@ -256,10 +261,12 @@
   <div class="upg-btn" onclick="buyUpgrade(3)"><span><b>[3]</b> Tunnel: <span id="uTun">Reinforced</span></span> <span class="cost" id="cTun">30g</span></div>
   <div class="upg-btn" onclick="buyUpgrade(5)"><span><b>[4]</b> Ship Armor: <span id="uShip">Ironclad</span></span> <span class="cost" id="cShip">250g</span></div>
   <div class="upg-btn" onclick="repairShip()"><span><b>[5]</b> Repair Ship</span> <span class="cost" id="cRepair">-</span></div>
+  <div class="upg-btn" id="upgSkinsBtn" style="justify-content:center; border-color:#8b5cf6; color:#c9a0ff;"><span><b>🎨</b> Buy / Equip Skins</span></div>
 </div>
 
 <div id="toast"></div>
 <div id="bossBar"><div id="bossFill"></div><div id="bossLabel">🐙 THE LEVIATHAN</div></div>
+<div id="objective"></div>
 <div id="reticle"></div>
 
 <div id="touch">
@@ -581,12 +588,18 @@ let gameMode = 'mission';
 
 function setupGameMode(mode) {
     gameMode = mode;
-    if (gameMode === 'mission') {
-        makeObelisk(120, 120); makeObelisk(-140, -100); makeObelisk(140, -120);
+    if (mode === 'mission') {
+        campaign.index = campaign.bossesBeaten.length;             // derived from saved progress
+        const w = WORLDS[Math.min(campaign.index, WORLDS.length-1)];
+        campaign.worldRadius = campaignWorldRadius();
+        campaign.curRadius = campaign.worldRadius;
+        // build this world's content only if it's buildable and its boss isn't already beaten
+        if (w && w.setup && !w.comingSoon && !campaign.bossesBeaten.includes(w.boss)) w.setup();
     } else {
         obelisks.forEach(ob => { scene.remove(ob.obj); });
         obelisks.length = 0;
         if($('bCleanse')) $('bCleanse').style.display = 'none';
+        campaign.worldRadius = WORLD; campaign.curRadius = WORLD;   // Free Play: full map, no barrier
     }
 }
 
@@ -603,6 +616,43 @@ function spawnLeviathan() {
     g.position.set(LAKE.x, 0, LAKE.z); scene.add(g);
     leviathan = { obj: g, pos: g.position.clone(), hp: 8000, maxHp: 8000, phase: 0, shootCd: 3, scale: 5, dead: false,
                   slamCd: 5, slamWindup: 0, slamLunge: 0, slammed: false, slamPoint: null, slamRing: null };
+}
+
+// ============================================================
+//  CAMPAIGN SPINE (Stage 4) — sequential worlds, mission gating, expanding world
+// ============================================================
+const WORLDS = [
+  { id:'valley', name:'The Valley', boss:'leviathan', radius:200, expandTo:300, reward:500,
+    setup(){ makeObelisk(120, 120); makeObelisk(-140, -100); makeObelisk(140, -120); },
+    text:'⚓ Board your ship & slay the Leviathan!' },
+  { id:'wastes', name:'The Wastes', boss:'robot', radius:300, expandTo:320, reward:800, comingSoon:true,
+    text:'🤖 World 2 — the Robot stirs in the wastes. <i>(Coming soon!)</i>' },
+];
+const campaign = { index:0, bossesBeaten:[], worldRadius:WORLDS[0].radius, curRadius:WORLDS[0].radius };
+function campaignWorldRadius(){ return campaign.index>0 ? WORLDS[Math.min(campaign.index-1, WORLDS.length-1)].expandTo : WORLDS[0].radius; }
+
+// translucent barrier marking (and growing with) the Story-mode playable area
+const boundaryRing = new THREE.Mesh(
+  new THREE.CylinderGeometry(1, 1, 12, 60, 1, true),
+  new THREE.MeshBasicMaterial({ color:0x8a5cff, transparent:true, opacity:0.16, side:THREE.DoubleSide, depthWrite:false })
+);
+boundaryRing.position.y = 6; boundaryRing.visible = false; scene.add(boundaryRing);
+
+function setObjective(t){ const e=$('objective'); if(!e) return; if(t){ e.innerHTML=t; e.classList.add('show'); } else e.classList.remove('show'); }
+
+function onBossDefeated(bossId){
+  if (campaign.bossesBeaten.includes(bossId)) return;
+  campaign.bossesBeaten.push(bossId);
+  campaign.index = campaign.bossesBeaten.length;
+  const cleared = WORLDS.find(w=>w.boss===bossId) || WORLDS[0];
+  const dump = cleared.reward || 500;
+  player.gold += dump; markDirty();
+  showToast(`🏆 ${cleared.name} cleared!  +${dump} coins`, '#ffd56b');
+  floatText(player.pos, `+${dump}g`, '#ffd24a', 32);
+  addEffect(player.pos.clone(), 9, 0xffd56b);
+  if (audioCtxStarted) sfx.poly.triggerAttackRelease(["C4","E4","G4","C5"], "2n");
+  campaign.worldRadius = cleared.expandTo || campaign.worldRadius;   // expand (animates in update)
+  saveGame();
 }
 
 const weaponTiers = [
@@ -1238,7 +1288,7 @@ function explode(pos,dmg,radius, isEnemy, isCannon=false){
            leviathan.dead=true; scene.remove(leviathan.obj);
            if(leviathan.slamRing){ scene.remove(leviathan.slamRing); leviathan.slamRing=null; }
            $('bossBar').classList.remove('show');
-           $('victoryScreen').classList.remove('hidden'); paused=true; setReticle(false); if(document.pointerLockElement)document.exitPointerLock();
+           onBossDefeated('leviathan');   // coin dump + world expands + advance objective (no instant victory)
        }
     }
   } else {
@@ -1467,7 +1517,9 @@ function update(dt){
        if (move.lengthSq()>0){ move.normalize(); player.facing=Math.atan2(move.x,move.z); player.obj.position.addScaledVector(move, speed*dt); player.walkPhase+=dt*12; } else player.walkPhase*=0.8;
        let cur=player.obj.rotation.y, diff=((player.facing-cur+Math.PI)%(Math.PI*2))-Math.PI; player.obj.rotation.y=cur+diff*Math.min(1,dt*14);
        const p=player.obj.position; for (const b of walls) resolveBox(p, PLAYER_R, b); resolveWaterBoundary(p, PLAYER_R, false);                      
-       const lim=WORLD-2; p.x=Math.max(-lim,Math.min(lim,p.x)); p.z=Math.max(-lim,Math.min(lim,p.z)); player.pos.copy(p);
+       const lim=WORLD-2; p.x=Math.max(-lim,Math.min(lim,p.x)); p.z=Math.max(-lim,Math.min(lim,p.z));
+       if (gameMode==='mission'){ const dd=Math.hypot(p.x,p.z); if(dd>campaign.curRadius){ p.x=p.x/dd*campaign.curRadius; p.z=p.z/dd*campaign.curRadius; } }
+       player.pos.copy(p);
        let nearTree = false; for(const t of trees) { if (Math.hypot(p.x - t.x, p.z - t.z) < 2.5) { nearTree = true; setPrompt('Press [E] to climb tree'); break; } }
        if (!nearTree) {
           let onTunnel=false; for(const t of activeTunnels){ if(Math.hypot(p.x-t.x,p.z-t.z)<t.r){ onTunnel=true; setPrompt('Press [F] to go underground'); break; } }
@@ -1508,7 +1560,7 @@ function update(dt){
       if(ob.state === 'cleansing') { ob.progress += dt * 3.3; ob.mesh.material.emissiveIntensity = 0.5 + Math.sin(ob.progress)*2; if(ob.progress >= 100) { ob.state = 'cleansed'; ob.mesh.material.color.setHex(0x4f9dff); ob.mesh.material.emissive.setHex(0x0044ff); showToast("Obelisk Cleansed!", "#4f9dff"); } }
       if(ob.state === 'cleansed') cleansedCount++;
   }
-  if(cleansedCount === 3 && !leviathan && gameMode === 'mission') spawnLeviathan();
+  if(cleansedCount === 3 && !leviathan && gameMode === 'mission' && !campaign.bossesBeaten.includes('leviathan')) spawnLeviathan();
   if(leviathan && !leviathan.dead) {
       $('bossBar').classList.add('show');
       $('bossFill').style.width = Math.max(0, leviathan.hp/leviathan.maxHp*100)+'%';
@@ -1573,6 +1625,20 @@ function update(dt){
           }
       }
   }
+
+  // --- Campaign: animate world expansion + drive objective text ---
+  if (gameMode==='mission'){
+    campaign.curRadius += (campaign.worldRadius - campaign.curRadius) * Math.min(1, dt*1.5);
+    boundaryRing.visible = true; boundaryRing.scale.set(campaign.curRadius, 1, campaign.curRadius);
+    const cur = WORLDS[Math.min(campaign.index, WORLDS.length-1)];
+    let obj = '';
+    if (cur && cur.comingSoon) obj = cur.text;
+    else if (cur && cur.boss==='leviathan'){
+      if (leviathan && !leviathan.dead) obj = '⚔️ Slay the Leviathan!';
+      else { const cc = obelisks.filter(o=>o.state==='cleansed').length; obj = cc<3 ? `🔮 Cleanse the Cursed Obelisks (${cc}/3)` : '⚓ Board your ship & slay the Leviathan!'; }
+    }
+    setObjective(obj);
+  } else { boundaryRing.visible=false; setObjective(''); }
 
   for (const e of enemies){
     if (e.dead){ if (e.hpBar) e.hpBar.visible=false; const u=e.obj.userData; u.dying+=dt; const k=u.dying/0.35; e.obj.scale.setScalar(Math.max(0.001,1-k)); e.obj.position.y=k*2; continue; }
@@ -1701,13 +1767,16 @@ function buildSaveObject(){
     character: { level:player.level, xp:player.xp, xpNext:player.xpNext, maxHp:player.maxHp,
                  atk:player.atk, magAtk:player.magAtk, speed:player.speed, tunnels:player.tunnels },
     upgrades: { wepIdx, magIdx, tunIdx, shipIdx },
-    campaign: { worldUnlocked:1, bossesBeaten:[], missionState:null }   // scaffold for Stage 4
+    campaign: { worldUnlocked: campaign.index+1, bossesBeaten: campaign.bossesBeaten.slice(), missionState:null }
   };
 }
 function applySave(d){
   try {
     if (!d || d.version !== 1) return false;
-    const pr=d.profile||{}, ch=d.character||{}, up=d.upgrades||{};
+    const pr=d.profile||{}, ch=d.character||{}, up=d.upgrades||{}, cm=d.campaign||{};
+    campaign.bossesBeaten = Array.isArray(cm.bossesBeaten) ? cm.bossesBeaten.slice() : [];
+    campaign.index = campaign.bossesBeaten.length;
+    campaign.worldRadius = campaignWorldRadius(); campaign.curRadius = campaign.worldRadius;
     player.gold   = _num(pr.coins, player.gold);
     settings      = Object.assign(defaultSettings(), pr.settings||{});
     if (pr.owned)    cosmetics.owned    = pr.owned;
@@ -1773,7 +1842,7 @@ function refreshHome(){
 
 // Home buttons
 $('btnPlay').onclick     = ()=>{ refreshHome(); showScreen('modeScreen'); };
-$('btnShop').onclick     = ()=>{ shopCat='character'; renderShop(); showScreen('shopScreen'); };
+$('btnShop').onclick     = ()=>{ shopReturn='overlay'; shopCat='character'; renderShop(); showScreen('shopScreen'); };
 $('btnSettings').onclick = ()=>{ syncSettingsUI(); showScreen('settingsScreen'); };
 $('btnHowto').onclick    = ()=> showScreen('howtoScreen');
 $('btnDonate').onclick   = ()=>{ try { window.open('https://paypal.me/gershonrapp','_blank','noopener'); } catch(_){} };
@@ -1797,7 +1866,7 @@ $('btnSettingsBack').onclick = ()=> showScreen('overlay');
 $('btnHowtoBack').onclick = ()=> showScreen('overlay');
 
 // Shop (cosmetic skins — coins only)
-let shopCat = 'character';
+let shopCat = 'character', shopReturn = 'overlay';   // shopReturn: 'overlay' (main menu) or 'game' (in-run)
 function renderShop(){
   $('shopCoins').textContent = player.gold;
   document.querySelectorAll('.shop-tab').forEach(t=> t.classList.toggle('active', t.dataset.cat===shopCat));
@@ -1826,10 +1895,15 @@ function shopAction(cat, id){
     if (audioCtxStarted) sfx.coin.triggerAttackRelease('B5','16n');
     menuNotify(s.name+' purchased & equipped!','#8be0ff');
   } else menuNotify(s.name+' equipped','#6fcf45');
-  cosmetics.equipped[cat] = id; applyCosmetics(); saveGame(); renderShop();
+  cosmetics.equipped[cat] = id; applyCosmetics(); saveGame(); renderShop(); updateHUD();
 }
 document.querySelectorAll('.shop-tab').forEach(t=> t.onclick = ()=>{ shopCat=t.dataset.cat; renderShop(); });
-$('btnShopBack').onclick = ()=> showScreen('overlay');
+$('btnShopBack').onclick = ()=>{
+  if (shopReturn==='game'){ shopReturn='overlay'; $('shopScreen').classList.add('hidden'); shopPaused=false; $('upgrades').classList.remove('show'); checkPause(); }
+  else showScreen('overlay');
+};
+// Open the Skin Shop from inside a run (via the in-game upgrades panel) — Back resumes the game
+$('upgSkinsBtn').onclick = ()=>{ shopReturn='game'; shopCat='character'; renderShop(); $('upgrades').classList.remove('show'); showScreen('shopScreen'); };
 
 // Game Over
 $('btnRetry').onclick = ()=>{ if (_saveDirty) saveGame(); location.reload(); };

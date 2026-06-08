@@ -65,8 +65,8 @@
   #overlay { background: radial-gradient(circle at 50% 40%, rgba(40,20,60,.9), rgba(5,5,12,.98)); z-index: 300; }
   #overlay h1 { font-size: 60px; background: linear-gradient(90deg,#ffb347,#ff5e62,#ffb347); -webkit-background-clip:text; background-clip:text; color:transparent; letter-spacing: 3px; text-shadow: 0 0 40px rgba(255,120,40,.3); margin-bottom: 10px; }
   #overlay p { max-width: 600px; margin: 14px 0; opacity:.9; line-height:1.5; font-size: 17px; }
-  #overlay .keys { font-size:14px; opacity:.9; margin: 12px 0 30px; line-height:2.0; max-width:600px; background: rgba(0,0,0,0.5); padding: 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); text-align: left;}
-  #overlay .keys b { color:#ffd56b; display:inline-block; width: 110px;}
+  .keys { font-size:14px; opacity:.9; margin: 12px 0 30px; line-height:2.0; max-width:600px; background: rgba(0,0,0,0.5); padding: 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); text-align: left;}
+  .keys b { color:#ffd56b; display:inline-block; width: 110px;}
 
   #pauseMenu { background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); z-index: 250;}
   #pauseMenu h2 { font-size: 50px; color: #ffb347; letter-spacing: 4px; text-shadow: 0 0 20px rgba(255,150,40,0.5); margin-bottom: 20px;}
@@ -152,8 +152,42 @@
 
   body.mobile #overlay h1 { font-size: 40px; }
   body.mobile #overlay p { font-size: 14px; }
-  body.mobile #overlay .keys { font-size: 12px; line-height: 1.7; padding: 12px; }
-  body.mobile #overlay .keys b { width: 80px; }
+  .keys { font-size: 14px; }
+  body.mobile .keys { font-size: 12px; line-height: 1.7; padding: 12px; }
+  body.mobile .keys b { width: 80px; }
+
+  /* ---------- Stage 2: menu shell, hover feedback, settings, game-over ---------- */
+  .menu-buttons { display: flex; flex-direction: column; gap: 12px; width: 280px; max-width: 86vw; margin: 8px 0; }
+  .menu-btn { width: 100%; font-size: 19px; padding: 14px 24px; }
+  .menu-title { font-size: 34px; color: #ffd56b; letter-spacing: 2px; margin-bottom: 16px; text-shadow: 0 0 18px rgba(255,150,40,.4); }
+  .tagline { max-width: 560px; }
+  .save-note { margin-top: 12px; font-size: 12px; opacity: .65; max-width: 320px; }
+
+  .btn-back { background: linear-gradient(135deg,#3a4150,#262b36); }
+  .btn-donate { background: linear-gradient(135deg,#e9457a,#b3246b); }
+  .btn-soon { opacity: .55; }
+
+  /* hover / keyboard-focus feedback (desktop) — brighten + lift + glow */
+  .btn, .menu-btn, .util-btn, .tbtn, .upg-btn, .sys-btn, #shopBtnDesktop, .close-btn, .act-btn {
+    transition: transform .09s ease, filter .09s ease, box-shadow .09s ease; }
+  .btn:hover, .menu-btn:hover, .upg-btn:hover, #shopBtnDesktop:hover {
+    transform: scale(1.05); filter: brightness(1.2); box-shadow: 0 0 22px rgba(255,200,120,.45); }
+  .btn:focus-visible, .menu-btn:focus-visible, .upg-btn:focus-visible, #shopBtnDesktop:focus-visible {
+    outline: 3px solid #ffd56b; outline-offset: 3px; filter: brightness(1.15); }
+  .upg-btn:hover { box-shadow: 0 0 16px rgba(139,224,255,.35); }
+
+  /* settings rows */
+  .set-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 300px; max-width: 86vw;
+             background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; font-size: 15px; }
+  .set-row input[type=range] { flex: 1; accent-color: #ffb347; }
+  .set-row input[type=checkbox] { width: 20px; height: 20px; accent-color: #ffb347; }
+
+  /* game over screen */
+  #gameOverScreen { background: radial-gradient(circle at 50% 40%, rgba(60,10,10,.92), rgba(5,5,12,.98)); z-index: 320; }
+  #gameOverScreen h1 { font-size: 56px; color: #ff5e62; text-shadow: 0 0 30px rgba(255,60,60,.5); margin-bottom: 8px; }
+  #gameOverScreen p { font-size: 18px; opacity: .9; margin-bottom: 18px; }
+  body.mobile .menu-title { font-size: 26px; }
+  body.mobile .menu-btn { font-size: 16px; padding: 12px 18px; }
 </style>
 </head>
 <body>
@@ -258,22 +292,68 @@
   <button class="btn" onclick="location.reload()">PLAY AGAIN</button>
 </div>
 
+<!-- HOME -->
 <div id="overlay" class="overlay-screen">
   <h1>EMBERFALL</h1>
-  <p>Find and Cleanse the 3 <b>Cursed Obelisks</b> to summon the Leviathan!<br><b style="color:#ff3b3b">WARNING: You must fully upgrade and repair your Ship to survive the final battle!</b></p>
-  <div class="keys">
-    <b>Mouse</b> Look around (drag if your browser won't lock the pointer)<br>
-    <b>WASD</b> Move &nbsp;&nbsp;&nbsp; <b>Shift</b> Dash<br>
-    <b>Left-Click</b> Melee &nbsp;&nbsp;&nbsp; <b>Right-Click</b> Magic Bolt<br>
-    <b>T</b> Dig Tunnel &nbsp;&nbsp;&nbsp; <b>F</b> Enter/Travel Tunnels<br>
-    <b>B</b> Board/Leave Ship &nbsp;&nbsp;&nbsp; <b>R</b> Cleanse Obelisk &nbsp;&nbsp;&nbsp; <b>M</b> Map<br>
-    <b>E</b> Climb Tree (Safe from ground foes)<br>
-    <b>TAB</b> Open Upgrades Shop (Pauses Game)<br>
+  <p class="tagline">Cleanse the cursed worlds. Slay the bosses. Save Emberfall.</p>
+  <div class="menu-buttons">
+    <button class="btn menu-btn" id="btnPlay">▶ Play</button>
+    <button class="btn menu-btn btn-alt" id="btnShop">🛒 Shop</button>
+    <button class="btn menu-btn" id="btnSettings">⚙️ Settings</button>
+    <button class="btn menu-btn btn-back" id="btnHowto">❓ How to Play</button>
+    <button class="btn menu-btn btn-donate" id="btnDonate">❤️ Donate</button>
   </div>
-  <button class="btn" id="startBtn" style="margin-bottom: 10px;">MISSION PLAY (STORY)</button>
-  <button class="btn" id="startFreeBtn" style="background: linear-gradient(135deg,#4f9dff,#8b5cf6);">FREE PLAY (ENDLESS)</button>
   <div class="credit">A game by <b>Noam Rapp</b></div>
   <div class="copyright">© 2026 Noam Rapp&nbsp;·&nbsp;All Rights Reserved</div>
+  <div class="save-note" id="saveNote"></div>
+</div>
+
+<!-- MODE SELECT -->
+<div id="modeScreen" class="overlay-screen hidden" style="z-index:300;">
+  <h2 class="menu-title">Choose Mode</h2>
+  <div class="menu-buttons">
+    <button class="btn menu-btn" id="btnContinue">▶ Continue Story</button>
+    <button class="btn menu-btn btn-alt" id="btnNewStory">✨ New Story</button>
+    <button class="btn menu-btn" id="btnFreePlay">🌐 Free Play (Endless)</button>
+    <button class="btn menu-btn btn-back" id="btnModeBack">← Back</button>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="settingsScreen" class="overlay-screen hidden" style="z-index:300;">
+  <h2 class="menu-title">⚙️ Settings</h2>
+  <label class="set-row">🎵 Music <input type="range" id="setMusic" min="0" max="1" step="0.05"></label>
+  <label class="set-row">🔊 Sound FX <input type="range" id="setSfx" min="0" max="1" step="0.05"></label>
+  <label class="set-row">🔇 Mute All <input type="checkbox" id="setMute"></label>
+  <div class="menu-buttons">
+    <button class="btn menu-btn btn-alt" id="btnFullscreen">⛶ Toggle Fullscreen</button>
+    <button class="btn menu-btn btn-quit" id="btnReset">🗑️ Reset Progress</button>
+    <button class="btn menu-btn btn-back" id="btnSettingsBack">← Back</button>
+  </div>
+</div>
+
+<!-- HOW TO PLAY -->
+<div id="howtoScreen" class="overlay-screen hidden" style="z-index:300;">
+  <h2 class="menu-title">❓ How to Play</h2>
+  <p class="tagline"><b>Objective:</b> Complete missions and beat each world's boss to expand the world and unlock the next — earn coins, upgrade your gear, and survive.</p>
+  <div class="keys">
+    <b>Mouse / Drag</b> Look &nbsp;&nbsp;&nbsp; <b>WASD / Joystick</b> Move &nbsp;&nbsp;&nbsp; <b>Shift</b> Dash<br>
+    <b>Left-Click</b> Melee &nbsp;&nbsp;&nbsp; <b>Right-Click</b> Magic Bolt<br>
+    <b>T</b> Dig Tunnel &nbsp;&nbsp;&nbsp; <b>F</b> Enter/Travel Tunnels &nbsp;&nbsp;&nbsp; <b>E</b> Climb Tree<br>
+    <b>B</b> Board/Leave Ship &nbsp;&nbsp;&nbsp; <b>R</b> Cleanse Obelisk &nbsp;&nbsp;&nbsp; <b>M</b> Map<br>
+    <b>TAB</b> Upgrades Shop &nbsp;&nbsp;&nbsp; <b>ESC</b> Pause<br>
+  </div>
+  <div class="menu-buttons"><button class="btn menu-btn btn-back" id="btnHowtoBack">← Back</button></div>
+</div>
+
+<!-- GAME OVER -->
+<div id="gameOverScreen" class="overlay-screen hidden">
+  <h1>YOU FELL</h1>
+  <p id="gameOverStats">Level 1 · 0 Slain · 0 Gold</p>
+  <div class="menu-buttons">
+    <button class="btn menu-btn" id="btnRetry">⟳ Return to Menu</button>
+  </div>
+  <div class="save-note">Your progress is saved.</div>
 </div>
 
 <script type="importmap">
@@ -286,32 +366,38 @@ import * as THREE from 'three';
 
 let audioCtxStarted = false;
 const sfx = {};
-let drone, lute;
+let drone, lute, masterVol, musicBus, sfxBus;
+
+function sliderToDb(v){ return v <= 0.001 ? -60 : 20*Math.log10(v); }   // 1.0 -> 0dB, 0 -> silence
+function applyAudioSettings(){
+    if(!audioCtxStarted) return;
+    musicBus.volume.value = sliderToDb(settings.musicVol);
+    sfxBus.volume.value   = sliderToDb(settings.sfxVol);
+    masterVol.mute = !!settings.muted;
+}
 
 function initAudio() {
     if(audioCtxStarted) return;
     Tone.start();
     audioCtxStarted = true;
-    const masterVol = new Tone.Volume(-14).toDestination();
+    masterVol = new Tone.Volume(-14).toDestination();
+    musicBus  = new Tone.Volume(0).connect(masterVol);   // controlled by Settings → Music
+    sfxBus    = new Tone.Volume(0).connect(masterVol);   // controlled by Settings → Sound FX
 
-    sfx.swing = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.01, decay: 0.15, sustain: 0 } }).connect(masterVol);
-    sfx.hit = new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 2, envelope: { attack: 0.01, decay: 0.2, sustain: 0 } }).connect(masterVol);
-    sfx.magic = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.01, decay: 0.2, sustain: 0 } }).connect(masterVol);
-    sfx.cannon = new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 4, envelope: { attack: 0.01, decay: 0.5, sustain: 0 } }).connect(masterVol);
-    sfx.coin = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.01, decay: 0.4, sustain: 0 } }).connect(masterVol);
-    sfx.heal = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.05, decay: 0.4, sustain: 0.2, release: 0.5 } }).connect(masterVol);
-    
-    // Lowered level up volume significantly
-    sfx.poly = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'square' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0.2, release: 1 } }).connect(new Tone.Volume(-10).connect(masterVol));
-    
-    sfx.dig = new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0 } }).connect(masterVol);
+    sfx.swing = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.01, decay: 0.15, sustain: 0 } }).connect(sfxBus);
+    sfx.hit = new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 2, envelope: { attack: 0.01, decay: 0.2, sustain: 0 } }).connect(sfxBus);
+    sfx.magic = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.01, decay: 0.2, sustain: 0 } }).connect(sfxBus);
+    sfx.cannon = new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 4, envelope: { attack: 0.01, decay: 0.5, sustain: 0 } }).connect(sfxBus);
+    sfx.coin = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.01, decay: 0.4, sustain: 0 } }).connect(sfxBus);
+    sfx.heal = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.05, decay: 0.4, sustain: 0.2, release: 0.5 } }).connect(sfxBus);
+    sfx.poly = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'square' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0.2, release: 1 } }).connect(new Tone.Volume(-10).connect(sfxBus));
+    sfx.dig = new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0 } }).connect(sfxBus);
+    sfx.tick = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.02 } }).connect(new Tone.Volume(-8).connect(sfxBus));
 
-    // Boosted background music
-    const droneFilter = new Tone.Filter(300, "lowpass").connect(masterVol);
+    const droneFilter = new Tone.Filter(300, "lowpass").connect(musicBus);
     drone = new Tone.Oscillator("D2", "sawtooth").connect(droneFilter);
     drone.volume.value = -8; drone.start();
-    
-    lute = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.02, decay: 1.5, sustain: 0 } }).connect(masterVol);
+    lute = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.02, decay: 1.5, sustain: 0 } }).connect(musicBus);
     lute.volume.value = 0;
 
     const arpNotes = ["D3", "F3", "A3", "C4", "A3", "G3", "F3", "E3"];
@@ -321,7 +407,9 @@ function initAudio() {
         step++;
     }, "4n");
     Tone.Transport.start();
+    applyAudioSettings();
 }
+function playTick(){ if (audioCtxStarted){ try { sfx.tick.triggerAttackRelease("C6", "32n"); } catch(_){} } }
 
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -466,8 +554,6 @@ function setupGameMode(mode) {
         obelisks.forEach(ob => { scene.remove(ob.obj); });
         obelisks.length = 0;
         if($('bCleanse')) $('bCleanse').style.display = 'none';
-        const keysText = document.querySelector('#overlay .keys').innerHTML;
-        document.querySelector('#overlay .keys').innerHTML = keysText.replace('<b>R</b> Cleanse Obelisk &nbsp;&nbsp;&nbsp; ', '');
     }
 }
 
@@ -864,7 +950,7 @@ window.buyUpgrade = function(type){
       floatText(player.pos, 'SHIP UPGRADED!', '#8a5a2b', 26);
     } else showToast('Not enough gold!', '#ff7a7a');
   }
-  updateHUD();
+  markDirty(); updateHUD();
 };
 
 window.repairShip = function(){
@@ -881,7 +967,7 @@ window.repairShip = function(){
     player.gold -= cost; ship.hp=ship.maxHp; ship.dmgCd=0;
     addEffect(ship.pos.clone().add(new THREE.Vector3(0,1.6,0)), 3.5, 0x66ccff); showToast('Ship fully repaired!','#8be0ff');
   }
-  updateHUD();
+  markDirty(); updateHUD();
 };
 
 const keys = {}; const touchInput = { fwd: 0, right: 0 };
@@ -1097,7 +1183,7 @@ function addEffect(pos,maxR,color){
 function killEnemy(e){
   if (e.dead) return; e.dead=true;
   if (audioCtxStarted) sfx.hit.triggerAttackRelease("E1", "8n");
-  gainXp(e.xp); player.gold+=e.gold; player.kills++;
+  gainXp(e.xp); player.gold+=e.gold; player.kills++; markDirty();
   if (e.type === 'toxic') createPuddle(e.pos);
   spawnPickup(e.pos.x,e.pos.z,'gold');
   if (Math.random()<0.3) spawnPickup(e.pos.x+1,e.pos.z,'health');
@@ -1124,12 +1210,9 @@ function hurtPlayer(dmg){
 
 function die(){
   player.alive=false; setReticle(false); if (document.pointerLockElement === canvas) document.exitPointerLock();
-  const ov=document.getElementById('overlay'); ov.classList.remove('hidden');
-  ov.querySelector('h1').textContent='YOU FELL';
-  ov.querySelector('p').textContent=`Level ${player.level} | ${player.kills} Slain | ${player.gold} Gold`;
-  ov.querySelector('.keys').style.display='none';
-  const btn=document.getElementById('startBtn'); btn.textContent='RISE AGAIN'; btn.onclick=()=>location.reload();
-  const startFreeBtn=document.getElementById('startFreeBtn'); startFreeBtn.style.display='none';
+  if (typeof saveGame === 'function' && _saveDirty) saveGame();      // persist final state
+  $('gameOverStats').textContent = `Level ${player.level} · ${player.kills} Slain · ${player.gold} Gold`;
+  $('gameOverScreen').classList.remove('hidden');
 }
 
 function damageShip(dmg){
@@ -1500,7 +1583,7 @@ function update(dt){
     const d=Math.hypot(p.obj.position.x-collectCenter.x, p.obj.position.z-collectCenter.z);
     if (d < pullRadius) { p.obj.position.x+=(collectCenter.x-p.obj.position.x)*Math.min(1,dt*6); p.obj.position.z+=(collectCenter.z-p.obj.position.z)*Math.min(1,dt*6); }
     if (d < grabRadius) {
-      if (p.kind==='gold'){ const g=10+Math.floor(Math.random()*15); player.gold+=g; if (audioCtxStarted) sfx.coin.triggerAttackRelease("B5", "16n"); floatText(player.pos,'+'+g+'g','#ffd24a',16); }
+      if (p.kind==='gold'){ const g=10+Math.floor(Math.random()*15); player.gold+=g; markDirty(); if (audioCtxStarted) sfx.coin.triggerAttackRelease("B5", "16n"); floatText(player.pos,'+'+g+'g','#ffd24a',16); }
       else { const h=Math.round(player.maxHp*0.3); player.hp=Math.min(player.maxHp,player.hp+h); if (audioCtxStarted) sfx.heal.triggerAttackRelease("E5", "8n"); floatText(player.pos,'+'+h+' HP','#ff8a9d',16); }
       scene.remove(p.obj); pickups.splice(i,1);
     }
@@ -1515,6 +1598,8 @@ function update(dt){
   if (toastTimer>0){ toastTimer-=dt; if(toastTimer<=0) $('toast').classList.remove('show'); }
   for (const el of floatersEl.children){ if(el._wp) projectFloater(el); }
   updateHUD();
+
+  _saveTimer += dt; if (_saveDirty && _saveTimer > 2){ saveGame(); _saveTimer = 0; }   // debounced autosave
 }
 
 function loop(){ requestAnimationFrame(loop); update(Math.min(0.05,clock.getDelta())); renderer.render(scene,camera); }
@@ -1523,17 +1608,129 @@ loop();
 function resize(){ renderer.setSize(innerWidth,innerHeight,false); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
 addEventListener('resize',resize); resize();
 
+// ============================================================
+//  SAVE SYSTEM (Stage 1) — on-device localStorage persistence
+// ============================================================
+const SAVE_KEY = 'emberfall_save_v1';
+let _saveDirty = false, _saveTimer = 0;
+function defaultSettings(){ return { musicVol: 1.0, sfxVol: 1.0, muted: false }; }
+let settings = defaultSettings();                 // wired to audio/UI in Stage 2
+let cosmetics = { owned:{character:['default'],weapon:['default'],magic:['default']},   // populated in Stage 3
+                  equipped:{character:'default',weapon:'default',magic:'default'} };
+
+const _num = (v,d)=> (typeof v==='number' && isFinite(v)) ? v : d;
+const _idx = (v,len)=>{ v=(v|0); return v<0?0:(v>=len?len-1:v); };
+
+function buildSaveObject(){
+  return {
+    version: 1,
+    profile: { coins: player.gold, owned: cosmetics.owned, equipped: cosmetics.equipped, settings },
+    character: { level:player.level, xp:player.xp, xpNext:player.xpNext, maxHp:player.maxHp,
+                 atk:player.atk, magAtk:player.magAtk, speed:player.speed, tunnels:player.tunnels },
+    upgrades: { wepIdx, magIdx, tunIdx, shipIdx },
+    campaign: { worldUnlocked:1, bossesBeaten:[], missionState:null }   // scaffold for Stage 4
+  };
+}
+function applySave(d){
+  try {
+    if (!d || d.version !== 1) return false;
+    const pr=d.profile||{}, ch=d.character||{}, up=d.upgrades||{};
+    player.gold   = _num(pr.coins, player.gold);
+    settings      = Object.assign(defaultSettings(), pr.settings||{});
+    if (pr.owned)    cosmetics.owned    = pr.owned;
+    if (pr.equipped) cosmetics.equipped = pr.equipped;
+    player.level=_num(ch.level,player.level); player.xp=_num(ch.xp,player.xp); player.xpNext=_num(ch.xpNext,player.xpNext);
+    player.maxHp=_num(ch.maxHp,player.maxHp); player.hp=player.maxHp;     // always start a session at full HP
+    player.atk=_num(ch.atk,player.atk); player.magAtk=_num(ch.magAtk,player.magAtk);
+    player.speed=_num(ch.speed,player.speed); player.tunnels=_num(ch.tunnels,player.tunnels);
+    wepIdx=_idx(up.wepIdx,weaponTiers.length); magIdx=_idx(up.magIdx,magicTiers.length);
+    tunIdx=_idx(up.tunIdx,tunnelTiers.length); shipIdx=_idx(up.shipIdx,shipTiers.length);
+    // re-derive visuals / derived state from saved tiers
+    const blade=hero.userData.sword.children[0], wt=weaponTiers[wepIdx];
+    blade.material.color.setHex(wt.color); blade.material.emissive.setHex(wt.glow); blade.scale.set(1, wt.scale, wt.scale);
+    ship.maxHp=shipTiers[shipIdx].maxHp; ship.hp=ship.maxHp; ship.destroyed=false; ship.obj.visible=true; updateShipVisuals();
+    const mName=magicTiers[magIdx].name.split(' ')[0].toUpperCase(), mHex='#'+magicTiers[magIdx].color.toString(16).padStart(6,'0');
+    if($('magInd')){ $('magInd').textContent=mName; $('magInd').style.background=mHex; }
+    if($('mobileMagInd')){ $('mobileMagInd').textContent=mName; $('mobileMagInd').style.color=mHex; }
+    return true;
+  } catch(err){ console.warn('applySave failed:', err); return false; }
+}
+function saveGame(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(buildSaveObject())); _saveDirty=false; } catch(_){} }
+function markDirty(){ _saveDirty = true; }
+function hasSave(){ try { return !!localStorage.getItem(SAVE_KEY); } catch(_){ return false; } }
+function loadGame(){
+  let raw=null; try { raw=localStorage.getItem(SAVE_KEY); } catch(_){}
+  if(!raw) return false;
+  let data=null; try { data=JSON.parse(raw); } catch(_){ data=null; }
+  if(!data){ try{ localStorage.removeItem(SAVE_KEY); }catch(_){} return false; }   // corrupt → wipe, default
+  return applySave(data);
+}
+function resetProgress(){ try { localStorage.removeItem(SAVE_KEY); } catch(_){} location.reload(); }
+window.resetProgress = resetProgress;   // used by Settings → Reset (Stage 2)
+addEventListener('pagehide', ()=>{ if(_saveDirty) saveGame(); });
+addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden' && _saveDirty) saveGame(); });
+
+loadGame();   // boot: restore profile if a save exists, else clean defaults
+updateHUD();
+
 function startGame(mode) {
-  initAudio(); 
-  document.getElementById('overlay').classList.add('hidden'); 
+  initAudio();
+  hideAllMenus();
   setupGameMode(mode);
   started=true; clock.getDelta(); spawnWave(6); spawnMimics(10);
   if (!isTouch) { try { canvas.requestPointerLock(); } catch(_){} }
   showToast('Slay the shadows!','#ffd56b'); 
 }
 
-$('startBtn').onclick=()=>startGame('mission');
-$('startFreeBtn').onclick=()=>startGame('free');
+// ============================================================
+//  MENU SHELL (Stage 2)
+// ============================================================
+const MENU_SCREENS = ['overlay','modeScreen','settingsScreen','howtoScreen','gameOverScreen'];
+function hideAllMenus(){ MENU_SCREENS.forEach(s=>{ const el=$(s); if(el) el.classList.add('hidden'); }); }
+function showScreen(id){ MENU_SCREENS.forEach(s=>{ const el=$(s); if(el) el.classList.toggle('hidden', s!==id); }); }
+
+let _menuToastTO=null;
+function menuNotify(msg, col){ const t=$('toast'); t.textContent=msg; t.style.color=col||'#ffd56b'; t.classList.add('show'); clearTimeout(_menuToastTO); _menuToastTO=setTimeout(()=>t.classList.remove('show'),2200); }
+
+function refreshHome(){
+  const save = hasSave();
+  $('btnContinue').style.display = save ? '' : 'none';
+  $('saveNote').textContent = save ? 'Progress is saved on this device.' : 'Sign-in/cloud save coming soon — progress saves on this device.';
+}
+
+// Home buttons
+$('btnPlay').onclick     = ()=>{ refreshHome(); showScreen('modeScreen'); };
+$('btnShop').onclick     = ()=> menuNotify('🛒 Skin shop arrives in the next update!', '#8be0ff');
+$('btnSettings').onclick = ()=>{ syncSettingsUI(); showScreen('settingsScreen'); };
+$('btnHowto').onclick    = ()=> showScreen('howtoScreen');
+$('btnDonate').onclick   = ()=>{ try { window.open('https://paypal.me/gershonrapp','_blank','noopener'); } catch(_){} };
+
+// Mode select
+$('btnContinue').onclick = ()=> startGame('mission');
+$('btnNewStory').onclick = ()=>{ if (!hasSave() || confirm('Start a NEW STORY?\nThis erases your campaign progress. Your coins and skins are kept.')) { /* campaign reset hook (Stage 4) */ startGame('mission'); } };
+$('btnFreePlay').onclick = ()=> startGame('free');
+$('btnModeBack').onclick = ()=> showScreen('overlay');
+
+// Settings
+function syncSettingsUI(){ $('setMusic').value = settings.musicVol; $('setSfx').value = settings.sfxVol; $('setMute').checked = !!settings.muted; }
+$('setMusic').oninput = (e)=>{ settings.musicVol = parseFloat(e.target.value); applyAudioSettings(); saveGame(); };
+$('setSfx').oninput   = (e)=>{ settings.sfxVol   = parseFloat(e.target.value); applyAudioSettings(); saveGame(); };
+$('setMute').onchange = (e)=>{ settings.muted = e.target.checked; applyAudioSettings(); saveGame(); };
+$('btnFullscreen').onclick = ()=>{ if(!document.fullscreenElement){ document.documentElement.requestFullscreen().catch(()=>{}); } else { document.exitFullscreen(); } };
+$('btnReset').onclick = ()=>{ if (confirm('Reset ALL progress?\nThis permanently deletes your coins, upgrades, skins, and campaign.')) resetProgress(); };
+$('btnSettingsBack').onclick = ()=> showScreen('overlay');
+
+// How to Play
+$('btnHowtoBack').onclick = ()=> showScreen('overlay');
+
+// Game Over
+$('btnRetry').onclick = ()=>{ if (_saveDirty) saveGame(); location.reload(); };
+
+// Hover/selection feedback — soft tick on any menu/HUD button (audio starts on first interaction)
+addEventListener('pointerdown', ()=>{ if(!audioCtxStarted) initAudio(); }, { once:true });
+document.body.addEventListener('mouseover', (e)=>{ if (e.target.closest('.btn,.menu-btn,.upg-btn,#shopBtnDesktop')) playTick(); });
+
+refreshHome();
 </script>
 </body>
 </html>

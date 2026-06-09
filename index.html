@@ -865,6 +865,7 @@ const SKINS = {
     { id:'default', name:'Blue Soldier',   cost:0,   cloth:0x3060c0, cloth2:0x224090, swatch:'#3a6cd0' },
     { id:'crimson', name:'Crimson Knight',  cost:150, cloth:0xb33030, cloth2:0x7a1d1d, swatch:'#b33030' },
     { id:'forest',  name:'Forest Ranger',   cost:150, cloth:0x2e7d4f, cloth2:0x1d5436, swatch:'#2e7d4f' },
+    { id:'recon',   name:'Recon Trooper',   cost:250, cloth:0x9c8b54, cloth2:0x33415e, swatch:'#9c8b54' },   // olive tac-vest + navy camo
   ],
   weapon: [
     { id:'default', name:'Standard Steel',  cost:0,                            swatch:'#cdd5e0' }, // uses weapon-tier color
@@ -2167,7 +2168,17 @@ $('btnDonate').onclick   = ()=>{ try { window.open('https://paypal.me/gershonrap
 
 // Mode select
 $('btnContinue').onclick = ()=> startGame('mission');
-$('btnNewStory').onclick = ()=>{ if (!hasSave() || confirm('Start a NEW STORY?\nThis erases your campaign progress. Your coins and skins are kept.')) { /* campaign reset hook (Stage 4) */ startGame('mission'); } };
+$('btnNewStory').onclick = ()=>{
+  if (!hasSave() || confirm('Start a NEW STORY?\nThis erases your campaign progress. Your coins and skins are kept.')) {
+    // Wipe campaign progress so we begin at World 1. Coins & skins live elsewhere in the save and are untouched.
+    campaign.bossesBeaten = [];
+    campaign.index = 0;
+    campaign.worldRadius = WORLDS[0].radius;
+    campaign.curRadius   = WORLDS[0].radius;
+    saveGame();                 // persist the fresh start (Continue + reload now reflect a new story)
+    startGame('mission');
+  }
+};
 $('btnFreePlay').onclick = ()=> startGame('free');
 $('btnModeBack').onclick = ()=> showScreen('overlay');
 

@@ -115,15 +115,15 @@
           background: rgba(20,24,40,.7); box-shadow: 0 3px 10px rgba(0,0,0,.45); }
   .tbtn:active { transform: scale(.92); filter: brightness(1.3); }
   
-  /* Ergonomic Thumb Arc */
-  #bAtk  { right: max(20px, env(safe-area-inset-right));  bottom: max(30px, env(safe-area-inset-bottom));  width: 90px; height: 90px; font-size: 32px; background: linear-gradient(135deg,#ff7a18,#ff3b3b); }
-  #bMag  { right: max(30px, env(safe-area-inset-right)); bottom: max(135px, env(safe-area-inset-bottom));  width: 70px; height: 70px; font-size: 26px; background: linear-gradient(135deg,#4f9dff,#8b5cf6); }
-  #mobileMagInd { position: absolute; right: max(25px, env(safe-area-inset-right)); bottom: max(210px, env(safe-area-inset-bottom)); width: 80px; text-align: center; color: #8be0ff; font-weight: bold; font-size: 11px; pointer-events: none; text-shadow: 0 2px 4px #000; letter-spacing: 1px;}
-  #bDash { right: max(125px, env(safe-area-inset-right));  bottom: max(40px, env(safe-area-inset-bottom)); width: 65px; height: 65px; font-size: 24px; }
-  
-  /* Horizontal Bottom Center Row for Utilities */
-  #tcol { position:absolute; bottom: max(15px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); display:flex; flex-direction:row; gap:12px; }
-  #tcol .tbtn { position: static; width: 48px; height: 48px; font-size: 20px; }
+  /* Right-hand combat cluster — vertical stack stays narrow so it never overlaps the utility bar */
+  #bAtk  { right: max(20px, env(safe-area-inset-right)); bottom: max(26px, env(safe-area-inset-bottom));  width: 86px; height: 86px; font-size: 32px; background: linear-gradient(135deg,#ff7a18,#ff3b3b); }
+  #bMag  { right: max(30px, env(safe-area-inset-right)); bottom: max(122px, env(safe-area-inset-bottom)); width: 66px; height: 66px; font-size: 26px; background: linear-gradient(135deg,#4f9dff,#8b5cf6); }
+  #bDash { right: max(36px, env(safe-area-inset-right)); bottom: max(196px, env(safe-area-inset-bottom)); width: 58px; height: 58px; font-size: 22px; background: linear-gradient(135deg,#3ad0c0,#1f8f86); }
+  #mobileMagInd { position: absolute; right: max(24px, env(safe-area-inset-right)); bottom: max(258px, env(safe-area-inset-bottom)); width: 84px; text-align: center; color: #8be0ff; font-weight: bold; font-size: 11px; pointer-events: none; text-shadow: 0 2px 4px #000; letter-spacing: 1px;}
+
+  /* Utility buttons — tidy 2-row grid, bottom-center, capped width so it clears the combat cluster */
+  #tcol { position:absolute; bottom: max(14px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); display:flex; flex-wrap:wrap; justify-content:center; align-content:flex-end; gap:9px; width: min(80vw, 290px); }
+  #tcol .tbtn { position: static; width: 46px; height: 46px; font-size: 19px; }
   
   #bPause { position:absolute; right: max(10px, env(safe-area-inset-right)); top: max(10px, env(safe-area-inset-top)); width: 48px; height: 48px; font-size: 20px; }
 
@@ -288,13 +288,15 @@
   <div id="mobileMagInd">APPRENTICE</div>
   <div id="bDash" class="tbtn">💨</div>
   <div id="tcol">
+    <!-- row 1: world / traversal -->
     <div id="bDig"  class="tbtn">⛏️</div>
     <div id="bTun"  class="tbtn">🚇</div>
     <div id="bTree" class="tbtn">🌲</div>
-    <div id="bBinoc" class="tbtn" style="border-color:#8be0ff;">🔭</div>
-    <div id="bShift" class="tbtn" style="border-color:#b07cff;">🦎</div>
     <div id="bShip" class="tbtn">⛵</div>
     <div id="bCleanse" class="tbtn" style="border-color:#a855f7;">🔮</div>
+    <!-- row 2: scout / stealth / menus -->
+    <div id="bBinoc" class="tbtn" style="border-color:#8be0ff;">🔭</div>
+    <div id="bShift" class="tbtn" style="border-color:#b07cff;">🦎</div>
     <div id="bMap" class="tbtn" style="border-color:#4f9dff;">🗺️</div>
     <div id="bShop" class="tbtn" style="background: rgba(60,40,20,0.8); border-color:#ffd56b;">🛒</div>
   </div>
@@ -1432,7 +1434,7 @@ function toggleTree(){
   }
 }
 
-let camYaw = 0.6, camPitch = 0.5, camDist = 18, binocZoom = 0;
+let camYaw = 0.6, camPitch = 0.5, camDist = 18;
 canvas.addEventListener('contextmenu', e=>e.preventDefault());
 
 addEventListener('mousemove', e=>{
@@ -2229,9 +2231,20 @@ function update(dt){
   }
 
   if (player.binocActive && !player.inTree){ player.binocActive=false; $('binocOverlay').classList.add('hidden'); }   // safety: dropped from tree
-  binocZoom += ((player.binocActive ? 34 : 0) - binocZoom) * Math.min(1, dt*4);   // smooth zoom-out for scouting (keeps looking at the player, not the sky)
-  const focus = player.onShip ? ship.pos : player.pos; const cx=Math.sin(camYaw)*Math.cos(camPitch), cz=Math.cos(camYaw)*Math.cos(camPitch), cy=Math.sin(camPitch); const pOffY = player.inTree ? 3.0 : 2.0; const target=focus.clone().add(new THREE.Vector3(0,pOffY,0));
-  camera.position.lerp(target.clone().add(new THREE.Vector3(cx,cy,cz).multiplyScalar(camDist + binocZoom)), Math.min(1,dt*10)); camera.lookAt(target);
+  const focus = player.onShip ? ship.pos : player.pos; const cx=Math.sin(camYaw)*Math.cos(camPitch), cz=Math.cos(camYaw)*Math.cos(camPitch), cy=Math.sin(camPitch);
+  let targetFov;
+  if (player.binocActive){
+    // Binocular scouting: first-person view from the treetop — DRAG to look around; narrowed FOV = magnification
+    const eye = focus.clone().add(new THREE.Vector3(0, 5.4, 0));
+    camera.position.lerp(eye, Math.min(1, dt*12));
+    camera.lookAt(eye.clone().add(new THREE.Vector3(-cx, -cy, -cz).multiplyScalar(90)));
+    targetFov = 30;
+  } else {
+    const pOffY = player.inTree ? 3.0 : 2.0; const target=focus.clone().add(new THREE.Vector3(0,pOffY,0));
+    camera.position.lerp(target.clone().add(new THREE.Vector3(cx,cy,cz).multiplyScalar(camDist)), Math.min(1,dt*10)); camera.lookAt(target);
+    targetFov = 60;
+  }
+  if (Math.abs(camera.fov - targetFov) > 0.05){ camera.fov += (targetFov - camera.fov) * Math.min(1, dt*8); camera.updateProjectionMatrix(); }
   sun.position.set(focus.x+40,80,focus.z+30); sun.target.position.copy(focus);
 
   if (toastTimer>0){ toastTimer-=dt; if(toastTimer<=0) $('toast').classList.remove('show'); }

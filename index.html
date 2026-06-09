@@ -78,9 +78,10 @@
 
   /* BINOCULAR VIEW */
   #binocOverlay.hidden { display: none !important; }
-  #binocOverlay { position: fixed; inset: 0; z-index: 85; pointer-events: auto; cursor: pointer;
+  /* pointer-events:none is critical — it must NOT capture drag-to-look or button taps underneath */
+  #binocOverlay { position: fixed; inset: 0; z-index: 85; pointer-events: none;
     background: radial-gradient(ellipse 46% 60% at 50% 46%, transparent 60%, rgba(0,0,0,.82) 100%); }
-  #binocOverlay::after { content: "🔭 SCOUTING — press V (or tap) to lower"; position: absolute; bottom: 8%; left: 0; right: 0; text-align: center; color: #cfe8ff; font-weight: bold; letter-spacing: 1px; text-shadow: 0 2px 8px #000; }
+  #binocOverlay::after { content: "🔭 SCOUTING — drag to look · press V or 🔭 to lower"; position: absolute; bottom: 8%; left: 0; right: 0; text-align: center; color: #cfe8ff; font-weight: bold; letter-spacing: 1px; text-shadow: 0 2px 8px #000; }
 
   .btn { pointer-events:auto; cursor:pointer; background: linear-gradient(135deg,#ff7a18,#ff3b3b); border:none; color:#fff; font-size:20px; font-weight:bold; padding:16px 48px; border-radius:40px; letter-spacing:1px; box-shadow:0 6px 24px rgba(255,80,40,.4); transition:transform .1s; margin-top: 10px;}
   .btn:hover { transform: scale(1.05); }
@@ -119,7 +120,8 @@
   #bAtk  { right: max(20px, env(safe-area-inset-right)); bottom: max(26px, env(safe-area-inset-bottom));  width: 86px; height: 86px; font-size: 32px; background: linear-gradient(135deg,#ff7a18,#ff3b3b); }
   #bMag  { right: max(30px, env(safe-area-inset-right)); bottom: max(122px, env(safe-area-inset-bottom)); width: 66px; height: 66px; font-size: 26px; background: linear-gradient(135deg,#4f9dff,#8b5cf6); }
   #bDash { right: max(36px, env(safe-area-inset-right)); bottom: max(196px, env(safe-area-inset-bottom)); width: 58px; height: 58px; font-size: 22px; background: linear-gradient(135deg,#3ad0c0,#1f8f86); }
-  #mobileMagInd { position: absolute; right: max(24px, env(safe-area-inset-right)); bottom: max(258px, env(safe-area-inset-bottom)); width: 84px; text-align: center; color: #8be0ff; font-weight: bold; font-size: 11px; pointer-events: none; text-shadow: 0 2px 4px #000; letter-spacing: 1px;}
+  /* magic tier label sits just LEFT of the magic button (not stacked over the dash) */
+  #mobileMagInd { position: absolute; right: max(100px, env(safe-area-inset-right)); bottom: max(146px, env(safe-area-inset-bottom)); width: 78px; text-align: right; color: #8be0ff; font-weight: bold; font-size: 11px; pointer-events: none; text-shadow: 0 2px 4px #000; letter-spacing: 1px;}
 
   /* Utility buttons — tidy 2-row grid, bottom-center, capped width so it clears the combat cluster */
   #tcol { position:absolute; bottom: max(14px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); display:flex; flex-wrap:wrap; justify-content:center; align-content:flex-end; gap:9px; width: min(80vw, 290px); }

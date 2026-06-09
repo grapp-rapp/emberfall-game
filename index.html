@@ -33,7 +33,7 @@
   #stats div { margin: 4px 0; font-size: 14px; }
   #stats .num { color:#ffd56b; font-weight:bold; }
   
-  #upgrades { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 340px; padding: 24px; font-size: 14px; pointer-events: auto; z-index: 200; border: 1px solid #8be0ff; box-shadow: 0 10px 50px rgba(0,0,0,0.8); background: rgba(15,20,30,0.95); border-radius: 12px; }
+  #upgrades { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 340px; max-width: 92vw; max-height: 90vh; overflow-y: auto; padding: 24px; font-size: 14px; pointer-events: auto; z-index: 200; border: 1px solid #8be0ff; box-shadow: 0 10px 50px rgba(0,0,0,0.8); background: rgba(15,20,30,0.95); border-radius: 12px; }
   #upgrades.show { display: block; }
   #upgrades h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #ffd56b; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px;}
   .upg-btn { display: flex; justify-content: space-between; gap: 16px; background: rgba(255,255,255,0.05); padding: 10px 12px; margin-bottom: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: background 0.1s;}
@@ -42,7 +42,7 @@
   .upg-btn b { color: #8be0ff; }
   .upg-btn .cost { color: #ffd56b; font-weight: bold; }
   
-  #closeShopBtn { position: absolute; top: -12px; right: -12px; width: 34px; height: 34px; background: #ff3b3b; color: #fff; border: 2px solid #fff; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+  #closeShopBtn { position: sticky; float: right; top: 0; margin: -8px -8px 0 0; width: 34px; height: 34px; background: #ff3b3b; color: #fff; border: 2px solid #fff; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 5; }
   #shopBtnDesktop { bottom: 16px; right: 16px; padding: 12px 20px; font-weight: bold; color: #ffd56b; cursor: pointer; border-color: rgba(255,213,107,0.4); pointer-events: auto; transition: background 0.1s; }
   #shopBtnDesktop:hover { background: rgba(255,213,107,0.15); }
 
@@ -78,12 +78,9 @@
 
   /* BINOCULAR VIEW */
   #binocOverlay.hidden { display: none !important; }
-  #binocOverlay { position: fixed; inset: 0; z-index: 85; pointer-events: none;
-    background: radial-gradient(circle at 35% 50%, transparent 19%, rgba(0,0,0,.92) 21%),
-               radial-gradient(circle at 65% 50%, transparent 19%, rgba(0,0,0,.92) 21%),
-               rgba(0,0,0,.78);
-    -webkit-mask: linear-gradient(#000,#000); }
-  #binocOverlay::after { content: "🔭 SCOUTING — press V to lower"; position: absolute; bottom: 10%; left: 0; right: 0; text-align: center; color: #cfe8ff; font-weight: bold; letter-spacing: 1px; text-shadow: 0 2px 8px #000; }
+  #binocOverlay { position: fixed; inset: 0; z-index: 85; pointer-events: auto; cursor: pointer;
+    background: radial-gradient(ellipse 46% 60% at 50% 46%, transparent 60%, rgba(0,0,0,.82) 100%); }
+  #binocOverlay::after { content: "🔭 SCOUTING — press V (or tap) to lower"; position: absolute; bottom: 8%; left: 0; right: 0; text-align: center; color: #cfe8ff; font-weight: bold; letter-spacing: 1px; text-shadow: 0 2px 8px #000; }
 
   .btn { pointer-events:auto; cursor:pointer; background: linear-gradient(135deg,#ff7a18,#ff3b3b); border:none; color:#fff; font-size:20px; font-weight:bold; padding:16px 48px; border-radius:40px; letter-spacing:1px; box-shadow:0 6px 24px rgba(255,80,40,.4); transition:transform .1s; margin-top: 10px;}
   .btn:hover { transform: scale(1.05); }
@@ -193,6 +190,7 @@
   /* settings rows */
   .set-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 300px; max-width: 86vw;
              background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; font-size: 15px; }
+  .pause-settings { margin-bottom: 18px; }
   .set-row input[type=range] { flex: 1; accent-color: #ffb347; }
   .set-row input[type=checkbox] { width: 20px; height: 20px; accent-color: #ffb347; }
 
@@ -271,6 +269,7 @@
   <div class="upg-btn" onclick="buyUpgrade(5)"><span><b>[4]</b> Ship Armor: <span id="uShip">Ironclad</span></span> <span class="cost" id="cShip">250g</span></div>
   <div class="upg-btn" onclick="repairShip()"><span><b>[5]</b> Repair Ship</span> <span class="cost" id="cRepair">-</span></div>
   <div class="upg-btn" onclick="buyUpgrade(6)"><span><b>[6]</b> Binoculars <span style="opacity:.7;font-size:12px;">(scout from trees · press V)</span></span> <span class="cost" id="cBinoc">150g</span></div>
+  <div class="upg-btn" onclick="buyUpgrade(7)" style="border-color:#8b5cf6;"><span><b>[7]</b> Shapeshift +1 min <span style="opacity:.7;font-size:12px;">(hide · press C · <span id="shiftBank">0s</span> left)</span></span> <span class="cost" id="cShift">500g</span></div>
   <div class="upg-btn" id="upgSkinsBtn" style="justify-content:center; border-color:#8b5cf6; color:#c9a0ff;"><span><b>🎨</b> Buy / Equip Skins</span></div>
 </div>
 
@@ -278,6 +277,7 @@
 <div id="binocOverlay" class="hidden"></div>
 <div id="bossBar"><div id="bossFill"></div><div id="bossLabel">🐙 THE LEVIATHAN</div></div>
 <div id="objective"></div>
+<div id="shiftInd" style="display:none; position:fixed; top:74px; left:50%; transform:translateX(-50%); background:rgba(40,20,60,.7); border:1px solid #b07cff; color:#d9c2ff; font-weight:bold; font-size:14px; padding:5px 14px; border-radius:16px; z-index:88; pointer-events:none;">🦎 SHAPESHIFTED</div>
 <div id="reticle"></div>
 
 <div id="touch">
@@ -292,6 +292,7 @@
     <div id="bTun"  class="tbtn">🚇</div>
     <div id="bTree" class="tbtn">🌲</div>
     <div id="bBinoc" class="tbtn" style="border-color:#8be0ff;">🔭</div>
+    <div id="bShift" class="tbtn" style="border-color:#b07cff;">🦎</div>
     <div id="bShip" class="tbtn">⛵</div>
     <div id="bCleanse" class="tbtn" style="border-color:#a855f7;">🔮</div>
     <div id="bMap" class="tbtn" style="border-color:#4f9dff;">🗺️</div>
@@ -321,7 +322,12 @@
 
 <div id="pauseMenu" class="overlay-screen hidden">
   <h2>PAUSED</h2>
-  <p style="margin-bottom: 26px;">Take a breath, hero.</p>
+  <p style="margin-bottom: 18px;">Take a breath, hero.</p>
+  <div class="pause-settings">
+    <label class="set-row">🎵 Music <input type="range" id="pMusic" min="0" max="1" step="0.05"></label>
+    <label class="set-row">🔊 Sound FX <input type="range" id="pSfx" min="0" max="1" step="0.05"></label>
+    <label class="set-row">🔇 Mute All <input type="checkbox" id="pMute"></label>
+  </div>
   <button class="btn" id="resumeBtn">RESUME GAME</button>
   <button class="btn" id="fullBtn" style="margin-top: 10px; background: linear-gradient(135deg,#4f9dff,#8b5cf6);">TOGGLE FULLSCREEN</button>
   <button class="btn btn-quit" id="quitBtn">QUIT GAME</button>
@@ -889,6 +895,7 @@ const SKINS = {
     { id:'frost',   name:'Frost Blade',     cost:120, color:0x66ccff, glow:0x2266aa, swatch:'#66ccff' },
     { id:'saber',   name:'Crimson Saber',   cost:180, color:0xff2244, glow:0x880011, shape:'pointy', swatch:'#ff2244' },  // narrow blade + sharp tip
     { id:'glaive',  name:'Jade Glaive',     cost:180, color:0x33ddaa, glow:0x119977, shape:'pointy', swatch:'#33ddaa' },
+    { id:'spire',   name:'Spire Longblade',  cost:600, color:0xeaf2ff, glow:0x3366ff, lenMult:2.0, swatch:'#eaf2ff' },     // premium — extra-long blade
   ],
   magic: [
     { id:'default', name:'Arcane',          cost:0,                            swatch:'#8be0ff' }, // uses magic-tier color
@@ -901,8 +908,10 @@ function updateBladeVisual(){           // blade COLOR = skin (or tier if defaul
   const blade = hero.userData.sword.children[0], tip = hero.userData.bladeTip, tier = weaponTiers[wepIdx], ws = skinById('weapon', cosmetics.equipped.weapon);
   const col = ws.id==='default' ? tier.color : ws.color, glow = ws.id==='default' ? tier.glow : ws.glow;
   blade.material.color.setHex(col); blade.material.emissive.setHex(glow);
-  const pointy = ws.shape==='pointy';
-  blade.scale.set(pointy?0.7:1, tier.scale, tier.scale);                       // pointy skins use a narrower blade
+  const pointy = ws.shape==='pointy', lenMult = ws.lenMult || 1;
+  const scaleY = tier.scale * lenMult;
+  blade.scale.set(pointy?0.7:1, scaleY, tier.scale);                            // pointy = narrower; lenMult = longer
+  blade.position.y = lenMult>1 ? (0.1 + (1.3*scaleY)/2) : 0.75;                 // long blades grow upward from the hilt
   if (tip){
     tip.visible = pointy;
     if (pointy){
@@ -961,7 +970,8 @@ const player = {
   dashCd: 0, invuln: 0, alive: true, walkPhase: 0, regenCd: 0,
   tunnels: 3, tunnelCd: 0, onShip: false,
   inTree: false, treePos: null, underground: false,
-  binoculars: false, binocActive: false
+  binoculars: false, binocActive: false,
+  shiftTime: 0, shifted: false
 };
 const PLAYER_R = 0.6;
 
@@ -1079,7 +1089,26 @@ function buildMimic(scale, disguiseType){
       b.position.set(Math.cos(a)*1.4, s*0.5, Math.sin(a)*1.4);
       b.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3); b.castShadow=true; disguise.add(b);
     }
-  } else if (disguiseType === 'cave'){ disguise = buildCaveVisual(Math.random()*Math.PI*2); } 
+  } else if (disguiseType === 'cave'){ disguise = buildCaveVisual(Math.random()*Math.PI*2); }
+  else if (disguiseType === 'mission'){
+    // Mimic a mission node — matches the current world (obelisk / reactor / vent)
+    disguise = new THREE.Group();
+    const k = (gameMode==='mission') ? campaign.index : 0;
+    if (k>=2){
+      const rock=new THREE.MeshStandardMaterial({color:0x33272a, roughness:0.9, flatShading:true});
+      const cone=new THREE.Mesh(new THREE.CylinderGeometry(1.2,3.2,5,7), rock); cone.position.y=2.5; cone.castShadow=true;
+      const core=new THREE.Mesh(new THREE.IcosahedronGeometry(1.5,0), new THREE.MeshStandardMaterial({color:0xff6622, emissive:0xff3300, emissiveIntensity:1.2, flatShading:true})); core.position.y=5;
+      disguise.add(cone, core);
+    } else if (k===1){
+      const metal=new THREE.MeshStandardMaterial({color:0x4a4c54, metalness:0.7, roughness:0.4, flatShading:true});
+      const base=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.8,3,8), metal); base.position.y=1.5; base.castShadow=true;
+      const core=new THREE.Mesh(new THREE.IcosahedronGeometry(1.7,0), new THREE.MeshStandardMaterial({color:0x33ddff, emissive:0x1188cc, emissiveIntensity:0.8, flatShading:true})); core.position.y=4.5;
+      disguise.add(base, core);
+    } else {
+      const mesh=new THREE.Mesh(new THREE.CylinderGeometry(1.5,2.5,12,6), new THREE.MeshStandardMaterial({color:0x55308a, emissive:0x440088, emissiveIntensity:0.5, flatShading:true})); mesh.position.y=6; mesh.castShadow=true;
+      disguise.add(mesh);
+    }
+  }
   else {
     disguise = new THREE.Group();
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.45,2.2,6), new THREE.MeshStandardMaterial({color:0x6b4a2b, roughness:1}));
@@ -1116,8 +1145,12 @@ function spawnEnemy(type, x, z){
   else if (type==='wolf') { e.scale=1.0; e.hp=42*powerMult; e.atk=15; e.speed=6.2; e.xp=50; e.gold=22; e.color=0x8a8f99; }   // fast pack hunter (melee)
   else if (type==='stalker') { e.scale=1.1; e.hp=40*powerMult; e.atk=20; e.speed=5.2; e.xp=55; e.gold=25; e.color=0x2a1a3a; }
   else if (type==='mimic') {
-    e.disguise=['tree','rock','cave'][Math.floor(Math.random()*3)]; e.revealed=false; e.color=0x3a0f2a;
+    // Hide as scenery (mostly trees/rocks, occasionally a cave) — and in the campaign, sometimes as a fake mission node.
+    const inMission = (gameMode==='mission' && campaign.index < WORLDS.length);
+    const pool = inMission ? ['tree','tree','rock','rock','cave','mission'] : ['tree','tree','rock','rock','cave'];
+    e.disguise = pool[Math.floor(Math.random()*pool.length)]; e.revealed=false; e.color=0x3a0f2a;
     if (e.disguise==='cave'){ e.scale=2.6; e.hp=900*powerMult; e.atk=30; e.speed=4.2; e.xp=300; e.gold=250; }
+    else if (e.disguise==='mission'){ e.scale=1.9; e.hp=700*powerMult; e.atk=28; e.speed=4.6; e.xp=220; e.gold=180; e.mapDecoy=true; }
     else { e.scale=1.7; e.hp=550*powerMult; e.atk=26; e.speed=5.0; e.xp=160; e.gold=130; }
   }
   else { e.scale=1; e.hp=25*powerMult; e.atk=8; e.speed=4.2; e.xp=25; e.gold=10; e.color=0x6fcf45; e.type='slime'; }
@@ -1245,7 +1278,9 @@ function checkPause() {
 
 function togglePause(){
   if (!started || !player.alive || shopPaused || mapPaused) return;
-  menuPaused = !menuPaused; $('pauseMenu').classList.toggle('hidden', !menuPaused); checkPause();
+  menuPaused = !menuPaused; $('pauseMenu').classList.toggle('hidden', !menuPaused);
+  if (menuPaused) syncSettingsUI();      // reflect current audio levels in the pause sliders
+  checkPause();
 }
 function toggleShop(){
   if (!started || !player.alive || menuPaused || mapPaused) return;
@@ -1262,6 +1297,7 @@ function $(id){return document.getElementById(id);}
 $('closeShopBtn').onclick = toggleShop;
 $('shopBtnDesktop').onclick = toggleShop;
 $('closeMapBtn').onclick = toggleMap;
+$('binocOverlay').onclick = ()=>{ if (player.binocActive) toggleBinoculars(); };
 
 window.buyUpgrade = function(type){
   if (!player.alive) return;
@@ -1313,9 +1349,30 @@ window.buyUpgrade = function(type){
       showToast('Binoculars acquired! Climb a tree and press V to scout.', '#8be0ff');
     } else showToast('Not enough gold!', '#ff7a7a');
   }
+  else if (type === 7) {
+    const cost = 500;
+    if (player.gold >= cost) {
+      player.gold -= cost; player.shiftTime += 60;     // bank 60s; only spent while shifted
+      if (audioCtxStarted) sfx.poly.triggerAttackRelease(["A4", "C5", "E5"], "4n");
+      floatText(player.pos, '+1 MIN SHAPESHIFT', '#b07cff', 24);
+      showToast('Shapeshift time added — press C to vanish.', '#b07cff');
+    } else showToast('Not enough gold!', '#ff7a7a');
+  }
   markDirty(); updateHUD();
 };
 
+function updateShiftVisual(){
+  const op = player.shifted ? 0.3 : 1.0;
+  hero.traverse(o=>{ if(o.material){ const mats=Array.isArray(o.material)?o.material:[o.material]; mats.forEach(m=>{ m.transparent = player.shifted; m.opacity = op; m.needsUpdate=true; }); } });
+}
+function toggleShapeshift(){
+  if (!started || !player.alive || paused) return;
+  if (player.shifted){ player.shifted=false; updateShiftVisual(); showToast('Shapeshift off.', '#b07cff'); return; }
+  if (player.shiftTime<=0){ showToast('No shapeshift time left — buy more in the shop (TAB).', '#ff7a7a'); return; }
+  player.shifted=true; updateShiftVisual();
+  if (audioCtxStarted) sfx.magic.triggerAttackRelease("E5","8n");
+  showToast('Shapeshifted — enemies lose your trail!', '#b07cff');
+}
 function toggleBinoculars(){
   if (!started || !player.alive || paused) return;
   if (player.binocActive){ player.binocActive=false; $('binocOverlay').classList.add('hidden'); return; }
@@ -1357,12 +1414,13 @@ addEventListener('keydown', e=>{
   if (e.code==='Digit3') window.buyUpgrade(3);
   if (e.code==='Digit4') window.buyUpgrade(5);
   if (e.code==='Digit5') window.repairShip();
-  if (e.code==='Escape') togglePause();
+  if (e.code==='Escape'){ if (player.binocActive) toggleBinoculars(); else togglePause(); }
   if (e.code==='Tab') { e.preventDefault(); toggleShop(); }
   if (e.code==='KeyM') toggleMap();
   if (e.code==='KeyR') cleanseObelisk();
   if (e.code==='KeyE') toggleTree();
   if (e.code==='KeyV') toggleBinoculars();
+  if (e.code==='KeyC') toggleShapeshift();
 });
 addEventListener('keyup', e=>{ keys[e.code]=false; });
 
@@ -1427,7 +1485,7 @@ if (isTouch){
     el.addEventListener('touchend', e=>{ e.preventDefault(); stop(); }, {passive:false}); el.addEventListener('touchcancel', stop);
   }
   hold('bAtk', primaryAttack, true); hold('bMag', secondaryAttack, true); hold('bDash', ()=>{ keys['ShiftLeft']=true; setTimeout(()=>keys['ShiftLeft']=false, 60); });
-  hold('bDig', digTunnel); hold('bTun', toggleUnderground); hold('bShip', toggleShip); hold('bTree', toggleTree); hold('bShop', toggleShop); hold('bPause', togglePause); hold('bBinoc', toggleBinoculars);
+  hold('bDig', digTunnel); hold('bTun', toggleUnderground); hold('bShip', toggleShip); hold('bTree', toggleTree); hold('bShop', toggleShop); hold('bPause', togglePause); hold('bBinoc', toggleBinoculars); hold('bShift', toggleShapeshift);
   hold('bMap', toggleMap); hold('bCleanse', cleanseObelisk);
 }
 
@@ -1593,7 +1651,8 @@ function hurtPlayer(dmg){
 }
 
 function die(){
-  player.alive=false; setReticle(false); if (document.pointerLockElement === canvas) document.exitPointerLock();
+  player.alive=false; if (player.shifted){ player.shifted=false; updateShiftVisual(); }
+  setReticle(false); if (document.pointerLockElement === canvas) document.exitPointerLock();
   if (typeof saveGame === 'function' && _saveDirty) saveGame();      // persist final state
   $('gameOverStats').textContent = `Level ${player.level} · ${player.kills} Slain · ${player.gold} Gold`;
   $('gameOverScreen').classList.remove('hidden');
@@ -1658,6 +1717,8 @@ function updateHUD(){
   $('uTun').textContent = nT ? nT.name : 'MAX'; $('cTun').textContent = nT ? nT.cost+'g' : '-';
   $('uShip').textContent = nS ? nS.name : 'MAX'; $('cShip').textContent = nS ? nS.cost+'g' : '-';
   if ($('cBinoc')) $('cBinoc').textContent = player.binoculars ? 'OWNED' : '150g';
+  if ($('shiftBank')) $('shiftBank').textContent = Math.ceil(player.shiftTime)+'s';
+  const si=$('shiftInd'); if (si){ if (player.shifted){ si.style.display='block'; si.textContent='🦎 SHAPESHIFTED · '+Math.ceil(player.shiftTime)+'s'; } else si.style.display='none'; }
 }
 
 function drawMap() {
@@ -1691,6 +1752,13 @@ function drawMap() {
         const ox=toX(ob.x), oy=toY(ob.z);
         if (ob.state==='cleansed'){ ctx.fillStyle='#3ddc84'; ctx.beginPath(); ctx.arc(ox,oy,5,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#0a0e16'; ctx.font='bold 9px Arial'; ctx.fillText('✓',ox,oy); }
         else { const pulse=4+Math.sin(now*0.005)*1.5; ctx.fillStyle='#a855f7'; ctx.shadowColor='#a855f7'; ctx.shadowBlur=8; ctx.beginPath(); ctx.arc(ox,oy,pulse,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0; }
+    }
+    // mission-mimic decoys look identical to real nodes — until you get close and they reveal
+    for (const e of enemies){
+        if (e.type==='mimic' && !e.revealed && e.mapDecoy){
+            const ox=toX(e.pos.x), oy=toY(e.pos.z), pulse=4+Math.sin(now*0.005)*1.5;
+            ctx.fillStyle='#a855f7'; ctx.shadowColor='#a855f7'; ctx.shadowBlur=8; ctx.beginPath(); ctx.arc(ox,oy,pulse,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+        }
     }
     // ship
     if (!ship.destroyed){ ctx.fillStyle='#d8a05a'; ctx.beginPath(); ctx.arc(toX(ship.pos.x),toY(ship.pos.z),5,0,Math.PI*2); ctx.fill(); }
@@ -1754,6 +1822,7 @@ function update(dt){
   player.dashCd=Math.max(0,player.dashCd-dt); player.invuln=Math.max(0,player.invuln-dt); player.tunnelCd=Math.max(0,player.tunnelCd-dt);
   player.regenCd=Math.max(0,player.regenCd-dt);
   if (player.alive && player.regenCd<=0 && player.hp>0 && player.hp<player.maxHp) player.hp=Math.min(player.maxHp, player.hp + player.maxHp*0.035*dt);   // out-of-combat regen
+  if (player.shifted){ player.shiftTime-=dt; if (player.shiftTime<=0){ player.shiftTime=0; player.shifted=false; updateShiftVisual(); showToast('Shapeshift ended.', '#b07cff'); } }   // spend banked time only while active
   ship.fireCd=Math.max(0,ship.fireCd-dt); ship.dmgCd=Math.max(0,ship.dmgCd-dt); ship.invuln=Math.max(0,ship.invuln-dt);
   
   if (ship.invuln > 0) { ship.obj.userData.hull.material.emissive.setHex(0x00aaff); ship.obj.userData.hull.material.emissiveIntensity = 0.5 + Math.sin(performance.now()*0.01)*0.5; } 
@@ -2046,19 +2115,25 @@ function update(dt){
 
   for (const e of enemies){
     if (e.dead){ if (e.hpBar) e.hpBar.visible=false; const u=e.obj.userData; u.dying+=dt; const k=u.dying/0.35; e.obj.scale.setScalar(Math.max(0.001,1-k)); e.obj.position.y=k*2; continue; }
+    if (e.hp<=0){ killEnemy(e); continue; }   // safety net: never let a 0-HP enemy keep moving/attacking
     e.touchCd=Math.max(0,e.touchCd-dt); e.shootCd=Math.max(0,e.shootCd-dt); e.atkTimer=Math.max(0,e.atkTimer-dt); e.flash=Math.max(0,e.flash-dt); e.phase+=dt*8;
     
     let target = player.pos; let distToTarget = Math.hypot(target.x-e.pos.x, target.z-e.pos.z); let attackingTunnel = false;
-    if (e.type === 'mimic' && !e.revealed){ if (player.alive && distToTarget < 6.5){ e.revealed = true; e.obj.userData.disguise.visible = false; e.obj.userData.monster.visible = true; e.flash = 0.3; addEffect(e.pos.clone(), 3.5, 0xff2244); floatText(e.pos, "IT'S A MIMIC!", '#ff3344', 26); showToast('A Mimic ambush!', '#ff5555'); } else { e.pos.copy(e.obj.position); continue; } }
+    if (e.type === 'mimic' && !e.revealed){ if (player.alive && !player.shifted && distToTarget < 6.5){ e.revealed = true; e.obj.userData.disguise.visible = false; e.obj.userData.monster.visible = true; e.flash = 0.3; addEffect(e.pos.clone(), 3.5, 0xff2244); floatText(e.pos, "IT'S A MIMIC!", '#ff3344', 26); showToast('A Mimic ambush!', '#ff5555'); } else { e.pos.copy(e.obj.position); continue; } }
 
     if (e.type === 'breaker' && activeTunnels.length > 0) {
       let nearestT = null, minDist = Infinity; for (const t of activeTunnels) { const d = Math.hypot(t.x-e.pos.x, t.z-e.pos.z); if (d < minDist) { minDist = d; nearestT = t; } }
       if (nearestT && minDist < 15) { target = new THREE.Vector3(nearestT.x, 0, nearestT.z); distToTarget = minDist; if (distToTarget < nearestT.r + e.scale + 0.5) { attackingTunnel = true; if (e.atkTimer <= 0) { e.atkTimer = 1.0; nearestT.hp -= e.atk; floatText(target, '-'+e.atk, '#ffaa00', 16); } } }
     }
 
-    if (!attackingTunnel && player.alive) {
+    if (!attackingTunnel && player.alive && player.shifted) {
+      // You're hidden: enemies lose your trail — back away if you're close, otherwise mill about
+      if (distToTarget < 14){ const away=e.pos.clone().sub(target); away.y=0; if(away.lengthSq()>0.0001){ away.normalize(); e.obj.position.addScaledVector(away, e.speed*dt*0.7); e.obj.rotation.y=Math.atan2(away.x,away.z); } }
+      else { e.obj.rotation.y += Math.sin(e.phase*0.2)*dt; }
+    }
+    else if (!attackingTunnel && player.alive) {
       if (e.type === 'shooter' || e.type === 'water' || e.type === 'drone') {
-        if (distToTarget > 12) { const to=target.clone().sub(e.pos); to.y=0; to.normalize(); e.obj.position.addScaledVector(to, e.speed*dt); e.obj.rotation.y=Math.atan2(to.x,to.z); } 
+        if (distToTarget > 12) { const to=target.clone().sub(e.pos); to.y=0; to.normalize(); e.obj.position.addScaledVector(to, e.speed*dt); e.obj.rotation.y=Math.atan2(to.x,to.z); }
         else if (distToTarget < 8) { const to=e.pos.clone().sub(target); to.y=0; to.normalize(); e.obj.position.addScaledVector(to, e.speed*dt*0.5); e.obj.rotation.y=Math.atan2(-to.x,-to.z); } 
         else { e.obj.rotation.y=Math.atan2(target.x-e.pos.x, target.z-e.pos.z); if (e.shootCd <= 0) { e.shootCd = 2.5; const pY = player.inTree ? 3.5 : 0; const dir = new THREE.Vector3(target.x-e.pos.x, pY - 1.2, target.z-e.pos.z).normalize(); shootBolt(true, e.pos.clone().add(new THREE.Vector3(0,1.2,0)), dir, e.atk, e.type==='water'?0x1177ff:0xcc00ff, 0xaa00aa, 20); } }
       } else { if (distToTarget > 1.2) { const to=target.clone().sub(e.pos); to.y=0; to.normalize(); e.obj.position.addScaledVector(to, e.speed*dt); e.obj.rotation.y=Math.atan2(to.x,to.z); } }
@@ -2076,7 +2151,7 @@ function update(dt){
     if (showBar){ e.hpBar.position.set(e.obj.position.x, e.obj.position.y + e.scale*1.9 + 0.8, e.obj.position.z); e.hpBar.quaternion.copy(camera.quaternion); const ratio=Math.max(0,e.hp/e.maxHp), bw=e.hpBar.userData.W, fill=e.hpBar.userData.fill; fill.scale.x=ratio; fill.position.x=-bw*(1-ratio)/2; fill.material.color.setHex(e.type==='mimic' ? 0xff2244 : (ratio>0.5?0x6fcf45:(ratio>0.25?0xffd24a:0xff3b3b))); }
 
     const dist3D = Math.hypot(e.pos.x - player.pos.x, (e.obj.position.y||0) - player.obj.position.y, e.pos.z - player.pos.z);
-    if (!player.onShip && player.alive && dist3D < 1.4+e.scale*0.5 && e.touchCd<=0 && e.type !== 'shooter' && e.type !== 'water'){ 
+    if (!player.onShip && !player.shifted && player.alive && dist3D < 1.4+e.scale*0.5 && e.touchCd<=0 && e.type !== 'shooter' && e.type !== 'water'){
       hurtPlayer(e.atk); e.touchCd=0.8; if (player.inTree && e.type === 'stalker') { player.inTree = false; showToast("Knocked out of the tree!", "#ff5555"); }
     }
     for (const o of enemies){ if (o===e||o.dead) continue; const dx=e.pos.x-o.pos.x, dz=e.pos.z-o.pos.z, dd=Math.hypot(dx,dz), min=e.scale+o.scale; if (dd>0.001 && dd<min){ const push=(min-dd)/dd*0.5*dt*8; e.obj.position.x+=dx*push; e.obj.position.z+=dz*push; } }
@@ -2154,8 +2229,8 @@ function update(dt){
   }
 
   if (player.binocActive && !player.inTree){ player.binocActive=false; $('binocOverlay').classList.add('hidden'); }   // safety: dropped from tree
-  binocZoom += ((player.binocActive ? 42 : 0) - binocZoom) * Math.min(1, dt*4);   // smooth zoom-out for scouting
-  const focus = player.onShip ? ship.pos : player.pos; const cx=Math.sin(camYaw)*Math.cos(camPitch), cz=Math.cos(camYaw)*Math.cos(camPitch), cy=Math.sin(camPitch); const pOffY = (player.inTree ? 3.0 : 2.0) + binocZoom*0.25; const target=focus.clone().add(new THREE.Vector3(0,pOffY,0));
+  binocZoom += ((player.binocActive ? 34 : 0) - binocZoom) * Math.min(1, dt*4);   // smooth zoom-out for scouting (keeps looking at the player, not the sky)
+  const focus = player.onShip ? ship.pos : player.pos; const cx=Math.sin(camYaw)*Math.cos(camPitch), cz=Math.cos(camYaw)*Math.cos(camPitch), cy=Math.sin(camPitch); const pOffY = player.inTree ? 3.0 : 2.0; const target=focus.clone().add(new THREE.Vector3(0,pOffY,0));
   camera.position.lerp(target.clone().add(new THREE.Vector3(cx,cy,cz).multiplyScalar(camDist + binocZoom)), Math.min(1,dt*10)); camera.lookAt(target);
   sun.position.set(focus.x+40,80,focus.z+30); sun.target.position.copy(focus);
 
@@ -2190,7 +2265,7 @@ function buildSaveObject(){
     version: 1,
     profile: { coins: player.gold, owned: cosmetics.owned, equipped: cosmetics.equipped, settings },
     character: { level:player.level, xp:player.xp, xpNext:player.xpNext, maxHp:player.maxHp,
-                 atk:player.atk, magAtk:player.magAtk, speed:player.speed, tunnels:player.tunnels, binoculars:player.binoculars },
+                 atk:player.atk, magAtk:player.magAtk, speed:player.speed, tunnels:player.tunnels, binoculars:player.binoculars, shiftTime:player.shiftTime },
     upgrades: { wepIdx, magIdx, tunIdx, shipIdx },
     campaign: { worldUnlocked: campaign.index+1, bossesBeaten: campaign.bossesBeaten.slice(), missionState:null }
   };
@@ -2211,6 +2286,7 @@ function applySave(d){
     player.atk=_num(ch.atk,player.atk); player.magAtk=_num(ch.magAtk,player.magAtk);
     player.speed=_num(ch.speed,player.speed); player.tunnels=_num(ch.tunnels,player.tunnels);
     player.binoculars = !!ch.binoculars;
+    player.shiftTime = _num(ch.shiftTime, 0); player.shifted = false;
     wepIdx=_idx(up.wepIdx,weaponTiers.length); magIdx=_idx(up.magIdx,magicTiers.length);
     tunIdx=_idx(up.tunIdx,tunnelTiers.length); shipIdx=_idx(up.shipIdx,shipTiers.length);
     // re-derive visuals / derived state from saved tiers
@@ -2227,6 +2303,7 @@ function resetForNewStory(){
   player.level=1; player.xp=0; player.xpNext=100; player.maxHp=100; player.hp=100;
   player.atk=12; player.magAtk=10; player.speed=10; player.gold=0; player.kills=0;
   player.tunnels=3; player.binoculars=false; player.binocActive=false;
+  player.shiftTime=0; player.shifted=false; updateShiftVisual();
   wepIdx=0; magIdx=0; tunIdx=0; shipIdx=0;
   campaign.bossesBeaten=[]; campaign.index=0;
   campaign.worldRadius=WORLDS[0].radius; campaign.curRadius=WORLDS[0].radius;
@@ -2300,11 +2377,18 @@ $('btnNewStory').onclick = ()=>{
 $('btnFreePlay').onclick = ()=> startGame('free');
 $('btnModeBack').onclick = ()=> showScreen('overlay');
 
-// Settings
-function syncSettingsUI(){ $('setMusic').value = settings.musicVol; $('setSfx').value = settings.sfxVol; $('setMute').checked = !!settings.muted; }
-$('setMusic').oninput = (e)=>{ settings.musicVol = parseFloat(e.target.value); applyAudioSettings(); saveGame(); };
-$('setSfx').oninput   = (e)=>{ settings.sfxVol   = parseFloat(e.target.value); applyAudioSettings(); saveGame(); };
-$('setMute').onchange = (e)=>{ settings.muted = e.target.checked; applyAudioSettings(); saveGame(); };
+// Settings — shared by the main Settings screen and the in-game Pause panel (kept in sync)
+function syncSettingsUI(){
+  $('setMusic').value = settings.musicVol; $('setSfx').value = settings.sfxVol; $('setMute').checked = !!settings.muted;
+  if($('pMusic')){ $('pMusic').value = settings.musicVol; $('pSfx').value = settings.sfxVol; $('pMute').checked = !!settings.muted; }
+}
+function bindAudioControl(musicId, sfxId, muteId){
+  $(musicId).oninput = (e)=>{ settings.musicVol = parseFloat(e.target.value); applyAudioSettings(); syncSettingsUI(); saveGame(); };
+  $(sfxId).oninput   = (e)=>{ settings.sfxVol   = parseFloat(e.target.value); applyAudioSettings(); syncSettingsUI(); saveGame(); };
+  $(muteId).onchange = (e)=>{ settings.muted = e.target.checked; applyAudioSettings(); syncSettingsUI(); saveGame(); };
+}
+bindAudioControl('setMusic','setSfx','setMute');
+bindAudioControl('pMusic','pSfx','pMute');
 $('btnFullscreen').onclick = ()=>{ if(!document.fullscreenElement){ document.documentElement.requestFullscreen().catch(()=>{}); } else { document.exitFullscreen(); } };
 $('btnReset').onclick = ()=>{ if (confirm('Reset ALL progress?\nThis permanently deletes your coins, upgrades, skins, and campaign.')) resetProgress(); };
 $('btnSettingsBack').onclick = ()=> showScreen('overlay');

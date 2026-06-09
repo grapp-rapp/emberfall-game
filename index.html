@@ -1495,6 +1495,15 @@ if (isTouch){
 
 $('resumeBtn').onclick = togglePause; 
 $('quitBtn').onclick = () => { location.reload(); };
+// Request fullscreen (vendor-prefixed for Safari). Must be called from a user gesture.
+function enterFullscreen(){
+  try {
+    if (document.fullscreenElement || document.webkitFullscreenElement) return;
+    const el = document.documentElement;
+    const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+    if (fn){ const p = fn.call(el); if (p && p.catch) p.catch(()=>{}); }
+  } catch(_){}
+}
 $('fullBtn').onclick = () => {
     if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(err => {
@@ -1558,10 +1567,19 @@ function secondaryAttack(){
   if (player.shootCooldown>0) return;
   if (isTouch) faceNearestEnemy(40);
   player.shootCooldown=tier.cd;
-  const dir=new THREE.Vector3(Math.sin(player.facing),0,Math.cos(player.facing));
+  const fwd = new THREE.Vector3(Math.sin(player.facing),0,Math.cos(player.facing));
   const startY = player.inTree ? 4.8 : 1.4;
+  const muzzle = player.pos.clone().add(new THREE.Vector3(0,startY,0));
+  let dir = fwd;
+  if (player.inTree){
+    // angle the shot down from the treetop toward the ground (or the nearest foe ahead)
+    let best=Infinity; for (const e of enemies){ if(e.dead||(e.type==='mimic'&&!e.revealed)) continue; const d=Math.hypot(e.pos.x-player.pos.x,e.pos.z-player.pos.z); if(d<best) best=d; }
+    const dist = isFinite(best) ? Math.max(6, Math.min(40, best)) : 16;
+    const groundPt = player.pos.clone().addScaledVector(fwd, dist); groundPt.y = 1.0;   // aim at ~torso height on the ground
+    dir = groundPt.sub(muzzle).normalize();
+  }
   const mc = currentMagic();   // bolt color from equipped magic skin (or tier)
-  shootBolt(false, player.pos.clone().add(new THREE.Vector3(0,startY,0)).addScaledVector(dir,1), dir, player.magAtk, mc.color, mc.glow, tier.speed);
+  shootBolt(false, muzzle.clone().addScaledVector(dir,1), dir, player.magAtk, mc.color, mc.glow, tier.speed);
 }
 
 function fireCannon(){
@@ -2350,6 +2368,7 @@ applyCosmetics();
 updateHUD();
 
 function startGame(mode) {
+  enterFullscreen();        // we're inside the Play-button gesture, so the browser permits it
   initAudio();
   hideAllMenus();
   setupGameMode(mode);

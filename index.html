@@ -50,6 +50,9 @@
   #hint b { color:#ffd56b; }
 
   #toast { position: absolute; top: 22%; left: 50%; transform: translateX(-50%); text-align:center; font-size: 32px; font-weight: bold; text-shadow: 0 2px 12px #000; opacity:0; transition: opacity .3s; pointer-events: none; z-index: 90;}
+  /* portal warp flash — covers the instant world swap */
+  #transFlash { position: fixed; inset: 0; z-index: 95; pointer-events: none; opacity: 0;
+    background: radial-gradient(circle at 50% 50%, #ffffff 0%, #bfe6ff 35%, #7a4cff 100%); }
   #toast.show { opacity: 1; }
 
   #floaters { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 100;}
@@ -276,6 +279,7 @@
 </div>
 
 <div id="toast"></div>
+<div id="transFlash"></div>
 <div id="binocOverlay" class="hidden"></div>
 <div id="bossBar"><div id="bossFill"></div><div id="bossLabel">🐙 THE LEVIATHAN</div></div>
 <div id="objective"></div>
@@ -661,7 +665,7 @@ function buildWastes() {
         const m=new THREE.Mesh(new THREE.DodecahedronGeometry(s,0), Math.random()<0.3?b:a);
         m.position.set(x, s*0.4, z); m.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3); m.castShadow=true; scene.add(m);
     }
-    scene.background.setHex(0x4a3a30); scene.fog.color.setHex(0x4a3a30); hemiLight.color.setHex(0xffd0a0);
+    // (biome colors handled centrally by the Stage 11 biome system)
 }
 // World 3 mission node — a volcanic vent (reuses the obelisk gating)
 function makeVent(x,z) {
@@ -691,7 +695,7 @@ function buildEmberpeak() {
     // a brooding volcano on the far side
     const volc = new THREE.Mesh(new THREE.ConeGeometry(40, 55, 7), dark); volc.position.set(170,20,170); volc.castShadow=true; scene.add(volc);
     const caldera = new THREE.Mesh(new THREE.CircleGeometry(12,16), new THREE.MeshBasicMaterial({color:0xff5500, transparent:true, opacity:0.8})); caldera.rotation.x=-Math.PI/2; caldera.position.set(170,47,170); scene.add(caldera);
-    scene.background.setHex(0x3a1a14); scene.fog.color.setHex(0x3a1a14); hemiLight.color.setHex(0xff9060);
+    // (biome colors handled centrally by the Stage 11 biome system)
 }
 
 let leviathan = null, robot = null, firelord = null;
@@ -706,7 +710,9 @@ function setupGameMode(mode) {
         campaign.curRadius = campaign.worldRadius;
         // build this world's content only if it's buildable and its boss isn't already beaten
         if (w && w.setup && !w.comingSoon && !campaign.bossesBeaten.includes(w.boss)) w.setup();
+        applyBiomeInstant(w && w.biome);                  // current world's palette (instant on load/start)
     } else {
+        applyBiomeInstant(WORLDS[0].biome);               // Free Play uses the Valley palette
         obelisks.forEach(ob => { scene.remove(ob.obj); });
         obelisks.length = 0;
         if($('bCleanse')) $('bCleanse').style.display = 'none';
@@ -734,17 +740,46 @@ function spawnLeviathan() {
 // ============================================================
 const WORLDS = [
   { id:'valley', name:'The Valley', boss:'leviathan', radius:200, expandTo:300, reward:500,
+    biome:{ bg:0x3a4f66, fog:0x3a4f66, hemi:0xffffff, particle:null, hazard:null },   // Stage 11 biome descriptor
     setup(){ makeObelisk(120, 120); makeObelisk(-140, -100); makeObelisk(140, -120); },
     text:'⚓ Board your ship & slay the Leviathan!' },
   { id:'wastes', name:'The Wastes', boss:'robot', radius:300, expandTo:320, reward:800,
+    biome:{ bg:0x4a3a30, fog:0x4a3a30, hemi:0xffd0a0, particle:null, hazard:null },
     setup(){ buildWastes(); makeReactor(230,40); makeReactor(-60,250); makeReactor(-230,-120); },
     text:'⚡ Overload the 3 Reactors, then crush the Iron Colossus!' },
   { id:'emberpeak', name:'Emberpeak', boss:'firelord', radius:320, expandTo:320, reward:1200,
+    biome:{ bg:0x3a1a14, fog:0x3a1a14, hemi:0xff9060, particle:null, hazard:null },
     setup(){ buildEmberpeak(); makeVent(260,80); makeVent(80,-270); makeVent(-270,-60); },
     text:'🔥 Seal the 3 Volcanic Vents, then slay the Fire Lord!' },
 ];
-const campaign = { index:0, bossesBeaten:[], worldRadius:WORLDS[0].radius, curRadius:WORLDS[0].radius };
+const campaign = { index:0, bossesBeaten:[], worldRadius:WORLDS[0].radius, curRadius:WORLDS[0].radius, awaitingPortal:false };
+let portal = null;   // {obj, pos, t, arm} — appears on boss death; entering it triggers the world transition
+let warp = null;     // {phase:'in'|'out', t} — the flash that hides the world swap
 function campaignWorldRadius(){ return campaign.index>0 ? WORLDS[Math.min(campaign.index-1, WORLDS.length-1)].expandTo : WORLDS[0].radius; }
+
+// ===== Biome system (Stage 11) — palette lives in WORLDS[i].biome; transitions cross-fade the colors =====
+let biomeMorph = null;   // { from:{bg,fog,hemi}, to:{bg,fog,hemi}, t, dur } — active color cross-fade
+function applyBiomeInstant(b){
+  if (!b) return;
+  scene.background.setHex(b.bg); scene.fog.color.setHex(b.fog); hemiLight.color.setHex(b.hemi);
+  biomeMorph = null;
+}
+function startBiomeMorph(b, dur=1.5){
+  if (!b) return;
+  biomeMorph = {
+    from:{ bg:scene.background.clone(), fog:scene.fog.color.clone(), hemi:hemiLight.color.clone() },
+    to:{ bg:new THREE.Color(b.bg), fog:new THREE.Color(b.fog), hemi:new THREE.Color(b.hemi) },
+    t:0, dur
+  };
+}
+function updateBiomeMorph(dt){
+  if (!biomeMorph) return;
+  biomeMorph.t += dt; const k = Math.min(1, biomeMorph.t/biomeMorph.dur);
+  scene.background.lerpColors(biomeMorph.from.bg, biomeMorph.to.bg, k);
+  scene.fog.color.lerpColors(biomeMorph.from.fog, biomeMorph.to.fog, k);
+  hemiLight.color.lerpColors(biomeMorph.from.hemi, biomeMorph.to.hemi, k);
+  if (k>=1) biomeMorph = null;
+}
 
 // translucent barrier marking (and growing with) the Story-mode playable area
 const boundaryRing = new THREE.Mesh(
@@ -758,7 +793,6 @@ function setObjective(t){ const e=$('objective'); if(!e) return; if(t){ e.innerH
 function onBossDefeated(bossId){
   if (campaign.bossesBeaten.includes(bossId)) return;
   campaign.bossesBeaten.push(bossId);
-  campaign.index = campaign.bossesBeaten.length;
   const cleared = WORLDS.find(w=>w.boss===bossId) || WORLDS[0];
   const dump = cleared.reward || 500;
   player.gold += dump; markDirty();
@@ -766,18 +800,50 @@ function onBossDefeated(bossId){
   floatText(player.pos, `+${dump}g`, '#ffd24a', 32);
   addEffect(player.pos.clone(), 9, 0xffd56b);
   if (audioCtxStarted) sfx.poly.triggerAttackRelease(["C4","E4","G4","C5"], "2n");
+  saveGame();   // boss is banked immediately (reload-after-kill safely lands in the next world)
+  if (campaign.bossesBeaten.length >= WORLDS.length){   // final boss down → campaign complete (no portal)
+    campaign.index = campaign.bossesBeaten.length; showVictory();
+  } else {
+    campaign.awaitingPortal = true;   // expansion waits until the player steps through the portal
+    spawnPortal();
+  }
+}
+function showVictory(){
+  const vs=$('victoryScreen'); vs.querySelector('h1').textContent='VICTORY';
+  vs.querySelector('p').textContent='Emberfall is saved. Every boss has fallen before you!';
+  vs.classList.remove('hidden'); paused=true; setReticle(false); if(document.pointerLockElement) document.exitPointerLock();
+}
+// Tear open a portal near the player (on land — shoved ashore if the kill was on water/ship).
+function spawnPortal(){
+  let px, pz;
+  if (player.onShip || isWater(player.pos.x, player.pos.z)){
+    const dx=player.pos.x-LAKE.x, dz=player.pos.z-LAKE.z, dl=Math.hypot(dx,dz)||1;
+    px = LAKE.x + dx/dl*(LAKE.r+10); pz = LAKE.z + dz/dl*(LAKE.r+10);
+  } else { px = player.pos.x + Math.sin(player.facing)*8; pz = player.pos.z + Math.cos(player.facing)*8; }
+  const lim = campaign.curRadius - 6; const dd=Math.hypot(px,pz); if (dd>lim){ px=px/dd*lim; pz=pz/dd*lim; }
+  const g = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(2.4,0.42,10,28), new THREE.MeshStandardMaterial({color:0xa060ff, emissive:0x7a3cff, emissiveIntensity:1.4, roughness:.3}));
+  ring.rotation.x = Math.PI/2*0.15; g.add(ring);
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(2.2,28), new THREE.MeshBasicMaterial({color:0xcfa8ff, transparent:true, opacity:0.75, side:THREE.DoubleSide}));
+  disc.rotation.x = Math.PI/2*0.15; g.add(disc); g.userData.disc = disc;
+  const light = new THREE.PointLight(0xa060ff, 8, 26, 2); light.position.set(0,2,0); g.add(light);
+  g.position.set(px, 2.0, pz); g.scale.setScalar(0.01); scene.add(g);
+  portal = { obj:g, pos:new THREE.Vector3(px,0,pz), t:0, arm:1.0 };   // arm: brief delay so it can't trigger instantly
+  showToast('🌀 A portal tears open — step through to the next world!', '#c79bff');
+}
+function removePortal(){ if(portal){ scene.remove(portal.obj); portal=null; } }
+function startWarp(){ warp={phase:'in', t:0}; player.invuln=Math.max(player.invuln,3); if(audioCtxStarted) sfx.magic.triggerAttackRelease("C6","2n"); }
+// The actual world change — runs at the flash peak so the swap is hidden.
+function doWorldTransition(){
+  const cleared = WORLDS[Math.min(campaign.index, WORLDS.length-1)];
+  campaign.index = campaign.bossesBeaten.length;
   campaign.worldRadius = cleared.expandTo || campaign.worldRadius;   // expand (animates in update)
-  // tear down the cleared world's mission nodes, then build the next world's content (seamless, no reload needed)
   for (const ob of obelisks){ scene.remove(ob.obj); const wi=walls.indexOf(ob.wall); if(wi>-1) walls.splice(wi,1); }
   obelisks.length = 0;
   const next = WORLDS[Math.min(campaign.index, WORLDS.length-1)];
   if (next && next.setup && !next.comingSoon && !campaign.bossesBeaten.includes(next.boss)) next.setup();
-  saveGame();
-  if (campaign.index >= WORLDS.length){   // final boss down → campaign complete
-    const vs=$('victoryScreen'); vs.querySelector('h1').textContent='VICTORY';
-    vs.querySelector('p').textContent='Emberfall is saved. Every boss has fallen before you!';
-    vs.classList.remove('hidden'); paused=true; setReticle(false); if(document.pointerLockElement) document.exitPointerLock();
-  }
+  startBiomeMorph(next && next.biome, 1.5);   // cross-fade the palette to the new world (visible as the flash clears)
+  campaign.awaitingPortal = false; markDirty(); saveGame();
 }
 
 // --- Boss spawning & damage (generic across worlds) ---
@@ -2118,7 +2184,8 @@ function update(dt){
     boundaryRing.visible = true; boundaryRing.scale.set(campaign.curRadius, 1, campaign.curRadius);
     const cur = WORLDS[Math.min(campaign.index, WORLDS.length-1)];
     let obj = '';
-    if (campaign.index >= WORLDS.length) obj = '🏆 Emberfall is saved! Campaign complete — free-roam on.';
+    if (campaign.awaitingPortal) obj = '🌀 Step into the portal to the next world!';
+    else if (campaign.index >= WORLDS.length) obj = '🏆 Emberfall is saved! Campaign complete — free-roam on.';
     else if (cur && cur.comingSoon) obj = cur.text;
     else if (cur && cur.boss==='leviathan'){
       if (leviathan && !leviathan.dead) obj = '⚔️ Slay the Leviathan!';
@@ -2134,6 +2201,29 @@ function update(dt){
     }
     setObjective(obj);
   } else { boundaryRing.visible=false; setObjective(''); }
+
+  updateBiomeMorph(dt);   // Stage 11: cross-fade sky/fog/light during a world transition
+
+  // --- Portal ceremony: animate the portal, detect entry, run the warp flash ---
+  if (portal){
+    portal.t += dt; portal.arm = Math.max(0, portal.arm - dt);
+    const s = Math.min(1, portal.t*2.2); portal.obj.scale.setScalar(s);
+    portal.obj.rotation.z += dt*1.6; portal.obj.position.y = 2.0 + Math.sin(portal.t*3)*0.15;
+    if (portal.obj.userData.disc) portal.obj.userData.disc.material.opacity = 0.55 + Math.abs(Math.sin(portal.t*4))*0.35;
+    const d = Math.hypot(player.pos.x-portal.pos.x, player.pos.z-portal.pos.z);
+    if (!warp && portal.arm<=0 && d < 2.8) startWarp();
+    else if (!warp && portal.arm<=0 && player.alive) setPrompt('Step into the 🌀 portal →');
+  }
+  if (warp){
+    warp.t += dt; const f=$('transFlash');
+    if (warp.phase==='in'){
+      f.style.opacity = Math.min(1, warp.t/0.4).toFixed(3);
+      if (warp.t >= 0.4){ doWorldTransition(); removePortal(); warp.phase='out'; warp.t=0; showToast('✨ The world transforms...', '#c79bff'); }
+    } else {
+      f.style.opacity = Math.max(0, 1 - warp.t/0.9).toFixed(3);
+      if (warp.t >= 0.9){ f.style.opacity=0; warp=null; }
+    }
+  }
 
   for (const e of enemies){
     if (e.dead){ if (e.hpBar) e.hpBar.visible=false; const u=e.obj.userData; u.dying+=dt; const k=u.dying/0.35; e.obj.scale.setScalar(Math.max(0.001,1-k)); e.obj.position.y=k*2; continue; }

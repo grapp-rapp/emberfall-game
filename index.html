@@ -362,13 +362,20 @@
 <!-- HOW TO PLAY -->
 <div id="howtoScreen" class="overlay-screen hidden" style="z-index:300;">
   <h2 class="menu-title">❓ How to Play</h2>
-  <p class="tagline"><b>Objective:</b> Complete missions and beat each world's boss to expand the world and unlock the next — earn coins, upgrade your gear, and survive.</p>
+  <p class="tagline"><b>Goal:</b> Clear each world's mission to summon its boss. Beat the boss to expand the world and unlock the next — across three worlds: <b>The Valley</b> (Leviathan) → <b>The Wastes</b> (Iron Colossus) → <b>Emberpeak</b> (Fire Lord).</p>
   <div class="keys">
     <b>Mouse / Drag</b> Look &nbsp;&nbsp;&nbsp; <b>WASD / Joystick</b> Move &nbsp;&nbsp;&nbsp; <b>Shift</b> Dash<br>
     <b>Left-Click</b> Melee &nbsp;&nbsp;&nbsp; <b>Right-Click</b> Magic Bolt<br>
     <b>T</b> Dig Tunnel &nbsp;&nbsp;&nbsp; <b>F</b> Enter/Travel Tunnels &nbsp;&nbsp;&nbsp; <b>E</b> Climb Tree<br>
     <b>B</b> Board/Leave Ship &nbsp;&nbsp;&nbsp; <b>R</b> Cleanse Obelisk &nbsp;&nbsp;&nbsp; <b>M</b> Map<br>
     <b>TAB</b> Upgrades Shop &nbsp;&nbsp;&nbsp; <b>ESC</b> Pause<br>
+  </div>
+  <div class="keys" style="margin-top:10px; text-align:left; line-height:1.7;">
+    <b>💡 Tips</b><br>
+    • <b>Heal up:</b> stay out of danger for a few seconds and you slowly <b>regenerate health</b> — taking a hit resets it.<br>
+    • <b>Boss fights:</b> regular enemies thin out while a boss is alive, so focus the boss. Watch for <b>red telegraphs</b> and dodge.<br>
+    • <b>Spend coins</b> in the shop (<b>TAB</b> in-game, or 🛒 from the menu) on weapons, magic, tunnels, ship, and cosmetic skins.<br>
+    • Beating a boss pays a big <b>coin bonus</b> — gear up before the next world.
   </div>
   <div class="menu-buttons"><button class="btn menu-btn btn-back" id="btnHowtoBack">← Back</button></div>
 </div>
@@ -450,6 +457,29 @@ function initAudio() {
     applyAudioSettings();
 }
 function playTick(){ if (audioCtxStarted){ try { sfx.tick.triggerAttackRelease("C6", "32n"); } catch(_){} } }
+// Distinct arrival cue per boss so each fight announces itself
+function bossStinger(type){
+  if(!audioCtxStarted) return;
+  const t = Tone.now();
+  try {
+    if(type==='leviathan'){            // deep watery surge — low boom then a rising swell
+      sfx.cannon.triggerAttackRelease("C1","2n", t);
+      sfx.poly.triggerAttackRelease(["D2","F2","A2"], "2n", t+0.20);
+      sfx.poly.triggerAttackRelease(["D3","A3"], "4n", t+0.60);
+    } else if(type==='robot'){         // metallic double-clank + an alarm chord
+      sfx.cannon.triggerAttackRelease("C0","4n", t);
+      sfx.hit.triggerAttackRelease("G2","16n", t+0.14);
+      sfx.hit.triggerAttackRelease("G2","16n", t+0.30);
+      sfx.poly.triggerAttackRelease(["C3","Eb3","G3"], "4n", t+0.44);
+    } else if(type==='firelord'){      // bright ascending blaze
+      sfx.cannon.triggerAttackRelease("C1","4n", t);
+      sfx.magic.triggerAttackRelease("E4","16n", t+0.14);
+      sfx.magic.triggerAttackRelease("A4","16n", t+0.26);
+      sfx.magic.triggerAttackRelease("C5","8n",  t+0.40);
+      sfx.poly.triggerAttackRelease(["E3","G3","C4"], "4n", t+0.46);
+    }
+  } catch(_){}
+}
 
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -608,8 +638,38 @@ function buildWastes() {
     }
     scene.background.setHex(0x4a3a30); scene.fog.color.setHex(0x4a3a30); hemiLight.color.setHex(0xffd0a0);
 }
+// World 3 mission node — a volcanic vent (reuses the obelisk gating)
+function makeVent(x,z) {
+    const g = new THREE.Group();
+    const rock = new THREE.MeshStandardMaterial({color:0x33272a, roughness:0.9, flatShading:true});
+    const cone = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 3.2, 5, 7), rock); cone.position.y=2.5; cone.castShadow=true; g.add(cone);
+    const core = new THREE.Mesh(new THREE.IcosahedronGeometry(1.5,0), new THREE.MeshStandardMaterial({color:0xff6622, emissive:0xff3300, emissiveIntensity:1.2, flatShading:true})); core.position.y=5; core.castShadow=true; g.add(core);
+    const lava = new THREE.Mesh(new THREE.CircleGeometry(3.6,16), new THREE.MeshBasicMaterial({color:0xff4400, transparent:true, opacity:0.7})); lava.rotation.x=-Math.PI/2; lava.position.y=0.06; g.add(lava);
+    const light = new THREE.PointLight(0xff5522, 4, 24, 2); light.position.set(0,4,0); g.add(light);
+    g.position.set(x,0,z); scene.add(g);
+    const wall = {minx:x-3, maxx:x+3, minz:z-3, maxz:z+3}; walls.push(wall);
+    obelisks.push({ obj:g, x, z, state:'idle', progress:0, mesh:core, wall, kind:'vent' });
+}
+// World 3 biome dressing — lava rocks + scorched red atmosphere + a central volcano
+let emberpeakBuilt = false;
+function buildEmberpeak() {
+    if (emberpeakBuilt) return; emberpeakBuilt = true;
+    const dark = new THREE.MeshStandardMaterial({color:0x2a2024, roughness:0.95, flatShading:true});
+    const glow = new THREE.MeshStandardMaterial({color:0x551111, emissive:0xff3300, emissiveIntensity:0.5, flatShading:true});
+    for(let i=0;i<90;i++){
+        const ang=Math.random()*Math.PI*2, r=170+Math.random()*150, x=Math.cos(ang)*r, z=Math.sin(ang)*r;
+        if(isWater(x,z)) continue;
+        const s=0.9+Math.random()*2.6;
+        const m=new THREE.Mesh(new THREE.DodecahedronGeometry(s,0), Math.random()<0.25?glow:dark);
+        m.position.set(x, s*0.4, z); m.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3); m.castShadow=true; scene.add(m);
+    }
+    // a brooding volcano on the far side
+    const volc = new THREE.Mesh(new THREE.ConeGeometry(40, 55, 7), dark); volc.position.set(170,20,170); volc.castShadow=true; scene.add(volc);
+    const caldera = new THREE.Mesh(new THREE.CircleGeometry(12,16), new THREE.MeshBasicMaterial({color:0xff5500, transparent:true, opacity:0.8})); caldera.rotation.x=-Math.PI/2; caldera.position.set(170,47,170); scene.add(caldera);
+    scene.background.setHex(0x3a1a14); scene.fog.color.setHex(0x3a1a14); hemiLight.color.setHex(0xff9060);
+}
 
-let leviathan = null, robot = null;
+let leviathan = null, robot = null, firelord = null;
 let gameMode = 'mission';
 
 function setupGameMode(mode) {
@@ -631,7 +691,7 @@ function setupGameMode(mode) {
 
 function spawnLeviathan() {
     showToast("THE LEVIATHAN AWAKENS! Board your Ship to fight!", "#ff5e62");
-    if(audioCtxStarted) sfx.cannon.triggerAttackRelease("C0", "2n");
+    bossStinger('leviathan');
     const g = new THREE.Group();
     const head = new THREE.Mesh(new THREE.DodecahedronGeometry(5,1), new THREE.MeshStandardMaterial({color:0x003366, emissive:0x001133, roughness:0.2}));
     head.position.y = 6; head.castShadow = true; g.add(head);
@@ -654,8 +714,9 @@ const WORLDS = [
   { id:'wastes', name:'The Wastes', boss:'robot', radius:300, expandTo:320, reward:800,
     setup(){ buildWastes(); makeReactor(230,40); makeReactor(-60,250); makeReactor(-230,-120); },
     text:'⚡ Overload the 3 Reactors, then crush the Iron Colossus!' },
-  { id:'emberpeak', name:'Emberpeak', boss:'firelord', radius:320, expandTo:320, reward:1200, comingSoon:true,
-    text:'🔥 World 3 — Emberpeak smolders. <i>(Coming soon!)</i>' },
+  { id:'emberpeak', name:'Emberpeak', boss:'firelord', radius:320, expandTo:320, reward:1200,
+    setup(){ buildEmberpeak(); makeVent(260,80); makeVent(80,-270); makeVent(-270,-60); },
+    text:'🔥 Seal the 3 Volcanic Vents, then slay the Fire Lord!' },
 ];
 const campaign = { index:0, bossesBeaten:[], worldRadius:WORLDS[0].radius, curRadius:WORLDS[0].radius };
 function campaignWorldRadius(){ return campaign.index>0 ? WORLDS[Math.min(campaign.index-1, WORLDS.length-1)].expandTo : WORLDS[0].radius; }
@@ -687,6 +748,11 @@ function onBossDefeated(bossId){
   const next = WORLDS[Math.min(campaign.index, WORLDS.length-1)];
   if (next && next.setup && !next.comingSoon && !campaign.bossesBeaten.includes(next.boss)) next.setup();
   saveGame();
+  if (campaign.index >= WORLDS.length){   // final boss down → campaign complete
+    const vs=$('victoryScreen'); vs.querySelector('h1').textContent='VICTORY';
+    vs.querySelector('p').textContent='Emberfall is saved. Every boss has fallen before you!';
+    vs.classList.remove('hidden'); paused=true; setReticle(false); if(document.pointerLockElement) document.exitPointerLock();
+  }
 }
 
 // --- Boss spawning & damage (generic across worlds) ---
@@ -695,6 +761,7 @@ function spawnCurrentBoss(){
   if (!w || campaign.bossesBeaten.includes(w.boss)) return;
   if (w.boss==='leviathan' && !leviathan) spawnLeviathan();
   else if (w.boss==='robot' && !robot) spawnRobot();
+  else if (w.boss==='firelord' && !firelord) spawnFirelord();
 }
 function damageRobot(dmg){
   if (!robot || robot.dead) return;
@@ -710,7 +777,7 @@ function robotDefeated(){
 }
 function spawnRobot(){
   showToast("⚙️ THE IRON COLOSSUS ACTIVATES!", "#ff8844");
-  if (audioCtxStarted) sfx.cannon.triggerAttackRelease("C0","2n");
+  bossStinger('robot');
   const g = new THREE.Group();
   const body = new THREE.MeshStandardMaterial({color:0x6b6b75, metalness:0.7, roughness:0.4, flatShading:true});
   const dark = new THREE.MeshStandardMaterial({color:0x33343a, metalness:0.8, roughness:0.3});
@@ -727,6 +794,37 @@ function spawnRobot(){
   g.position.set(rx,0,rz); scene.add(g);
   robot = { obj:g, pos:g.position.clone(), hp:3500, maxHp:3500, scale:5, phase:0, dead:false, speed:4,
             shootCd:3, smashCd:5, smashWindup:0, smashLunge:0, smashed:false, smashPoint:null, smashRing:null };
+}
+
+function damageFirelord(dmg){
+  if (!firelord || firelord.dead) return;
+  firelord.hp -= dmg; floatText(firelord.pos.clone().add(new THREE.Vector3(0,3,0)), '-'+Math.round(dmg), '#ffcc44', 26);
+  if (firelord.hp<=0) firelordDefeated();
+}
+function firelordDefeated(){
+  if (!firelord || firelord.dead) return;
+  firelord.dead = true; scene.remove(firelord.obj);
+  if (firelord.eruptRings){ firelord.eruptRings.forEach(r=>scene.remove(r)); firelord.eruptRings=null; }
+  $('bossBar').classList.remove('show');
+  onBossDefeated('firelord');
+}
+function spawnFirelord(){
+  showToast("🔥 THE FIRE LORD AWAKENS!", "#ff5e22");
+  bossStinger('firelord');
+  const g = new THREE.Group();
+  const core = new THREE.Mesh(new THREE.IcosahedronGeometry(2.6,0), new THREE.MeshStandardMaterial({color:0xff5511, emissive:0xff3300, emissiveIntensity:1.4, flatShading:true})); core.castShadow=true; g.add(core);
+  const shell = new THREE.Mesh(new THREE.IcosahedronGeometry(3.6,0), new THREE.MeshStandardMaterial({color:0xaa2200, emissive:0xff4400, emissiveIntensity:0.6, flatShading:true, transparent:true, opacity:0.55})); g.add(shell);
+  const eyeMat = new THREE.MeshStandardMaterial({color:0xffee66, emissive:0xffcc00, emissiveIntensity:2});
+  for (const dx of [-0.8,0.8]){ const eye=new THREE.Mesh(new THREE.SphereGeometry(0.4,8,8), eyeMat); eye.position.set(dx,0.6,2.4); g.add(eye); }
+  const bits=[]; for(let i=0;i<5;i++){ const b=new THREE.Mesh(new THREE.TetrahedronGeometry(0.7,0), new THREE.MeshStandardMaterial({color:0xff8800, emissive:0xff5500, emissiveIntensity:1.2, flatShading:true})); g.add(b); bits.push(b); }
+  const light = new THREE.PointLight(0xff6622, 5, 40, 2); light.position.y=2; g.add(light);
+  g.userData = { core, shell, bits };
+  let rx, rz, a, tries=0;
+  do { a=Math.random()*Math.PI*2; rx=player.pos.x+Math.cos(a)*48; rz=player.pos.z+Math.sin(a)*48; tries++; }
+  while ((isWater(rx,rz) || Math.hypot(rx,rz) > campaign.curRadius-12) && tries<40);
+  g.position.set(rx,7,rz); scene.add(g);
+  firelord = { obj:g, pos:new THREE.Vector3(rx,0,rz), hp:4500, maxHp:4500, scale:4, phase:0, dead:false, speed:4.5,
+               shootCd:3, eruptCd:6, eruptWindup:0, erupted:false, eruptPoints:null, eruptRings:null };
 }
 
 const weaponTiers = [
@@ -824,7 +922,7 @@ const player = {
   hp: 100, maxHp: 100, xp: 0, xpNext: 100, level: 1,
   atk: 12, magAtk: 10, gold: 0, kills: 0, speed: 10,
   attackTimer: 0, attackCooldown: 0, shootCooldown: 0,
-  dashCd: 0, invuln: 0, alive: true, walkPhase: 0,
+  dashCd: 0, invuln: 0, alive: true, walkPhase: 0, regenCd: 0,
   tunnels: 3, tunnelCd: 0, onShip: false,
   inTree: false, treePos: null, underground: false
 };
@@ -899,10 +997,11 @@ function buildSlime(type, scale, color){
   let geo;
   if(type==='breaker' || type==='stalker') geo = new THREE.DodecahedronGeometry(0.8*scale, 0);
   else if(type==='drone') geo = new THREE.OctahedronGeometry(0.7*scale, 0);
+  else if(type==='imp') geo = new THREE.TetrahedronGeometry(0.85*scale, 0);
   else if(type==='water') geo = new THREE.TorusKnotGeometry(0.4*scale, 0.15*scale, 32, 8);
   else geo = new THREE.IcosahedronGeometry(0.8*scale, 1);
   
-  const body = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color, flatShading:true, roughness:.6, emissive:color, emissiveIntensity: (type==='toxic'||type==='stalker')?0.4:0.15}));
+  const body = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color, flatShading:true, roughness:.6, emissive:color, emissiveIntensity: (type==='toxic'||type==='stalker'||type==='imp')?0.45:0.15}));
   body.position.y=0.8*scale; body.castShadow=true; g.add(body);
   const eyeW = new THREE.MeshStandardMaterial({color:0xffffff}), eyeB=new THREE.MeshStandardMaterial({color:type==='toxic'?0xff0000:0x000000});
   
@@ -962,6 +1061,7 @@ function spawnEnemy(type, x, z){
   else if (type==='toxic') { e.scale=1.2; e.hp=45*powerMult; e.atk=12; e.speed=4.0; e.xp=45; e.gold=20; e.color=0x33ff33; }
   else if (type==='water') { e.scale=1.5; e.hp=50*powerMult; e.atk=14; e.speed=4.5; e.xp=60; e.gold=30; e.color=0x1177ff; }
   else if (type==='drone') { e.scale=1.0; e.hp=35*powerMult; e.atk=11; e.speed=5.0; e.xp=45; e.gold=20; e.color=0x99aacc; }   // World 2 flying ranged bot
+  else if (type==='imp') { e.scale=0.9; e.hp=30*powerMult; e.atk=14; e.speed=6.0; e.xp=40; e.gold=18; e.color=0xff4422; }   // World 3 fast fire melee
   else if (type==='stalker') { e.scale=1.1; e.hp=40*powerMult; e.atk=20; e.speed=5.2; e.xp=55; e.gold=25; e.color=0x2a1a3a; }
   else if (type==='mimic') {
     e.disguise=['tree','rock','cave'][Math.floor(Math.random()*3)]; e.revealed=false; e.color=0x3a0f2a;
@@ -982,6 +1082,7 @@ function spawnWave(n, forcePos=null){
   if (pwr > 8) pool.push('breaker', 'toxic');
   if (pwr > 10) pool.push('stalker', 'mimic');
   if (gameMode === 'mission' && campaign.index >= 1) pool.push('drone', 'drone', 'shooter');   // The Wastes: robotic foes
+  if (gameMode === 'mission' && campaign.index >= 2) pool.push('imp', 'imp', 'drone');          // Emberpeak: fire foes
   
   for (let i=0;i<n;i++){
     let x,z,tries=0, type;
@@ -1075,8 +1176,8 @@ function cleanseObelisk() {
     for(const ob of obelisks) {
         if(ob.state === 'idle' && Math.hypot(player.pos.x-ob.x, player.pos.z-ob.z) < 10) {
             ob.state = 'cleansing';
-            const isR = ob.kind==='reactor';
-            showToast(isR ? "⚡ Reactor overloading! Survive the wave!" : "Cleansing started! Survive the wave!", isR ? "#33ddff" : "#a855f7");
+            const msgs = { reactor:["⚡ Reactor overloading! Survive!","#33ddff"], vent:["🌋 Sealing the vent! Survive!","#ff6622"], obelisk:["Cleansing started! Survive the wave!","#a855f7"] };
+            const m = msgs[ob.kind] || msgs.obelisk; showToast(m[0], m[1]);
             spawnWave(15, new THREE.Vector3(ob.x, 0, ob.z)); break;
         }
     }
@@ -1301,12 +1402,12 @@ function primaryAttack() {
     floatText(e.pos,'-'+dmg,'#ffffff',20);
     if (e.hp<=0) killEnemy(e);
   }
-  // melee can damage the land boss (Iron Colossus)
-  if (robot && !robot.dead){
-    const d=Math.hypot(robot.pos.x-player.pos.x, robot.pos.z-player.pos.z);
-    if (d < reach + robot.scale*0.9){
-      const to=new THREE.Vector3(robot.pos.x-player.pos.x,0,robot.pos.z-player.pos.z).normalize();
-      if (fwd.dot(to)>=arc){ damageRobot(player.atk + Math.round(Math.random()*8)); if(audioCtxStarted) sfx.hit.triggerAttackRelease("C2","8n"); }
+  // melee can damage the land bosses (Iron Colossus / Fire Lord)
+  for (const B of [ {b:robot, dmgFn:damageRobot}, {b:firelord, dmgFn:damageFirelord} ]){
+    const b = B.b; if (!b || b.dead) continue;
+    if (Math.hypot(b.pos.x-player.pos.x, b.pos.z-player.pos.z) < reach + b.scale*0.9){
+      const to=new THREE.Vector3(b.pos.x-player.pos.x,0,b.pos.z-player.pos.z).normalize();
+      if (fwd.dot(to)>=arc){ B.dmgFn(player.atk + Math.round(Math.random()*8)); if(audioCtxStarted) sfx.hit.triggerAttackRelease("C2","8n"); }
     }
   }
 }
@@ -1379,6 +1480,7 @@ function explode(pos,dmg,radius, isEnemy, isCannon=false){
        }
     }
     if (robot && !robot.dead && Math.hypot(robot.pos.x-pos.x, robot.pos.z-pos.z) < radius + robot.scale*0.9) damageRobot(dmg);
+    if (firelord && !firelord.dead && Math.hypot(firelord.pos.x-pos.x, firelord.pos.z-pos.z) < radius + firelord.scale*0.9) damageFirelord(dmg);
   } else {
     const pY = player.inTree ? 3.5 : 0;
     if (Math.hypot(player.pos.x-pos.x, pY-pos.y, player.pos.z-pos.z) < radius+PLAYER_R) hurtPlayer(dmg);
@@ -1415,7 +1517,7 @@ function gainXp(a){
 function hurtPlayer(dmg){
   if (player.invuln>0||!player.alive) return;
   if (audioCtxStarted) sfx.hit.triggerAttackRelease("A1", "8n");
-  player.hp-=dmg; player.invuln=0.6; floatText(player.pos,'-'+dmg,'#ff5555',24);
+  player.hp-=dmg; player.invuln=0.6; player.regenCd=4.0; floatText(player.pos,'-'+dmg,'#ff5555',24);   // hits delay out-of-combat regen
   if (player.hp<=0){ player.hp=0; die(); }
 }
 
@@ -1545,6 +1647,8 @@ function update(dt){
   if (!started || paused || !player.alive) return;
   player.attackTimer=Math.max(0,player.attackTimer-dt); player.attackCooldown=Math.max(0,player.attackCooldown-dt); player.shootCooldown=Math.max(0,player.shootCooldown-dt);
   player.dashCd=Math.max(0,player.dashCd-dt); player.invuln=Math.max(0,player.invuln-dt); player.tunnelCd=Math.max(0,player.tunnelCd-dt);
+  player.regenCd=Math.max(0,player.regenCd-dt);
+  if (player.alive && player.regenCd<=0 && player.hp>0 && player.hp<player.maxHp) player.hp=Math.min(player.maxHp, player.hp + player.maxHp*0.035*dt);   // out-of-combat regen
   ship.fireCd=Math.max(0,ship.fireCd-dt); ship.dmgCd=Math.max(0,ship.dmgCd-dt); ship.invuln=Math.max(0,ship.invuln-dt);
   
   if (ship.invuln > 0) { ship.obj.userData.hull.material.emissive.setHex(0x00aaff); ship.obj.userData.hull.material.emissiveIntensity = 0.5 + Math.sin(performance.now()*0.01)*0.5; } 
@@ -1612,7 +1716,7 @@ function update(dt){
        if (!nearTree) {
           let onTunnel=false; for(const t of activeTunnels){ if(Math.hypot(p.x-t.x,p.z-t.z)<t.r){ onTunnel=true; setPrompt('Press [F] to go underground'); break; } }
           if (!onTunnel){
-             let nearObelisk = false; for(const ob of obelisks) if(ob.state==='idle' && Math.hypot(p.x-ob.x, p.z-ob.z)<10){ nearObelisk=true; setPrompt(ob.kind==='reactor' ? 'Press [R] or 🔮 to Overload Reactor' : 'Press [R] or 🔮 to Cleanse Obelisk'); break; }
+             let nearObelisk = false; for(const ob of obelisks) if(ob.state==='idle' && Math.hypot(p.x-ob.x, p.z-ob.z)<10){ nearObelisk=true; setPrompt(ob.kind==='reactor' ? 'Press [R] or 🔮 to Overload Reactor' : ob.kind==='vent' ? 'Press [R] or 🔮 to Seal Vent' : 'Press [R] or 🔮 to Cleanse Obelisk'); break; }
              if (!nearObelisk) { if (Math.hypot(p.x-ship.pos.x,p.z-ship.pos.z) < 9 && !ship.destroyed) setPrompt('Press [B] to board ship'); else setPrompt(''); }
           }
        }
@@ -1762,13 +1866,64 @@ function update(dt){
     }
   }
 
+  // --- Fire Lord (World 3 boss): float + fireball storm + telegraphed multi-zone eruption ---
+  if (firelord && !firelord.dead){
+    $('bossBar').classList.add('show'); $('bossLabel').textContent = '🔥 THE FIRE LORD';
+    $('bossFill').style.width = Math.max(0, firelord.hp/firelord.maxHp*100)+'%';
+    firelord.phase += dt*3;
+    const toP = player.pos.clone().sub(firelord.pos); toP.y=0; const fdist=toP.length();
+    if (fdist>9) firelord.pos.addScaledVector(toP.normalize(), firelord.speed*dt);
+    resolveWaterBoundary(firelord.pos, 4, false);
+    { const dd=Math.hypot(firelord.pos.x,firelord.pos.z); if(dd>campaign.curRadius-6){ firelord.pos.x=firelord.pos.x/dd*(campaign.curRadius-6); firelord.pos.z=firelord.pos.z/dd*(campaign.curRadius-6); } }
+    firelord.obj.position.set(firelord.pos.x, 7+Math.sin(firelord.phase)*0.6, firelord.pos.z);
+    firelord.obj.rotation.y = Math.atan2(toP.x, toP.z);
+    firelord.obj.userData.core.rotation.y += dt*1.5;
+    firelord.obj.userData.bits.forEach((b,i)=>{ const an=firelord.phase*1.5+i*1.25; b.position.set(Math.cos(an)*4, Math.sin(firelord.phase*2+i)*1.2, Math.sin(an)*4); });
+
+    firelord.shootCd -= dt;
+    if (firelord.shootCd<=0 && firelord.eruptWindup<=0){
+      firelord.shootCd = 2.6; if(audioCtxStarted) sfx.magic.triggerAttackRelease("A2","8n");
+      const muzzle = firelord.pos.clone().add(new THREE.Vector3(0,7,0));
+      const aim = new THREE.Vector3(player.pos.x, player.inTree?3.5:1.2, player.pos.z);
+      for (let i=-2;i<=2;i++){ const dir=aim.clone().sub(muzzle).normalize(); dir.applyAxisAngle(new THREE.Vector3(0,1,0), i*0.16); shootBolt(true, muzzle.clone(), dir, 18, 0xff7722, 0xaa3300, 28, 1.0, 2.4); }
+    }
+
+    firelord.eruptCd -= dt;
+    if (firelord.eruptWindup>0){
+      firelord.eruptWindup -= dt;
+      if (firelord.eruptRings) firelord.eruptRings.forEach(r=>{ r.material.opacity = 0.3 + Math.abs(Math.sin(performance.now()*0.012))*0.5; });
+      if (firelord.eruptWindup<=0){
+        if (!firelord.erupted){
+          firelord.erupted = true;
+          for (const sp of firelord.eruptPoints){
+            addEffect(new THREE.Vector3(sp.x,0.5,sp.z), 10, 0xff5522);
+            if (Math.hypot(player.pos.x-sp.x, player.pos.z-sp.z) < 5 && !player.onShip) hurtPlayer(40);
+          }
+          if (audioCtxStarted) sfx.cannon.triggerAttackRelease("C1","2n");
+        }
+        if (firelord.eruptRings){ firelord.eruptRings.forEach(r=>scene.remove(r)); firelord.eruptRings=null; }
+      }
+    } else if (firelord.eruptCd<=0 && fdist<40){
+      firelord.eruptCd = 8; firelord.eruptWindup = 1.3; firelord.erupted=false; firelord.eruptPoints=[]; firelord.eruptRings=[];
+      for (let i=0;i<3;i++){
+        const off = i===0 ? {x:0,z:0} : {x:(Math.random()-0.5)*22, z:(Math.random()-0.5)*22};
+        const px=player.pos.x+off.x, pz=player.pos.z+off.z;
+        firelord.eruptPoints.push({x:px,z:pz});
+        const ring=new THREE.Mesh(new THREE.RingGeometry(3.6,5,28), new THREE.MeshBasicMaterial({color:0xff5522, transparent:true, opacity:0.5, side:THREE.DoubleSide, depthWrite:false}));
+        ring.rotation.x=-Math.PI/2; ring.position.set(px,0.2,pz); scene.add(ring); firelord.eruptRings.push(ring);
+      }
+      showToast("⚠ Eruption incoming — leave the rings!", "#ff7733");
+    }
+  }
+
   // --- Campaign: animate world expansion + drive objective text ---
   if (gameMode==='mission'){
     campaign.curRadius += (campaign.worldRadius - campaign.curRadius) * Math.min(1, dt*1.5);
     boundaryRing.visible = true; boundaryRing.scale.set(campaign.curRadius, 1, campaign.curRadius);
     const cur = WORLDS[Math.min(campaign.index, WORLDS.length-1)];
     let obj = '';
-    if (cur && cur.comingSoon) obj = cur.text;
+    if (campaign.index >= WORLDS.length) obj = '🏆 Emberfall is saved! Campaign complete — free-roam on.';
+    else if (cur && cur.comingSoon) obj = cur.text;
     else if (cur && cur.boss==='leviathan'){
       if (leviathan && !leviathan.dead) obj = '⚔️ Slay the Leviathan!';
       else { const cc = obelisks.filter(o=>o.state==='cleansed').length; obj = cc<3 ? `🔮 Cleanse the Cursed Obelisks (${cc}/3)` : '⚓ Board your ship & slay the Leviathan!'; }
@@ -1776,6 +1931,10 @@ function update(dt){
     else if (cur && cur.boss==='robot'){
       if (robot && !robot.dead) obj = '🤖 Destroy the Iron Colossus!';
       else { const cc = obelisks.filter(o=>o.state==='cleansed').length; obj = cc<3 ? `⚡ Overload the Reactors (${cc}/3)` : '🤖 The Colossus stirs — destroy it!'; }
+    }
+    else if (cur && cur.boss==='firelord'){
+      if (firelord && !firelord.dead) obj = '🔥 Slay the Fire Lord!';
+      else { const cc = obelisks.filter(o=>o.state==='cleansed').length; obj = cc<3 ? `🌋 Seal the Volcanic Vents (${cc}/3)` : '🔥 The Fire Lord awakens — slay it!'; }
     }
     setObjective(obj);
   } else { boundaryRing.visible=false; setObjective(''); }
@@ -1848,6 +2007,12 @@ function update(dt){
               hit=true;
           }
       }
+      if (!hit && firelord && !firelord.dead) {   // ...and the Fire Lord
+          if (segDist(firelord.pos.x, firelord.pos.z, ax, az, bx, bz) < pr.r + firelord.scale*0.9) {
+              if (pr.aoe) explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false, pr.isCannon); else damageFirelord(pr.dmg);
+              hit=true;
+          }
+      }
     }
 
     // Ground/straight cannonball proximity detonation (also swept)
@@ -1874,7 +2039,14 @@ function update(dt){
     }
   }
 
-  spawnTimer-=dt; if (spawnTimer<=0 && enemies.length<50){ spawnWave(waveSize); waveSize=Math.min(20,waveSize+1); spawnTimer= 7.0 - Math.min(3, player.level*0.1); }
+  // During a boss fight, throttle the regular adds so you can focus the boss
+  const bossActive = (leviathan&&!leviathan.dead)||(robot&&!robot.dead)||(firelord&&!firelord.dead);
+  spawnTimer-=dt;
+  if (spawnTimer<=0 && enemies.length < (bossActive?16:50)){
+    spawnWave(bossActive ? 4 : waveSize);
+    if(!bossActive) waveSize=Math.min(20,waveSize+1);
+    spawnTimer = bossActive ? 7.0 : (7.0 - Math.min(3, player.level*0.1));
+  }
 
   const focus = player.onShip ? ship.pos : player.pos; const cx=Math.sin(camYaw)*Math.cos(camPitch), cz=Math.cos(camYaw)*Math.cos(camPitch), cy=Math.sin(camPitch); const pOffY = player.inTree ? 3.0 : 2.0; const target=focus.clone().add(new THREE.Vector3(0,pOffY,0));
   camera.position.lerp(target.clone().add(new THREE.Vector3(cx,cy,cz).multiplyScalar(camDist)), Math.min(1,dt*10)); camera.lookAt(target);

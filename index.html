@@ -427,9 +427,10 @@
   <h1>YOU FELL</h1>
   <p id="gameOverStats">Level 1 · 0 Slain · 0 Gold</p>
   <div class="menu-buttons">
-    <button class="btn menu-btn" id="btnRetry">⟳ Return to Menu</button>
+    <button class="btn menu-btn" id="btnRevive">✨ Revive — 500 coins</button>
+    <button class="btn menu-btn btn-quit" id="btnRetry">☠ Give Up</button>
   </div>
-  <div class="save-note">Your progress is saved.</div>
+  <div class="save-note" id="gameOverNote">Revive to continue your run — or give up and lose everything except your skins.</div>
 </div>
 
 <script type="importmap">
@@ -751,10 +752,12 @@ function setupGameMode(mode) {
         if (w && w.setup && !w.comingSoon && !campaign.bossesBeaten.includes(w.boss)) w.setup();
         applyBiomeInstant(w && w.biome);                  // current world's palette (instant on load/start)
         placeBiomeHazards(w && w.biome && w.biome.hazard);   // lava/ice zones for this world
+        setAmbientParticles(w && w.biome && w.biome.particle);   // snow/ember/dust ambience
     } else {
         applyBiomeInstant(WORLDS[0].biome);               // Free Play uses the Valley palette
         clearHazards();                                   // no biome hazards in Free Play
-        obelisks.forEach(ob => { scene.remove(ob.obj); });
+        setAmbientParticles(null);
+        obelisks.forEach(ob => { if(ob.healLight) scene.remove(ob.healLight); scene.remove(ob.obj); });
         obelisks.length = 0;
         if($('bCleanse')) $('bCleanse').style.display = 'none';
         campaign.worldRadius = WORLD; campaign.curRadius = WORLD;   // Free Play: full map, no barrier
@@ -785,15 +788,15 @@ const WORLDS = [
     setup(){ makeObelisk(120, 120); makeObelisk(-140, -100); makeObelisk(140, -120); },
     text:'⚓ Board your ship & slay the Leviathan!' },
   { id:'wastes', name:'The Wastes', boss:'robot', radius:300, expandTo:320, reward:800,
-    biome:{ bg:0x4a3a30, fog:0x4a3a30, hemi:0xffd0a0, particle:null, hazard:null },
+    biome:{ bg:0x4a3a30, fog:0x4a3a30, hemi:0xffd0a0, particle:{ type:'dust', count:90, color:0xbfa980, size:0.5, opacity:0.5, vy:1.4, drift:2.4, glow:false }, hazard:null },
     setup(){ buildWastes(); makeReactor(230,40); makeReactor(-60,250); makeReactor(-230,-120); },
     text:'⚡ Overload the 3 Reactors, then crush the Iron Colossus!' },
   { id:'emberpeak', name:'Emberpeak', boss:'firelord', radius:320, expandTo:340, reward:1200,
-    biome:{ bg:0x3a1a14, fog:0x3a1a14, hemi:0xff9060, particle:null, hazard:{ type:'lava', count:7, dps:16, slow:false, color:0xff4400, ring:0xff8800 } },
+    biome:{ bg:0x3a1a14, fog:0x3a1a14, hemi:0xff9060, particle:{ type:'ember', count:120, color:0xff7733, size:0.5, opacity:0.9, vy:6, drift:1.4, glow:true }, hazard:{ type:'lava', count:7, dps:16, slow:false, color:0xff4400, ring:0xff8800 } },
     setup(){ buildEmberpeak(); makeVent(260,80); makeVent(80,-270); makeVent(-270,-60); },
     text:'🔥 Seal the 3 Volcanic Vents, then slay the Fire Lord!' },
   { id:'frostspire', name:'Frostspire', boss:'frostwarden', radius:340, expandTo:340, reward:1600,
-    biome:{ bg:0xbcd0e0, fog:0xc4d8e6, hemi:0xe6f2ff, particle:null, hazard:{ type:'ice', count:9, dps:0, slow:true, color:0x9fd6ff, ring:0xe6f7ff } },
+    biome:{ bg:0xbcd0e0, fog:0xc4d8e6, hemi:0xe6f2ff, particle:{ type:'snow', count:200, color:0xffffff, size:0.6, opacity:0.85, vy:-5, drift:2.0, glow:false }, hazard:{ type:'ice', count:9, dps:0, slow:true, color:0x9fd6ff, ring:0xe6f7ff } },
     setup(){ buildFrostspire(); makeFrostPylon(250,60); makeFrostPylon(-70,260); makeFrostPylon(-260,-110); },
     text:'❄️ Shatter the 3 Frozen Pylons, then defeat the Frost Warden!' },
 ];
@@ -868,6 +871,38 @@ function updateHazards(dt){
   hazardMsgCd = Math.max(0, hazardMsgCd - dt);
 }
 
+// ===== Biome ambient particles (Stage 15) — a single Points buffer that follows the player =====
+let ambient = null;   // { points, count, box, top, vy, drift }
+function clearAmbient(){ if (ambient){ scene.remove(ambient.points); ambient.points.geometry.dispose(); ambient.points.material.dispose(); ambient = null; } }
+function setAmbientParticles(p){
+  clearAmbient();
+  if (!p) return;
+  const count = isTouch ? Math.floor(p.count*0.5) : p.count;   // perf-aware
+  const box = 75, top = 42;
+  const arr = new Float32Array(count*3);
+  for (let i=0;i<count;i++){ arr[i*3]=(Math.random()-0.5)*box*2; arr[i*3+1]=Math.random()*top; arr[i*3+2]=(Math.random()-0.5)*box*2; }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(arr,3));
+  const matOpts = { color:p.color, size:p.size, transparent:true, opacity:p.opacity, depthWrite:false, sizeAttenuation:true };
+  if (p.glow) matOpts.blending = THREE.AdditiveBlending;
+  const points = new THREE.Points(geo, new THREE.PointsMaterial(matOpts));
+  points.frustumCulled = false; scene.add(points);
+  ambient = { points, count, box, top, vy:p.vy, drift:p.drift };
+}
+function updateAmbient(dt){
+  if (!ambient) return;
+  const focus = player.onShip ? ship.pos : player.pos;
+  ambient.points.position.set(focus.x, 0, focus.z);   // keep the field centered on the player
+  const a = ambient.points.geometry.attributes.position, arr = a.array, box=ambient.box, top=ambient.top, t=performance.now()*0.0015;
+  for (let i=0;i<ambient.count;i++){
+    const ix=i*3;
+    arr[ix+1] += ambient.vy*dt;
+    arr[ix]   += Math.sin(t+i)*ambient.drift*dt;
+    if (ambient.vy<0 && arr[ix+1]<0){ arr[ix+1]=top; arr[ix]=(Math.random()-0.5)*box*2; arr[ix+2]=(Math.random()-0.5)*box*2; }
+    else if (ambient.vy>0 && arr[ix+1]>top){ arr[ix+1]=0; arr[ix]=(Math.random()-0.5)*box*2; arr[ix+2]=(Math.random()-0.5)*box*2; }
+  }
+  a.needsUpdate = true;
+}
+
 // translucent barrier marking (and growing with) the Story-mode playable area
 const boundaryRing = new THREE.Mesh(
   new THREE.CylinderGeometry(1, 1, 12, 60, 1, true),
@@ -925,12 +960,13 @@ function doWorldTransition(){
   const cleared = WORLDS[Math.min(campaign.index, WORLDS.length-1)];
   campaign.index = campaign.bossesBeaten.length;
   campaign.worldRadius = cleared.expandTo || campaign.worldRadius;   // expand (animates in update)
-  for (const ob of obelisks){ scene.remove(ob.obj); const wi=walls.indexOf(ob.wall); if(wi>-1) walls.splice(wi,1); }
+  for (const ob of obelisks){ if(ob.healLight) scene.remove(ob.healLight); scene.remove(ob.obj); const wi=walls.indexOf(ob.wall); if(wi>-1) walls.splice(wi,1); }
   obelisks.length = 0;
   const next = WORLDS[Math.min(campaign.index, WORLDS.length-1)];
   if (next && next.setup && !next.comingSoon && !campaign.bossesBeaten.includes(next.boss)) next.setup();
   startBiomeMorph(next && next.biome, 1.5);   // cross-fade the palette to the new world (visible as the flash clears)
   placeBiomeHazards(next && next.biome && next.biome.hazard);   // swap in the new world's hazards
+  setAmbientParticles(next && next.biome && next.biome.particle);   // swap in the new world's ambience
   campaign.awaitingPortal = false; markDirty(); saveGame();
 }
 
@@ -1326,6 +1362,28 @@ function buildMimic(scale, disguiseType){
   g.userData = { disguise, monster, body }; return g;
 }
 
+// Wastes sand-worm: a tracking dirt mound while burrowed, a toothed worm while surfaced
+function buildBurrower(scale, color){
+  const g = new THREE.Group();
+  const mound = new THREE.Mesh(new THREE.SphereGeometry(1.5*scale, 10, 6, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({color:0x7a5a36, roughness:1, flatShading:true}));
+  mound.scale.set(1,0.5,1); mound.position.y=0.1; mound.castShadow=true; g.add(mound);
+  const worm = new THREE.Group();
+  const segMat = new THREE.MeshStandardMaterial({color, roughness:.6, flatShading:true, emissive:color, emissiveIntensity:0.15});
+  const head = new THREE.Mesh(new THREE.IcosahedronGeometry(1.2*scale,0), segMat); head.position.y=1.5*scale; head.castShadow=true; worm.add(head);
+  for(let i=1;i<=3;i++){ const s=new THREE.Mesh(new THREE.IcosahedronGeometry((1.2-i*0.2)*scale,0), segMat); s.position.set(0,(1.5-i*0.4)*scale,-i*0.55*scale); s.castShadow=true; worm.add(s); }
+  const tMat=new THREE.MeshStandardMaterial({color:0xf2e2c2, roughness:.4});
+  for(let i=0;i<8;i++){ const a=(i/8)*Math.PI*2; const t=new THREE.Mesh(new THREE.ConeGeometry(0.16*scale,0.5*scale,4), tMat); t.position.set(Math.cos(a)*0.85*scale, 2.0*scale, Math.sin(a)*0.85*scale); t.rotation.x=Math.PI; worm.add(t); }
+  const eMat=new THREE.MeshStandardMaterial({color:0xffdd66, emissive:0xffaa00, emissiveIntensity:1.6});
+  for(const dx of [-0.4,0.4]){ const eye=new THREE.Mesh(new THREE.SphereGeometry(0.16*scale,8,8), eMat); eye.position.set(dx*scale,1.8*scale,0.9*scale); worm.add(eye); }
+  worm.visible=false; g.add(worm);
+  g.userData = { mound, worm, body: head };
+  return g;
+}
+// A foe can't be hit/targeted while disguised (mimic) or burrowed (sand-worm not surfaced)
+function untargetable(e){
+  return (e.type==='mimic' && !e.revealed) || (e.type==='burrower' && e.burrowState!=='up');
+}
+
 function spawnEnemy(type, x, z){
   let e = { type, pos: new THREE.Vector3(x,0,z), phase:Math.random()*Math.PI*2, flash:0, touchCd:0, shootCd: 2.0, atkTimer:0 };
   const powerMult = 1 + player.level*0.15 + wepIdx*0.2 + magIdx*0.2;
@@ -1341,6 +1399,7 @@ function spawnEnemy(type, x, z){
   else if (type==='frostwolf') { e.scale=1.05; e.hp=55*powerMult; e.atk=16; e.speed=6.0; e.xp=55; e.gold=24; e.color=0xcfeaff; }   // Frostspire pack hunter
   else if (type==='frostling') { e.scale=1.5; e.hp=120*powerMult; e.atk=20; e.speed=2.8; e.xp=80; e.gold=40; e.color=0x7fb8e0; }   // Frostspire slow tank
   else if (type==='stalker') { e.scale=1.1; e.hp=40*powerMult; e.atk=20; e.speed=5.2; e.xp=55; e.gold=25; e.color=0x2a1a3a; }
+  else if (type==='burrower') { e.scale=1.4; e.hp=110*powerMult; e.atk=24; e.speed=5.6; e.xp=75; e.gold=36; e.color=0xc89b5a; e.burrowState='under'; e.burrowTimer=2.0+Math.random()*1.5; e.warnRing=null; }   // Wastes sand-worm: burrows, telegraphs, erupts
   else if (type==='mimic') {
     // Hide as scenery (mostly trees/rocks, occasionally a cave) — and in the campaign, sometimes as a fake mission node.
     const inMission = (gameMode==='mission' && campaign.index < WORLDS.length);
@@ -1353,7 +1412,7 @@ function spawnEnemy(type, x, z){
   else { e.scale=1; e.hp=25*powerMult; e.atk=8; e.speed=4.2; e.xp=25; e.gold=10; e.color=0x6fcf45; e.type='slime'; }
 
   e.hp = Math.round(e.hp); e.maxHp=e.hp;
-  e.obj = (e.type==='mimic') ? buildMimic(e.scale, e.disguise) : buildSlime(e.type, e.scale, e.color);
+  e.obj = (e.type==='mimic') ? buildMimic(e.scale, e.disguise) : (e.type==='burrower') ? buildBurrower(e.scale, e.color) : buildSlime(e.type, e.scale, e.color);
   e.obj.position.copy(e.pos); scene.add(e.obj); enemies.push(e); return e;
 }
 
@@ -1363,7 +1422,7 @@ function spawnWave(n, forcePos=null){
   if (pwr > 4) pool.push('brute', 'shooter', 'wolf');
   if (pwr > 8) pool.push('breaker', 'toxic', 'wolf');   // wolves hunt in numbers
   if (pwr > 10) pool.push('stalker', 'mimic');
-  if (gameMode === 'mission' && campaign.index >= 1) pool.push('drone', 'drone', 'shooter');   // The Wastes: robotic foes
+  if (gameMode === 'mission' && campaign.index >= 1) pool.push('drone', 'drone', 'shooter', 'burrower');   // The Wastes: robotic foes + sand-worms
   if (gameMode === 'mission' && campaign.index >= 2) pool.push('imp', 'imp', 'drone');          // Emberpeak: fire foes
   if (gameMode === 'mission' && campaign.index >= 3) pool.push('frostwolf', 'frostwolf', 'frostling');   // Frostspire: frozen foes
   
@@ -1710,7 +1769,7 @@ $('fullBtn').onclick = () => {
 
 function faceNearestEnemy(maxDist){
   let best=null, bd=maxDist*maxDist;
-  for (const e of enemies){ if (e.hp<=0 || (e.type==='mimic' && !e.revealed)) continue; const dx=e.pos.x-player.pos.x, dz=e.pos.z-player.pos.z, d2=dx*dx+dz*dz; if (d2<bd){ bd=d2; best=e; } }
+  for (const e of enemies){ if (e.hp<=0 || untargetable(e)) continue; const dx=e.pos.x-player.pos.x, dz=e.pos.z-player.pos.z, d2=dx*dx+dz*dz; if (d2<bd){ bd=d2; best=e; } }
   if (best){ player.facing = Math.atan2(best.pos.x-player.pos.x, best.pos.z-player.pos.z); }
 }
 
@@ -1726,7 +1785,7 @@ function primaryAttack() {
   const fwd = new THREE.Vector3(Math.sin(player.facing),0,Math.cos(player.facing));
   
   for (const e of enemies){
-    if (e.hp<=0 || (e.type==='mimic' && !e.revealed)) continue;
+    if (e.hp<=0 || untargetable(e)) continue;
     const dist3D = Math.hypot(e.pos.x - player.pos.x, (e.obj.position.y||0) - player.obj.position.y, e.pos.z - player.pos.z);
     if (dist3D > reach + e.scale*0.8) continue;
     const to = e.pos.clone().sub(player.pos); to.y=0; to.normalize();
@@ -1808,7 +1867,7 @@ function explode(pos,dmg,radius, isEnemy, isCannon=false){
   if (audioCtxStarted && isCannon) sfx.cannon.triggerAttackRelease("C1", "2n");
   if (!isEnemy) {
     for (const e of enemies){
-      if (e.hp<=0 || (e.type==='mimic' && !e.revealed)) continue;
+      if (e.hp<=0 || untargetable(e)) continue;
       const d=Math.hypot(e.pos.x-pos.x, e.pos.z-pos.z);
       if (d<radius+e.scale*0.8){
         e.hp-=dmg; e.flash=0.15; const k=e.pos.clone().sub(pos); k.y=0; k.normalize(); e.obj.position.addScaledVector(k,2.5);
@@ -1841,6 +1900,7 @@ function addEffect(pos,maxR,color){
 
 function killEnemy(e){
   if (e.dead) return; e.dead=true;
+  if (e.warnRing){ scene.remove(e.warnRing); e.warnRing=null; }   // burrower telegraph cleanup
   if (audioCtxStarted) sfx.hit.triggerAttackRelease("E1", "8n");
   gainXp(e.xp); player.gold+=e.gold; player.kills++; markDirty();
   if (e.type === 'toxic') createPuddle(e.pos);
@@ -1867,12 +1927,46 @@ function hurtPlayer(dmg){
   if (player.hp<=0){ player.hp=0; die(); }
 }
 
+// Write a wiped save (everything but skins) WITHOUT touching live state — so Revive can still spend coins,
+// but closing the tab while dead still applies the death penalty.
+function persistDeathPenalty(){
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      version:1,
+      profile:{ coins:0, owned:cosmetics.owned, equipped:cosmetics.equipped, settings },
+      character:{ level:1, xp:0, xpNext:100, maxHp:100, atk:12, magAtk:10, speed:10, tunnels:3, binoculars:false, shiftTime:0 },
+      upgrades:{ wepIdx:0, magIdx:0, tunIdx:0, shipIdx:0 },
+      campaign:{ worldUnlocked:1, bossesBeaten:[], missionState:null }
+    }));
+    _saveDirty = false;
+  } catch(_){}
+}
 function die(){
   player.alive=false; if (player.shifted){ player.shifted=false; updateShiftVisual(); }
   setReticle(false); if (document.pointerLockElement === canvas) document.exitPointerLock();
-  if (typeof saveGame === 'function' && _saveDirty) saveGame();      // persist final state
+  persistDeathPenalty();                                             // death = lose everything but skins (unless you revive)
+  const canRevive = player.gold >= 500;
+  $('btnRevive').style.display = canRevive ? '' : 'none';
+  $('gameOverNote').textContent = canRevive
+    ? 'Revive for 500 coins to keep your run — or Give Up and lose everything except your skins.'
+    : 'Not enough coins to revive (need 500). Give Up and lose everything except your skins.';
   $('gameOverStats').textContent = `Level ${player.level} · ${player.kills} Slain · ${player.gold} Gold`;
   $('gameOverScreen').classList.remove('hidden');
+}
+function revivePlayer(){
+  if (player.gold < 500){ showToast('Need 500 coins to revive','#ff7a7a'); return; }
+  player.gold -= 500; player.alive=true; player.hp=player.maxHp; player.invuln=3.0; player.regenCd=0; player.chillCd=0;
+  for (const e of enemies){ if (e.dead) continue; const dx=e.pos.x-player.pos.x, dz=e.pos.z-player.pos.z, d=Math.hypot(dx,dz); if (d<14 && d>0.1){ e.obj.position.x=player.pos.x+dx/d*18; e.obj.position.z=player.pos.z+dz/d*18; e.pos.copy(e.obj.position); } }
+  addEffect(player.pos.clone(), 10, 0x8be0ff);
+  $('gameOverScreen').classList.add('hidden');
+  setReticle(true); if (!isTouch){ try { canvas.requestPointerLock(); } catch(_){} }
+  if (audioCtxStarted) sfx.heal.triggerAttackRelease("C5","2n");
+  saveGame(); updateHUD();                                            // re-persist real progress (minus the 500), overwriting the penalty save
+  showToast('Revived!  −500 coins','#8be0ff');
+}
+function giveUp(){
+  if (!confirm('Give up this run?\nYou lose all coins, levels, upgrades and campaign progress — only your skins are kept.')) return;
+  location.reload();   // the penalty save is already written, so a fresh load reflects the loss
 }
 
 function damageShip(dmg){
@@ -2142,8 +2236,11 @@ function update(dt){
 
   let cleansedCount = 0;
   for(const ob of obelisks) {
-      if(ob.state === 'cleansing') { ob.progress += dt * 3.3; ob.mesh.material.emissiveIntensity = 0.5 + Math.sin(ob.progress)*2; if(ob.progress >= 100) { ob.state = 'cleansed'; ob.mesh.material.color.setHex(0x4f9dff); ob.mesh.material.emissive.setHex(0x0044ff); showToast("Obelisk Cleansed!", "#4f9dff"); } }
-      if(ob.state === 'cleansed') cleansedCount++;
+      if(ob.state === 'cleansing') { ob.progress += dt * 3.3; ob.mesh.material.emissiveIntensity = 0.5 + Math.sin(ob.progress)*2;
+        if(ob.progress >= 100) { ob.state = 'cleansed'; ob.mesh.material.color.setHex(0x9fd8ff); ob.mesh.material.emissive.setHex(0x2288ff);
+          ob.healLight = new THREE.PointLight(0x66ccff, 0, 34, 2); ob.healLight.position.set(ob.x, 7, ob.z); scene.add(ob.healLight);
+          addEffect(new THREE.Vector3(ob.x, 3, ob.z), 9, 0x66ccff); showToast("Cleansed — the land heals here.", "#66ccff"); } }
+      if(ob.state === 'cleansed'){ cleansedCount++; const p=0.9+Math.sin(performance.now()*0.003 + ob.x)*0.6; ob.mesh.material.emissiveIntensity=p; if(ob.healLight) ob.healLight.intensity = 2.6 + Math.sin(performance.now()*0.003 + ob.x)*1.1; }
   }
   if(cleansedCount === 3 && gameMode === 'mission') spawnCurrentBoss();
   if(leviathan && !leviathan.dead) {
@@ -2388,6 +2485,7 @@ function update(dt){
 
   updateBiomeMorph(dt);   // Stage 11: cross-fade sky/fog/light during a world transition
   updateHazards(dt);      // Stage 12: lava/ice biome hazard zones
+  updateAmbient(dt);      // Stage 15: snow/ember/dust ambient particles
 
   // --- Portal ceremony: animate the portal, detect entry, run the warp flash ---
   if (portal){
@@ -2417,6 +2515,49 @@ function update(dt){
     
     let target = player.pos; let distToTarget = Math.hypot(target.x-e.pos.x, target.z-e.pos.z); let attackingTunnel = false;
     if (e.type === 'mimic' && !e.revealed){ if (player.alive && !player.shifted && distToTarget < 6.5){ e.revealed = true; e.obj.userData.disguise.visible = false; e.obj.userData.monster.visible = true; e.flash = 0.3; addEffect(e.pos.clone(), 3.5, 0xff2244); floatText(e.pos, "IT'S A MIMIC!", '#ff3344', 26); showToast('A Mimic ambush!', '#ff5555'); } else { e.pos.copy(e.obj.position); continue; } }
+
+    // --- Sand-worm burrower: tracks underground (invuln) → telegraphs → erupts → surfaces (vulnerable) → re-burrows ---
+    if (e.type === 'burrower'){
+      const u = e.obj.userData; e.burrowTimer -= dt;
+      if (e.burrowState === 'under'){
+        u.mound.visible = true; u.worm.visible = false; if (e.hpBar) e.hpBar.visible = false;
+        const to = new THREE.Vector3(player.pos.x-e.pos.x, 0, player.pos.z-e.pos.z); const d = to.length();
+        if (player.alive && !player.shifted && d>1) e.obj.position.addScaledVector(to.normalize(), e.speed*dt);
+        e.obj.position.y = 0; e.pos.copy(e.obj.position);
+        u.mound.scale.set(1+Math.sin(e.phase)*0.12, 0.5, 1+Math.cos(e.phase)*0.12);
+        if (e.burrowTimer<=0 && d<13 && player.alive && !player.shifted){
+          e.burrowState='rising'; e.burrowTimer=0.85;
+          e.warnRing = new THREE.Mesh(new THREE.RingGeometry(2.6,4,24), new THREE.MeshBasicMaterial({color:0xffaa44, transparent:true, opacity:0.6, side:THREE.DoubleSide, depthWrite:false}));
+          e.warnRing.rotation.x=-Math.PI/2; e.warnRing.position.set(e.pos.x,0.2,e.pos.z); scene.add(e.warnRing);
+          showToast('⚠ The ground churns beneath you!', '#e0a85a');
+        }
+        continue;
+      }
+      if (e.burrowState === 'rising'){
+        if (e.warnRing) e.warnRing.material.opacity = 0.3 + Math.abs(Math.sin(performance.now()*0.015))*0.5;
+        if (e.burrowTimer<=0){
+          e.burrowState='up'; e.burrowTimer=2.6; u.mound.visible=false; u.worm.visible=true; e.flash=0.3;
+          if (audioCtxStarted) sfx.dig.triggerAttackRelease("8n");
+          addEffect(e.pos.clone(), 8, 0xc89b5a);
+          if (e.warnRing){ scene.remove(e.warnRing); e.warnRing=null; }
+          if (player.alive && !player.onShip && !player.underground && !player.inTree && Math.hypot(player.pos.x-e.pos.x, player.pos.z-e.pos.z) < 4.8+e.scale) hurtPlayer(e.atk);
+        }
+        e.pos.copy(e.obj.position);
+        continue;
+      }
+      // 'up' — surfaced & vulnerable
+      u.mound.visible=false; u.worm.visible=true; e.obj.position.y=0; e.pos.copy(e.obj.position);
+      u.body.material.emissiveIntensity = e.flash>0 ? 1.2 : 0.15;
+      u.worm.rotation.y = Math.atan2(player.pos.x-e.pos.x, player.pos.z-e.pos.z);
+      const sq=1+Math.sin(e.phase)*0.1; u.worm.scale.set(1/Math.sqrt(sq), sq, 1/Math.sqrt(sq));
+      if (!e.hpBar){ e.hpBar = makeHpBar(); scene.add(e.hpBar); }
+      e.hpBar.visible=true; e.hpBar.position.set(e.obj.position.x, e.scale*2.6+0.8, e.obj.position.z); e.hpBar.quaternion.copy(camera.quaternion);
+      const ratio=Math.max(0,e.hp/e.maxHp), bw=e.hpBar.userData.W, fill=e.hpBar.userData.fill; fill.scale.x=ratio; fill.position.x=-bw*(1-ratio)/2; fill.material.color.setHex(ratio>0.5?0x6fcf45:(ratio>0.25?0xffd24a:0xff3b3b));
+      const dd=Math.hypot(e.pos.x-player.pos.x, e.pos.z-player.pos.z);
+      if (player.alive && !player.onShip && !player.underground && !player.inTree && dd < 1.8+e.scale*0.6 && e.touchCd<=0){ hurtPlayer(e.atk); e.touchCd=0.9; }
+      if (e.burrowTimer<=0){ e.burrowState='under'; e.burrowTimer=2.2+Math.random()*1.5; }
+      continue;
+    }
 
     if (e.type === 'breaker' && activeTunnels.length > 0) {
       let nearestT = null, minDist = Infinity; for (const t of activeTunnels) { const d = Math.hypot(t.x-e.pos.x, t.z-e.pos.z); if (d < minDist) { minDist = d; nearestT = t; } }
@@ -2469,7 +2610,7 @@ function update(dt){
       }
     } else {
       for (const e of enemies){
-        if (e.hp<=0 || (e.type==='mimic' && !e.revealed)) continue;
+        if (e.hp<=0 || untargetable(e)) continue;
         if (segDist(e.pos.x, e.pos.z, ax, az, bx, bz) < pr.r+e.scale*0.8){
           if (pr.aoe) { explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false, pr.isCannon); hit=true; break; }
           else { e.hp-=pr.dmg; e.flash=0.15; const k=pr.vel.clone(); k.y=0; k.normalize(); e.obj.position.addScaledVector(k,1.2); floatText(e.pos,'-'+pr.dmg,'#8be0ff',20); if(e.hp<=0) killEnemy(e); hit=true; break; }
@@ -2752,7 +2893,8 @@ $('btnShopBack').onclick = ()=>{
 $('upgSkinsBtn').onclick = ()=>{ shopReturn='game'; shopCat='character'; renderShop(); $('upgrades').classList.remove('show'); showScreen('shopScreen'); };
 
 // Game Over
-$('btnRetry').onclick = ()=>{ if (_saveDirty) saveGame(); location.reload(); };
+$('btnRevive').onclick = revivePlayer;
+$('btnRetry').onclick = giveUp;
 
 // Hover/selection feedback — soft tick on any menu/HUD button (audio starts on first interaction)
 addEventListener('pointerdown', ()=>{ if(!audioCtxStarted) initAudio(); }, { once:true });

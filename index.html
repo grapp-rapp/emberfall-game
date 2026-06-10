@@ -506,6 +506,12 @@ function bossStinger(type){
       sfx.magic.triggerAttackRelease("A4","16n", t+0.26);
       sfx.magic.triggerAttackRelease("C5","8n",  t+0.40);
       sfx.poly.triggerAttackRelease(["E3","G3","C4"], "4n", t+0.46);
+    } else if(type==='frostwarden'){   // glassy descending chill
+      sfx.cannon.triggerAttackRelease("C1","2n", t);
+      sfx.magic.triggerAttackRelease("C5","16n", t+0.14);
+      sfx.magic.triggerAttackRelease("G4","16n", t+0.26);
+      sfx.magic.triggerAttackRelease("Eb4","8n", t+0.40);
+      sfx.poly.triggerAttackRelease(["C3","Eb3","Bb3"], "2n", t+0.46);
     }
   } catch(_){}
 }
@@ -697,8 +703,41 @@ function buildEmberpeak() {
     const caldera = new THREE.Mesh(new THREE.CircleGeometry(12,16), new THREE.MeshBasicMaterial({color:0xff5500, transparent:true, opacity:0.8})); caldera.rotation.x=-Math.PI/2; caldera.position.set(170,47,170); scene.add(caldera);
     // (biome colors handled centrally by the Stage 11 biome system)
 }
+// World 4 mission node — a frozen pylon (reuses the obelisk gating)
+function makeFrostPylon(x,z) {
+    const g = new THREE.Group();
+    const ice = new THREE.MeshStandardMaterial({color:0x9fd6ff, emissive:0x2b6fae, emissiveIntensity:0.5, roughness:0.2, metalness:0.1, flatShading:true, transparent:true, opacity:0.92});
+    const shard = new THREE.Mesh(new THREE.ConeGeometry(2.2, 10, 5), ice); shard.position.y=5; shard.castShadow=true; g.add(shard);
+    const core = new THREE.Mesh(new THREE.IcosahedronGeometry(1.3,0), new THREE.MeshStandardMaterial({color:0xbfeaff, emissive:0x66ccff, emissiveIntensity:1.1, flatShading:true})); core.position.y=6; core.castShadow=true; g.add(core);
+    for(let i=0;i<3;i++){ const sp=new THREE.Mesh(new THREE.ConeGeometry(0.7, 3+Math.random()*2, 4), ice); const a=Math.random()*Math.PI*2; sp.position.set(Math.cos(a)*2.2, 1.5, Math.sin(a)*2.2); sp.rotation.z=(Math.random()-0.5); g.add(sp); }
+    const light = new THREE.PointLight(0x88ccff, 3, 22, 2); light.position.set(0,5,0); g.add(light);
+    g.position.set(x,0,z); scene.add(g);
+    const wall = {minx:x-2.6, maxx:x+2.6, minz:z-2.6, maxz:z+2.6}; walls.push(wall);
+    obelisks.push({ obj:g, x, z, state:'idle', progress:0, mesh:core, wall, kind:'pylon' });
+}
+// World 4 biome dressing — snowdrifts + jagged ice spires
+let frostspireBuilt = false;
+function buildFrostspire() {
+    if (frostspireBuilt) return; frostspireBuilt = true;
+    const snow = new THREE.MeshStandardMaterial({color:0xdfeefc, roughness:1, flatShading:true});
+    const ice  = new THREE.MeshStandardMaterial({color:0xaad6f0, roughness:0.3, metalness:0.1, flatShading:true, transparent:true, opacity:0.85});
+    for(let i=0;i<80;i++){
+        const ang=Math.random()*Math.PI*2, r=170+Math.random()*160, x=Math.cos(ang)*r, z=Math.sin(ang)*r;
+        if(isWater(x,z)) continue;
+        const s=0.8+Math.random()*2.4;
+        const m=new THREE.Mesh(new THREE.DodecahedronGeometry(s,0), Math.random()<0.3?ice:snow);
+        m.position.set(x, s*0.35, z); m.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3); m.castShadow=true; scene.add(m);
+    }
+    for(let i=0;i<14;i++){
+        const ang=Math.random()*Math.PI*2, r=180+Math.random()*150, x=Math.cos(ang)*r, z=Math.sin(ang)*r;
+        if(isWater(x,z)) continue;
+        const h=8+Math.random()*14;
+        const sp=new THREE.Mesh(new THREE.ConeGeometry(1.6+Math.random()*1.5, h, 5), ice); sp.position.set(x,h/2,z); sp.rotation.y=Math.random()*3; sp.castShadow=true; scene.add(sp);
+    }
+    // (biome colors handled centrally by the Stage 11 biome system)
+}
 
-let leviathan = null, robot = null, firelord = null;
+let leviathan = null, robot = null, firelord = null, frostwarden = null;
 let gameMode = 'mission';
 
 function setupGameMode(mode) {
@@ -711,8 +750,10 @@ function setupGameMode(mode) {
         // build this world's content only if it's buildable and its boss isn't already beaten
         if (w && w.setup && !w.comingSoon && !campaign.bossesBeaten.includes(w.boss)) w.setup();
         applyBiomeInstant(w && w.biome);                  // current world's palette (instant on load/start)
+        placeBiomeHazards(w && w.biome && w.biome.hazard);   // lava/ice zones for this world
     } else {
         applyBiomeInstant(WORLDS[0].biome);               // Free Play uses the Valley palette
+        clearHazards();                                   // no biome hazards in Free Play
         obelisks.forEach(ob => { scene.remove(ob.obj); });
         obelisks.length = 0;
         if($('bCleanse')) $('bCleanse').style.display = 'none';
@@ -747,10 +788,14 @@ const WORLDS = [
     biome:{ bg:0x4a3a30, fog:0x4a3a30, hemi:0xffd0a0, particle:null, hazard:null },
     setup(){ buildWastes(); makeReactor(230,40); makeReactor(-60,250); makeReactor(-230,-120); },
     text:'⚡ Overload the 3 Reactors, then crush the Iron Colossus!' },
-  { id:'emberpeak', name:'Emberpeak', boss:'firelord', radius:320, expandTo:320, reward:1200,
-    biome:{ bg:0x3a1a14, fog:0x3a1a14, hemi:0xff9060, particle:null, hazard:null },
+  { id:'emberpeak', name:'Emberpeak', boss:'firelord', radius:320, expandTo:340, reward:1200,
+    biome:{ bg:0x3a1a14, fog:0x3a1a14, hemi:0xff9060, particle:null, hazard:{ type:'lava', count:7, dps:16, slow:false, color:0xff4400, ring:0xff8800 } },
     setup(){ buildEmberpeak(); makeVent(260,80); makeVent(80,-270); makeVent(-270,-60); },
     text:'🔥 Seal the 3 Volcanic Vents, then slay the Fire Lord!' },
+  { id:'frostspire', name:'Frostspire', boss:'frostwarden', radius:340, expandTo:340, reward:1600,
+    biome:{ bg:0xbcd0e0, fog:0xc4d8e6, hemi:0xe6f2ff, particle:null, hazard:{ type:'ice', count:9, dps:0, slow:true, color:0x9fd6ff, ring:0xe6f7ff } },
+    setup(){ buildFrostspire(); makeFrostPylon(250,60); makeFrostPylon(-70,260); makeFrostPylon(-260,-110); },
+    text:'❄️ Shatter the 3 Frozen Pylons, then defeat the Frost Warden!' },
 ];
 const campaign = { index:0, bossesBeaten:[], worldRadius:WORLDS[0].radius, curRadius:WORLDS[0].radius, awaitingPortal:false };
 let portal = null;   // {obj, pos, t, arm} — appears on boss death; entering it triggers the world transition
@@ -779,6 +824,48 @@ function updateBiomeMorph(dt){
   scene.fog.color.lerpColors(biomeMorph.from.fog, biomeMorph.to.fog, k);
   hemiLight.color.lerpColors(biomeMorph.from.hemi, biomeMorph.to.hemi, k);
   if (k>=1) biomeMorph = null;
+}
+
+// ===== Biome hazards (Stage 12) — telegraphed ground zones that damage (lava) or slow (ice) the on-foot player =====
+const hazards = [];
+let hazardMsgCd = 0;
+function clearHazards(){ for (const h of hazards) scene.remove(h.obj); hazards.length = 0; }
+function placeBiomeHazards(hz){
+  clearHazards();
+  if (!hz) return;
+  const R = (gameMode==='mission') ? campaign.worldRadius : WORLD;
+  for (let i=0;i<hz.count;i++){
+    let x, z, tries=0;
+    do { const a=Math.random()*Math.PI*2, r=120+Math.random()*Math.max(40, R-150); x=Math.cos(a)*r; z=Math.sin(a)*r; tries++; }
+    while ((isWater(x,z) || Math.hypot(x,z)<60) && tries<30);
+    const rad = 5+Math.random()*4;
+    const g = new THREE.Group();
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(rad,20), new THREE.MeshBasicMaterial({color:hz.color, transparent:true, opacity:0.55, side:THREE.DoubleSide, depthWrite:false}));
+    disc.rotation.x=-Math.PI/2; disc.position.y=0.05; g.add(disc);
+    const rim = new THREE.Mesh(new THREE.RingGeometry(rad-0.5,rad,20), new THREE.MeshBasicMaterial({color:hz.ring, transparent:true, opacity:0.85, side:THREE.DoubleSide, depthWrite:false}));
+    rim.rotation.x=-Math.PI/2; rim.position.y=0.07; g.add(rim);
+    if (hz.dps>0){ const L=new THREE.PointLight(hz.ring, 2.5, rad*3, 2); L.position.y=1.2; g.add(L); }
+    g.position.set(x,0,z); scene.add(g);
+    hazards.push({ x, z, r:rad, dps:hz.dps||0, slow:!!hz.slow, type:hz.type, obj:g, disc });
+  }
+}
+function updateHazards(dt){
+  if (!hazards.length) return;
+  const now = performance.now();
+  const onFoot = player.alive && !player.onShip && !player.underground && !player.inTree;
+  for (const h of hazards){
+    if (h.disc) h.disc.material.opacity = 0.42 + Math.abs(Math.sin(now*0.003 + h.x))*0.22;
+    if (!onFoot) continue;
+    if (Math.hypot(player.pos.x-h.x, player.pos.z-h.z) < h.r){
+      if (h.dps>0){
+        player.hp -= h.dps*dt; player.regenCd = 4;
+        if (hazardMsgCd<=0){ floatText(player.pos, '-'+Math.round(h.dps*0.6), '#ff7733', 18); hazardMsgCd = 0.5; }
+        if (player.hp<=0){ player.hp=0; die(); }
+      }
+      if (h.slow) player.chillCd = Math.max(player.chillCd, 0.25);   // ice keeps you slowed while standing on it
+    }
+  }
+  hazardMsgCd = Math.max(0, hazardMsgCd - dt);
 }
 
 // translucent barrier marking (and growing with) the Story-mode playable area
@@ -843,6 +930,7 @@ function doWorldTransition(){
   const next = WORLDS[Math.min(campaign.index, WORLDS.length-1)];
   if (next && next.setup && !next.comingSoon && !campaign.bossesBeaten.includes(next.boss)) next.setup();
   startBiomeMorph(next && next.biome, 1.5);   // cross-fade the palette to the new world (visible as the flash clears)
+  placeBiomeHazards(next && next.biome && next.biome.hazard);   // swap in the new world's hazards
   campaign.awaitingPortal = false; markDirty(); saveGame();
 }
 
@@ -853,6 +941,7 @@ function spawnCurrentBoss(){
   if (w.boss==='leviathan' && !leviathan) spawnLeviathan();
   else if (w.boss==='robot' && !robot) spawnRobot();
   else if (w.boss==='firelord' && !firelord) spawnFirelord();
+  else if (w.boss==='frostwarden' && !frostwarden) spawnFrostWarden();
 }
 function damageRobot(dmg){
   if (!robot || robot.dead) return;
@@ -916,6 +1005,42 @@ function spawnFirelord(){
   g.position.set(rx,7,rz); scene.add(g);
   firelord = { obj:g, pos:new THREE.Vector3(rx,0,rz), hp:4500, maxHp:4500, scale:4, phase:0, dead:false, speed:4.5,
                shootCd:3, eruptCd:6, eruptWindup:0, erupted:false, eruptPoints:null, eruptRings:null };
+}
+
+function damageFrostWarden(dmg){
+  if (!frostwarden || frostwarden.dead) return;
+  frostwarden.hp -= dmg; floatText(frostwarden.pos.clone().add(new THREE.Vector3(0,10,0)), '-'+Math.round(dmg), '#bfe8ff', 26);
+  if (frostwarden.hp<=0) frostWardenDefeated();
+}
+function frostWardenDefeated(){
+  if (!frostwarden || frostwarden.dead) return;
+  frostwarden.dead = true; scene.remove(frostwarden.obj);
+  if (frostwarden.freezeRings){ frostwarden.freezeRings.forEach(r=>scene.remove(r)); frostwarden.freezeRings=null; }
+  $('bossBar').classList.remove('show');
+  onBossDefeated('frostwarden');
+}
+function spawnFrostWarden(){
+  showToast("❄️ THE FROST WARDEN RISES!", "#9fd6ff");
+  bossStinger('frostwarden');
+  const g = new THREE.Group();
+  const iceB = new THREE.MeshStandardMaterial({color:0x8fc4e8, emissive:0x2a6aa0, emissiveIntensity:0.5, roughness:0.25, metalness:0.1, flatShading:true});
+  const iceD = new THREE.MeshStandardMaterial({color:0x5f93c0, roughness:0.4, flatShading:true});
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(6,7,4), iceB); torso.position.y=9; torso.castShadow=true; g.add(torso);
+  const head  = new THREE.Mesh(new THREE.IcosahedronGeometry(2.2,0), iceB); head.position.y=14; head.castShadow=true; g.add(head);
+  const eyeMat = new THREE.MeshStandardMaterial({color:0xccf2ff, emissive:0x66ddff, emissiveIntensity:2});
+  for (const dx of [-0.8,0.8]){ const eye=new THREE.Mesh(new THREE.SphereGeometry(0.4,8,8), eyeMat); eye.position.set(dx,14.2,1.8); g.add(eye); }
+  for (const sx of [-1.9,1.9]){ const leg=new THREE.Mesh(new THREE.BoxGeometry(1.7,7,1.7), iceD); leg.position.set(sx,3.5,0); leg.castShadow=true; g.add(leg); }
+  const armL=new THREE.Mesh(new THREE.BoxGeometry(1.5,5.5,1.5), iceB); armL.position.set(-4.2,9,0); g.add(armL);
+  const armR=new THREE.Mesh(new THREE.BoxGeometry(1.7,6,1.7), iceB); armR.position.set(4.3,9,0); g.add(armR);
+  for (const sx of [-3.4,3.4]){ const sp=new THREE.Mesh(new THREE.ConeGeometry(0.9,3,4), iceB); sp.position.set(sx,12.5,0); sp.rotation.z=sx<0?0.5:-0.5; g.add(sp); }
+  const light=new THREE.PointLight(0x88ccff,4,40,2); light.position.y=10; g.add(light);
+  g.userData={ armR, eyes:eyeMat };
+  let rx, rz, a, tries=0;
+  do { a=Math.random()*Math.PI*2; rx=player.pos.x+Math.cos(a)*48; rz=player.pos.z+Math.sin(a)*48; tries++; }
+  while ((isWater(rx,rz) || Math.hypot(rx,rz) > campaign.curRadius-12) && tries<40);
+  g.position.set(rx,0,rz); scene.add(g);
+  frostwarden = { obj:g, pos:new THREE.Vector3(rx,0,rz), hp:5500, maxHp:5500, scale:5, phase:0, dead:false, speed:4.2,
+                  shootCd:3, freezeCd:6, freezeWindup:0, frozen:false, freezePoints:null, freezeRings:null };
 }
 
 const weaponTiers = [
@@ -1041,7 +1166,7 @@ const player = {
   tunnels: 3, tunnelCd: 0, onShip: false,
   inTree: false, treePos: null, underground: false,
   binoculars: false, binocActive: false,
-  shiftTime: 0, shifted: false
+  shiftTime: 0, shifted: false, chillCd: 0
 };
 const PLAYER_R = 0.6;
 
@@ -1111,7 +1236,7 @@ const enemies = [], pickups = [], projectiles = [], effects = [], activeTunnels 
 
 function buildSlime(type, scale, color){
   const g = new THREE.Group();
-  if (type==='wolf'){
+  if (type==='wolf' || type==='frostwolf'){
     const fur = new THREE.MeshStandardMaterial({color, flatShading:true, roughness:.9, emissive:color, emissiveIntensity:0.12});
     const s = scale;
     const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7*s,0.6*s,1.5*s), fur); torso.position.y=0.85*s; torso.castShadow=true; g.add(torso);
@@ -1213,6 +1338,8 @@ function spawnEnemy(type, x, z){
   else if (type==='drone') { e.scale=1.0; e.hp=35*powerMult; e.atk=11; e.speed=5.0; e.xp=45; e.gold=20; e.color=0x99aacc; }   // World 2 flying ranged bot
   else if (type==='imp') { e.scale=0.9; e.hp=30*powerMult; e.atk=14; e.speed=6.0; e.xp=40; e.gold=18; e.color=0xff4422; }   // World 3 fast fire melee
   else if (type==='wolf') { e.scale=1.0; e.hp=42*powerMult; e.atk=15; e.speed=6.2; e.xp=50; e.gold=22; e.color=0x8a8f99; }   // fast pack hunter (melee)
+  else if (type==='frostwolf') { e.scale=1.05; e.hp=55*powerMult; e.atk=16; e.speed=6.0; e.xp=55; e.gold=24; e.color=0xcfeaff; }   // Frostspire pack hunter
+  else if (type==='frostling') { e.scale=1.5; e.hp=120*powerMult; e.atk=20; e.speed=2.8; e.xp=80; e.gold=40; e.color=0x7fb8e0; }   // Frostspire slow tank
   else if (type==='stalker') { e.scale=1.1; e.hp=40*powerMult; e.atk=20; e.speed=5.2; e.xp=55; e.gold=25; e.color=0x2a1a3a; }
   else if (type==='mimic') {
     // Hide as scenery (mostly trees/rocks, occasionally a cave) — and in the campaign, sometimes as a fake mission node.
@@ -1238,6 +1365,7 @@ function spawnWave(n, forcePos=null){
   if (pwr > 10) pool.push('stalker', 'mimic');
   if (gameMode === 'mission' && campaign.index >= 1) pool.push('drone', 'drone', 'shooter');   // The Wastes: robotic foes
   if (gameMode === 'mission' && campaign.index >= 2) pool.push('imp', 'imp', 'drone');          // Emberpeak: fire foes
+  if (gameMode === 'mission' && campaign.index >= 3) pool.push('frostwolf', 'frostwolf', 'frostling');   // Frostspire: frozen foes
   
   for (let i=0;i<n;i++){
     let x,z,tries=0, type;
@@ -1331,7 +1459,7 @@ function cleanseObelisk() {
     for(const ob of obelisks) {
         if(ob.state === 'idle' && Math.hypot(player.pos.x-ob.x, player.pos.z-ob.z) < 10) {
             ob.state = 'cleansing';
-            const msgs = { reactor:["⚡ Reactor overloading! Survive!","#33ddff"], vent:["🌋 Sealing the vent! Survive!","#ff6622"], obelisk:["Cleansing started! Survive the wave!","#a855f7"] };
+            const msgs = { reactor:["⚡ Reactor overloading! Survive!","#33ddff"], vent:["🌋 Sealing the vent! Survive!","#ff6622"], pylon:["❄️ Shattering the pylon! Survive!","#88ccff"], obelisk:["Cleansing started! Survive the wave!","#a855f7"] };
             const m = msgs[ob.kind] || msgs.obelisk; showToast(m[0], m[1]);
             spawnWave(15, new THREE.Vector3(ob.x, 0, ob.z)); break;
         }
@@ -1611,7 +1739,7 @@ function primaryAttack() {
     if (e.hp<=0) killEnemy(e);
   }
   // melee can damage the land bosses (Iron Colossus / Fire Lord)
-  for (const B of [ {b:robot, dmgFn:damageRobot}, {b:firelord, dmgFn:damageFirelord} ]){
+  for (const B of [ {b:robot, dmgFn:damageRobot}, {b:firelord, dmgFn:damageFirelord}, {b:frostwarden, dmgFn:damageFrostWarden} ]){
     const b = B.b; if (!b || b.dead) continue;
     if (Math.hypot(b.pos.x-player.pos.x, b.pos.z-player.pos.z) < reach + b.scale*0.9){
       const to=new THREE.Vector3(b.pos.x-player.pos.x,0,b.pos.z-player.pos.z).normalize();
@@ -1698,6 +1826,7 @@ function explode(pos,dmg,radius, isEnemy, isCannon=false){
     }
     if (robot && !robot.dead && Math.hypot(robot.pos.x-pos.x, robot.pos.z-pos.z) < radius + robot.scale*0.9) damageRobot(dmg);
     if (firelord && !firelord.dead && Math.hypot(firelord.pos.x-pos.x, firelord.pos.z-pos.z) < radius + firelord.scale*0.9) damageFirelord(dmg);
+    if (frostwarden && !frostwarden.dead && Math.hypot(frostwarden.pos.x-pos.x, frostwarden.pos.z-pos.z) < radius + frostwarden.scale*0.9) damageFrostWarden(dmg);
   } else {
     const pY = player.inTree ? 3.5 : 0;
     if (Math.hypot(player.pos.x-pos.x, pY-pos.y, player.pos.z-pos.z) < radius+PLAYER_R) hurtPlayer(dmg);
@@ -1853,7 +1982,8 @@ function drawMap() {
     // active boss
     const boss = (typeof leviathan!=='undefined'&&leviathan&&!leviathan.dead)?leviathan
                : (typeof robot!=='undefined'&&robot&&!robot.dead)?robot
-               : (typeof firelord!=='undefined'&&firelord&&!firelord.dead)?firelord : null;
+               : (typeof firelord!=='undefined'&&firelord&&!firelord.dead)?firelord
+               : (typeof frostwarden!=='undefined'&&frostwarden&&!frostwarden.dead)?frostwarden : null;
     if (boss){ ctx.fillStyle='#ff3b3b'; ctx.shadowColor='#ff0000'; ctx.shadowBlur=12; ctx.font=(16+Math.sin(now*0.006)*3).toFixed(0)+'px Arial'; ctx.fillText('☠', toX(boss.pos.x), toY(boss.pos.z)); ctx.shadowBlur=0; }
 
     // player heading arrow
@@ -1911,6 +2041,7 @@ function update(dt){
   player.regenCd=Math.max(0,player.regenCd-dt);
   if (player.alive && player.regenCd<=0 && player.hp>0 && player.hp<player.maxHp) player.hp=Math.min(player.maxHp, player.hp + player.maxHp*0.035*dt);   // out-of-combat regen
   if (player.shifted){ player.shiftTime-=dt; if (player.shiftTime<=0){ player.shiftTime=0; player.shifted=false; updateShiftVisual(); showToast('Shapeshift ended.', '#b07cff'); } }   // spend banked time only while active
+  player.chillCd = Math.max(0, player.chillCd - dt);   // Frost Warden deep-freeze slow
   ship.fireCd=Math.max(0,ship.fireCd-dt); ship.dmgCd=Math.max(0,ship.dmgCd-dt); ship.invuln=Math.max(0,ship.invuln-dt);
   
   if (ship.invuln > 0) { ship.obj.userData.hull.material.emissive.setHex(0x00aaff); ship.obj.userData.hull.material.emissiveIntensity = 0.5 + Math.sin(performance.now()*0.01)*0.5; } 
@@ -1966,7 +2097,7 @@ function update(dt){
     if (player.inTree) { player.obj.position.y += (3.5 - player.obj.position.y) * dt * 8; player.obj.position.x = player.treePos.x; player.obj.position.z = player.treePos.z; player.pos.copy(player.obj.position); player.walkPhase *= 0.8; setPrompt('Press [E] to jump down'); } 
     else {
        player.obj.position.y += (0 - player.obj.position.y) * dt * 8; if(player.obj.position.y < 0.01) player.obj.position.y = 0;
-       let speed=player.speed;
+       let speed = player.chillCd>0 ? player.speed*0.55 : player.speed;   // chilled by the Frost Warden
        if (keys['ShiftLeft'] && player.dashCd<=0 && move.lengthSq()>0){ player.dashCd=1.2; player.invuln=0.25; player.obj.position.addScaledVector(move.clone().normalize(), 5.0); floatText(player.pos,'DASH','#8be0ff',16); }
        if (move.lengthSq()>0){ move.normalize(); player.facing=Math.atan2(move.x,move.z); player.obj.position.addScaledVector(move, speed*dt); player.walkPhase+=dt*12; } else player.walkPhase*=0.8;
        let cur=player.obj.rotation.y, diff=((player.facing-cur+Math.PI)%(Math.PI*2))-Math.PI; player.obj.rotation.y=cur+diff*Math.min(1,dt*14);
@@ -2178,6 +2309,55 @@ function update(dt){
     }
   }
 
+  if (frostwarden && !frostwarden.dead){
+    $('bossBar').classList.add('show'); $('bossLabel').textContent = '❄️ THE FROST WARDEN';
+    $('bossFill').style.width = Math.max(0, frostwarden.hp/frostwarden.maxHp*100)+'%';
+    frostwarden.phase += dt*3;
+    const toP = player.pos.clone().sub(frostwarden.pos); toP.y=0; const wdist=toP.length();
+    if (wdist>10) frostwarden.pos.addScaledVector(toP.normalize(), frostwarden.speed*dt);
+    resolveWaterBoundary(frostwarden.pos, 4, false);
+    { const dd=Math.hypot(frostwarden.pos.x,frostwarden.pos.z); if(dd>campaign.curRadius-6){ frostwarden.pos.x=frostwarden.pos.x/dd*(campaign.curRadius-6); frostwarden.pos.z=frostwarden.pos.z/dd*(campaign.curRadius-6); } }
+    frostwarden.obj.position.set(frostwarden.pos.x, 0, frostwarden.pos.z);
+    frostwarden.obj.rotation.y = Math.atan2(toP.x, toP.z);
+
+    // Ice-shard volley (5-shard fan)
+    frostwarden.shootCd -= dt;
+    if (frostwarden.shootCd<=0 && frostwarden.freezeWindup<=0){
+      frostwarden.shootCd = 2.8; if(audioCtxStarted) sfx.magic.triggerAttackRelease("E3","8n");
+      const muzzle = frostwarden.pos.clone().add(new THREE.Vector3(0,11,0));
+      const aim = new THREE.Vector3(player.pos.x, player.inTree?3.5:1.2, player.pos.z);
+      for (let i=-2;i<=2;i++){ const dir=aim.clone().sub(muzzle).normalize(); dir.applyAxisAngle(new THREE.Vector3(0,1,0), i*0.15); shootBolt(true, muzzle.clone(), dir, 18, 0x9fd6ff, 0x3a8fd0, 30, 0.9, 2.4); }
+    }
+
+    // Deep-freeze AoE — telegraphed rings, then burst damage + chill/slow
+    frostwarden.freezeCd -= dt;
+    if (frostwarden.freezeWindup>0){
+      frostwarden.freezeWindup -= dt;
+      if (frostwarden.freezeRings) frostwarden.freezeRings.forEach(r=>{ r.material.opacity = 0.3 + Math.abs(Math.sin(performance.now()*0.012))*0.5; });
+      if (frostwarden.freezeWindup<=0){
+        if (!frostwarden.frozen){
+          frostwarden.frozen = true;
+          for (const sp of frostwarden.freezePoints){
+            addEffect(new THREE.Vector3(sp.x,0.5,sp.z), 10, 0x88ccff);
+            if (Math.hypot(player.pos.x-sp.x, player.pos.z-sp.z) < 5.5 && !player.onShip){ hurtPlayer(34); player.chillCd = 2.5; floatText(player.pos,'CHILLED','#9fd6ff',18); }
+          }
+          if (audioCtxStarted) sfx.cannon.triggerAttackRelease("C2","2n");
+        }
+        if (frostwarden.freezeRings){ frostwarden.freezeRings.forEach(r=>scene.remove(r)); frostwarden.freezeRings=null; }
+      }
+    } else if (frostwarden.freezeCd<=0 && wdist<42){
+      frostwarden.freezeCd = 8; frostwarden.freezeWindup = 1.4; frostwarden.frozen=false; frostwarden.freezePoints=[]; frostwarden.freezeRings=[];
+      for (let i=0;i<3;i++){
+        const off = i===0 ? {x:0,z:0} : {x:(Math.random()-0.5)*24, z:(Math.random()-0.5)*24};
+        const px=player.pos.x+off.x, pz=player.pos.z+off.z;
+        frostwarden.freezePoints.push({x:px,z:pz});
+        const ring=new THREE.Mesh(new THREE.RingGeometry(4,5.5,28), new THREE.MeshBasicMaterial({color:0x88ccff, transparent:true, opacity:0.5, side:THREE.DoubleSide, depthWrite:false}));
+        ring.rotation.x=-Math.PI/2; ring.position.set(px,0.2,pz); scene.add(ring); frostwarden.freezeRings.push(ring);
+      }
+      showToast("⚠ Deep Freeze incoming — leave the rings!", "#9fd6ff");
+    }
+  }
+
   // --- Campaign: animate world expansion + drive objective text ---
   if (gameMode==='mission'){
     campaign.curRadius += (campaign.worldRadius - campaign.curRadius) * Math.min(1, dt*1.5);
@@ -2199,10 +2379,15 @@ function update(dt){
       if (firelord && !firelord.dead) obj = '🔥 Slay the Fire Lord!';
       else { const cc = obelisks.filter(o=>o.state==='cleansed').length; obj = cc<3 ? `🌋 Seal the Volcanic Vents (${cc}/3)` : '🔥 The Fire Lord awakens — slay it!'; }
     }
+    else if (cur && cur.boss==='frostwarden'){
+      if (frostwarden && !frostwarden.dead) obj = '❄️ Defeat the Frost Warden!';
+      else { const cc = obelisks.filter(o=>o.state==='cleansed').length; obj = cc<3 ? `❄️ Shatter the Frozen Pylons (${cc}/3)` : '❄️ The Frost Warden rises — defeat it!'; }
+    }
     setObjective(obj);
   } else { boundaryRing.visible=false; setObjective(''); }
 
   updateBiomeMorph(dt);   // Stage 11: cross-fade sky/fog/light during a world transition
+  updateHazards(dt);      // Stage 12: lava/ice biome hazard zones
 
   // --- Portal ceremony: animate the portal, detect entry, run the warp flash ---
   if (portal){
@@ -2305,6 +2490,12 @@ function update(dt){
               hit=true;
           }
       }
+      if (!hit && frostwarden && !frostwarden.dead) {   // ...and the Frost Warden
+          if (segDist(frostwarden.pos.x, frostwarden.pos.z, ax, az, bx, bz) < pr.r + frostwarden.scale*0.9) {
+              if (pr.aoe) explode(pr.obj.position.clone(), pr.dmg, pr.aoeR, false, pr.isCannon); else damageFrostWarden(pr.dmg);
+              hit=true;
+          }
+      }
     }
 
     // Ground/straight cannonball proximity detonation (also swept)
@@ -2332,7 +2523,7 @@ function update(dt){
   }
 
   // During a boss fight, throttle the regular adds so you can focus the boss
-  const bossActive = (leviathan&&!leviathan.dead)||(robot&&!robot.dead)||(firelord&&!firelord.dead);
+  const bossActive = (leviathan&&!leviathan.dead)||(robot&&!robot.dead)||(firelord&&!firelord.dead)||(frostwarden&&!frostwarden.dead);
   spawnTimer-=dt;
   if (spawnTimer<=0 && enemies.length < (bossActive?16:50)){
     spawnWave(bossActive ? 4 : waveSize);

@@ -275,6 +275,7 @@
   <div class="upg-btn" onclick="repairShip()"><span><b>[5]</b> Repair Ship</span> <span class="cost" id="cRepair">-</span></div>
   <div class="upg-btn" onclick="buyUpgrade(6)"><span><b>[6]</b> Binoculars <span style="opacity:.7;font-size:12px;">(scout from trees · press V)</span></span> <span class="cost" id="cBinoc">150g</span></div>
   <div class="upg-btn" onclick="buyUpgrade(7)" style="border-color:#8b5cf6;"><span><b>[7]</b> Shapeshift +1 min <span style="opacity:.7;font-size:12px;">(hide · press C · <span id="shiftBank">0s</span> left)</span></span> <span class="cost" id="cShift">500g</span></div>
+  <div class="upg-btn" onclick="buyUpgrade(8)" style="border-color:#ffd56b;"><span><b>[8]</b> Loot Magnet <span style="opacity:.7;font-size:12px;">(coins & hearts fly to you)</span></span> <span class="cost" id="cMagnet">300g</span></div>
   <div class="upg-btn" id="upgSkinsBtn" style="justify-content:center; border-color:#8b5cf6; color:#c9a0ff;"><span><b>🎨</b> Buy / Equip Skins</span></div>
 </div>
 
@@ -284,6 +285,8 @@
 <div id="bossBar"><div id="bossFill"></div><div id="bossLabel">🐙 THE LEVIATHAN</div></div>
 <div id="objective"></div>
 <div id="shiftInd" style="display:none; position:fixed; top:74px; left:50%; transform:translateX(-50%); background:rgba(40,20,60,.7); border:1px solid #b07cff; color:#d9c2ff; font-weight:bold; font-size:14px; padding:5px 14px; border-radius:16px; z-index:88; pointer-events:none;">🦎 SHAPESHIFTED</div>
+<div id="buffInd" style="display:none; position:fixed; top:104px; left:50%; transform:translateX(-50%); background:rgba(50,35,10,.7); border:1px solid #ffd56b; color:#ffe9b0; font-weight:bold; font-size:13px; padding:4px 12px; border-radius:14px; z-index:88; pointer-events:none;"></div>
+<div id="eventInd" style="display:none; position:fixed; top:132px; left:50%; transform:translateX(-50%); background:rgba(60,10,16,.72); border:1px solid #ff4455; color:#ffb3bb; font-weight:bold; font-size:13px; padding:4px 12px; border-radius:14px; z-index:88; pointer-events:none;"></div>
 <div id="reticle"></div>
 
 <div id="touch">
@@ -323,7 +326,10 @@
       <span style="color:#a855f7;">● Mission</span> &nbsp;|&nbsp;
       <span style="color:#3ddc84;">✓ Cleared</span> &nbsp;|&nbsp;
       <span style="color:#d8a05a;">● Ship</span> &nbsp;|&nbsp;
-      <span style="color:#ff3b3b;">☠ Boss</span>
+      <span style="color:#ff3b3b;">☠ Boss</span> &nbsp;|&nbsp;
+      <span style="color:#c79bff;">🌀 Portal</span> &nbsp;|&nbsp;
+      <span style="color:#ff7733;">● Hazard</span> &nbsp;|&nbsp;
+      <span style="color:#ffd56b;">◯ Objective</span>
     </p>
   </div>
 </div>
@@ -337,6 +343,7 @@
     <label class="set-row">🔇 Mute All <input type="checkbox" id="pMute"></label>
   </div>
   <button class="btn" id="resumeBtn">RESUME GAME</button>
+  <button class="btn" id="pauseBestiaryBtn" style="margin-top:10px; background:linear-gradient(135deg,#8a6d3b,#5a4426);">📖 BESTIARY</button>
   <button class="btn" id="fullBtn" style="margin-top: 10px; background: linear-gradient(135deg,#4f9dff,#8b5cf6);">TOGGLE FULLSCREEN</button>
   <button class="btn btn-quit" id="quitBtn">QUIT GAME</button>
   <div class="copyright">© 2026 Noam Rapp. All Rights Reserved.</div>
@@ -357,6 +364,7 @@
     <button class="btn menu-btn btn-alt" id="btnShop">🛒 Shop</button>
     <button class="btn menu-btn" id="btnSettings">⚙️ Settings</button>
     <button class="btn menu-btn btn-back" id="btnHowto">❓ How to Play</button>
+    <button class="btn menu-btn btn-back" id="btnBestiary">📖 Bestiary</button>
     <button class="btn menu-btn btn-donate" id="btnDonate">❤️ Donate</button>
   </div>
   <div class="credit">A game by <b>Noam Rapp</b></div>
@@ -371,6 +379,7 @@
     <button class="btn menu-btn" id="btnContinue">▶ Continue Story</button>
     <button class="btn menu-btn btn-alt" id="btnNewStory">✨ New Story</button>
     <button class="btn menu-btn" id="btnFreePlay">🌐 Free Play (Endless)</button>
+    <div id="freeBestNote" style="display:none; font-size:13px; color:#ffd56b; opacity:.9;">🏅 Best: 0 slain</div>
     <button class="btn menu-btn btn-back" id="btnModeBack">← Back</button>
   </div>
 </div>
@@ -381,6 +390,8 @@
   <label class="set-row">🎵 Music <input type="range" id="setMusic" min="0" max="1" step="0.05"></label>
   <label class="set-row">🔊 Sound FX <input type="range" id="setSfx" min="0" max="1" step="0.05"></label>
   <label class="set-row">🔇 Mute All <input type="checkbox" id="setMute"></label>
+  <label class="set-row">🔢 Damage Numbers <input type="checkbox" id="setDmgNums"></label>
+  <label class="set-row">🌿 Reduced Motion <span style="opacity:.6;font-size:12px;">(no particles, softer flash)</span> <input type="checkbox" id="setMotion"></label>
   <div class="menu-buttons">
     <button class="btn menu-btn btn-alt" id="btnFullscreen">⛶ Toggle Fullscreen</button>
     <button class="btn menu-btn btn-quit" id="btnReset">🗑️ Reset Progress</button>
@@ -407,6 +418,14 @@
     • Beating a boss pays a big <b>coin bonus</b> — gear up before the next world.
   </div>
   <div class="menu-buttons"><button class="btn menu-btn btn-back" id="btnHowtoBack">← Back</button></div>
+</div>
+
+<!-- BESTIARY -->
+<div id="bestiaryScreen" class="overlay-screen hidden" style="z-index:300;">
+  <h2 class="menu-title">📖 Bestiary</h2>
+  <div class="tagline" id="bestiaryCount">0 / 19 discovered</div>
+  <div id="bestiaryGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; width:min(92vw, 680px); margin:0 auto;"></div>
+  <div class="menu-buttons"><button class="btn menu-btn btn-back" id="btnBestiaryBack">← Back</button></div>
 </div>
 
 <!-- SHOP -->
@@ -860,7 +879,7 @@ function updateHazards(dt){
     if (h.disc) h.disc.material.opacity = 0.42 + Math.abs(Math.sin(now*0.003 + h.x))*0.22;
     if (!onFoot) continue;
     if (Math.hypot(player.pos.x-h.x, player.pos.z-h.z) < h.r){
-      if (h.dps>0){
+      if (h.dps>0 && player.buffShield<=0){
         player.hp -= h.dps*dt; player.regenCd = 4;
         if (hazardMsgCd<=0){ floatText(player.pos, '-'+Math.round(h.dps*0.6), '#ff7733', 18); hazardMsgCd = 0.5; }
         if (player.hp<=0){ player.hp=0; die(); }
@@ -876,7 +895,7 @@ let ambient = null;   // { points, count, box, top, vy, drift }
 function clearAmbient(){ if (ambient){ scene.remove(ambient.points); ambient.points.geometry.dispose(); ambient.points.material.dispose(); ambient = null; } }
 function setAmbientParticles(p){
   clearAmbient();
-  if (!p) return;
+  if (!p || settings.reducedMotion) return;   // accessibility: no ambient weather in reduced-motion mode
   const count = isTouch ? Math.floor(p.count*0.5) : p.count;   // perf-aware
   const box = 75, top = 42;
   const arr = new Float32Array(count*3);
@@ -903,6 +922,80 @@ function updateAmbient(dt){
   a.needsUpdate = true;
 }
 
+// ===== Bestiary (Stage 18) — defeat a creature to log it; persisted in the save =====
+const BESTIARY = [
+  { id:'slime',      emoji:'🟢', name:'Slime',           desc:'The valley’s basic shadow-ooze. Harmless alone, relentless in numbers.' },
+  { id:'brute',      emoji:'👹', name:'Brute',           desc:'A hulking slab of muscle. Slow, but its blows crack stone.' },
+  { id:'shooter',    emoji:'🔮', name:'Shooter',         desc:'Keeps its distance and lobs cursed bolts. Close the gap fast.' },
+  { id:'breaker',    emoji:'⛏️', name:'Breaker',         desc:'Obsessed with collapsing your tunnels. Protect your escape routes.' },
+  { id:'toxic',      emoji:'☣️', name:'Toxic Slime',     desc:'Leaves a poisonous puddle when it dies. Don’t stand in the splash.' },
+  { id:'water',      emoji:'🌊', name:'Deep Lurker',     desc:'Patrols the lake. Only a threat when you sail.' },
+  { id:'drone',      emoji:'🤖', name:'Scrap Drone',     desc:'A hovering Wastes machine that fires from above.' },
+  { id:'imp',        emoji:'🔥', name:'Ember Imp',       desc:'Fast, frenzied fire-spawn of Emberpeak.' },
+  { id:'wolf',       emoji:'🐺', name:'Wolf',            desc:'Hunts in packs. One howl is never just one wolf.' },
+  { id:'frostwolf',  emoji:'🐺', name:'Frost Wolf',      desc:'Frostspire’s pale pack-hunter. Faster than it looks on ice.' },
+  { id:'frostling',  emoji:'🧊', name:'Frostling',       desc:'A walking glacier. Slow, freezing, very hard to crack.' },
+  { id:'stalker',    emoji:'👁️', name:'Stalker',         desc:'Climbs after you — not even trees are safe.' },
+  { id:'mimic',      emoji:'🎭', name:'Mimic',           desc:'Disguises as trees, rocks, caves… even mission objectives.' },
+  { id:'burrower',   emoji:'🪱', name:'Sand-Worm',       desc:'Tracks you underground and erupts beneath your feet. Watch the mound.' },
+  { id:'goldslime',  emoji:'💰', name:'Golden Wanderer', desc:'A living jackpot that flees on sight. Catch it before it vanishes.' },
+  { id:'leviathan',  emoji:'🐙', name:'The Leviathan',   desc:'BOSS — Terror of the valley’s lake. Slain from the deck of a cannon-ship.', boss:true },
+  { id:'robot',      emoji:'⚙️', name:'Iron Colossus',   desc:'BOSS — A war machine of the Wastes. Lasers, shockwaves, no mercy.', boss:true },
+  { id:'firelord',   emoji:'🌋', name:'The Fire Lord',   desc:'BOSS — Emberpeak’s burning heart. The ground itself erupts at its will.', boss:true },
+  { id:'frostwarden',emoji:'❄️', name:'Frost Warden',    desc:'BOSS — The final guardian. Its deep freeze stops heroes cold.', boss:true },
+];
+let bestiary = { slain:{} };
+function logKill(id){ bestiary.slain[id] = (bestiary.slain[id]||0) + 1; markDirty(); }
+
+// ===== World events (Stage 17) — random timed happenings: Blood Moon surge / Golden Wanderer =====
+let worldEvent = null;                    // { type:'bloodmoon'|'goldelite', t, e? }
+let eventTimer = 150 + Math.random()*120; // first event 2.5–4.5 min in
+function currentBiome(){ return (gameMode==='mission') ? WORLDS[Math.min(campaign.index, WORLDS.length-1)].biome : WORLDS[0].biome; }
+function startWorldEvent(type){
+  if (worldEvent) return;
+  if (type==='bloodmoon'){
+    worldEvent = { type:'bloodmoon', t:40 };
+    startBiomeMorph({ bg:0x401018, fog:0x401018, hemi:0xff8888 }, 1.5);
+    showToast('🌕 BLOOD MOON — the horde surges! (+50% gold)', '#ff4455');
+    if (audioCtxStarted) sfx.poly.triggerAttackRelease(["C2","Eb2","G2"], "1n");
+  } else {
+    const a=Math.random()*Math.PI*2, r=30+Math.random()*20;
+    let x=player.pos.x+Math.cos(a)*r, z=player.pos.z+Math.sin(a)*r, tries=0;
+    while (isWater(x,z) && tries<20){ const b=Math.random()*Math.PI*2; x=player.pos.x+Math.cos(b)*r; z=player.pos.z+Math.sin(b)*r; tries++; }
+    const e = spawnEnemy('goldslime', x, z);
+    worldEvent = { type:'goldelite', t:25, e };
+    showToast('✨ A Golden Wanderer appeared — catch it before it vanishes!', '#ffd24a');
+    if (audioCtxStarted) sfx.coin.triggerAttackRelease("E6","4n");
+  }
+}
+function endWorldEvent(){
+  if (!worldEvent) return;
+  if (worldEvent.type==='bloodmoon'){
+    startBiomeMorph(currentBiome(), 1.5);
+    showToast('The blood moon wanes...', '#cc8888');
+  } else if (worldEvent.e && !worldEvent.e.dead){
+    worldEvent.e.dead = true; worldEvent.e.obj.userData.dying = 0.0001;   // vanish without rewards
+    showToast('The Golden Wanderer vanished!', '#ffd24a');
+  }
+  worldEvent = null;
+  eventTimer = 150 + Math.random()*150;   // next event in 2.5–5 min
+}
+function updateWorldEvents(dt, bossActive){
+  if (worldEvent){
+    worldEvent.t -= dt;
+    if (worldEvent.type==='goldelite' && worldEvent.e && worldEvent.e.dead && worldEvent.t > 0.5) worldEvent.t = 0.5;   // caught it — wrap up
+    if (worldEvent.t <= 0) endWorldEvent();
+  } else if (started && !paused && player.alive && !bossActive && !campaign.awaitingPortal){
+    eventTimer -= dt;
+    if (eventTimer <= 0) startWorldEvent(Math.random()<0.5 ? 'bloodmoon' : 'goldelite');
+  }
+  const ei=$('eventInd');
+  if (ei){
+    if (worldEvent){ ei.style.display='block'; ei.textContent = (worldEvent.type==='bloodmoon' ? '🌕 BLOOD MOON · ' : '✨ GOLDEN WANDERER · ') + Math.max(0,Math.ceil(worldEvent.t))+'s'; }
+    else ei.style.display='none';
+  }
+}
+
 // translucent barrier marking (and growing with) the Story-mode playable area
 const boundaryRing = new THREE.Mesh(
   new THREE.CylinderGeometry(1, 1, 12, 60, 1, true),
@@ -914,6 +1007,7 @@ function setObjective(t){ const e=$('objective'); if(!e) return; if(t){ e.innerH
 
 function onBossDefeated(bossId){
   if (campaign.bossesBeaten.includes(bossId)) return;
+  logKill(bossId);
   campaign.bossesBeaten.push(bossId);
   const cleared = WORLDS.find(w=>w.boss===bossId) || WORLDS[0];
   const dump = cleared.reward || 500;
@@ -1202,7 +1296,8 @@ const player = {
   tunnels: 3, tunnelCd: 0, onShip: false,
   inTree: false, treePos: null, underground: false,
   binoculars: false, binocActive: false,
-  shiftTime: 0, shifted: false, chillCd: 0
+  shiftTime: 0, shifted: false, chillCd: 0, lootMagnet: false,
+  buffDmg: 0, buffSpeed: 0, buffShield: 0   // temp power-up timers (never baked into base stats)
 };
 const PLAYER_R = 0.6;
 
@@ -1400,6 +1495,7 @@ function spawnEnemy(type, x, z){
   else if (type==='frostling') { e.scale=1.5; e.hp=120*powerMult; e.atk=20; e.speed=2.8; e.xp=80; e.gold=40; e.color=0x7fb8e0; }   // Frostspire slow tank
   else if (type==='stalker') { e.scale=1.1; e.hp=40*powerMult; e.atk=20; e.speed=5.2; e.xp=55; e.gold=25; e.color=0x2a1a3a; }
   else if (type==='burrower') { e.scale=1.4; e.hp=110*powerMult; e.atk=24; e.speed=5.6; e.xp=75; e.gold=36; e.color=0xc89b5a; e.burrowState='under'; e.burrowTimer=2.0+Math.random()*1.5; e.warnRing=null; }   // Wastes sand-worm: burrows, telegraphs, erupts
+  else if (type==='goldslime') { e.scale=1.3; e.hp=90*powerMult; e.atk=0; e.speed=7.2; e.xp=60; e.gold=200; e.color=0xffd24a; }   // event loot-goblin: flees, never attacks, big payout
   else if (type==='mimic') {
     // Hide as scenery (mostly trees/rocks, occasionally a cave) — and in the campaign, sometimes as a fake mission node.
     const inMission = (gameMode==='mission' && campaign.index < WORLDS.length);
@@ -1456,6 +1552,9 @@ function spawnMimics(count){
 function spawnPickup(x,z,kind){
   let mesh;
   if (kind==='gold'){ mesh=new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.25,0.08,12), new THREE.MeshStandardMaterial({color:0xffd24a,metalness:.7,roughness:.3,emissive:0x886600,emissiveIntensity:.4})); mesh.rotation.x=Math.PI/2; }
+  else if (kind==='buff_dmg')   mesh=new THREE.Mesh(new THREE.OctahedronGeometry(0.45,0), new THREE.MeshStandardMaterial({color:0xff3322,emissive:0xff1100,emissiveIntensity:1.0,roughness:.3}));
+  else if (kind==='buff_speed') mesh=new THREE.Mesh(new THREE.ConeGeometry(0.34,0.8,5),   new THREE.MeshStandardMaterial({color:0x33e0ff,emissive:0x00aadd,emissiveIntensity:1.0,roughness:.3}));
+  else if (kind==='buff_shield')mesh=new THREE.Mesh(new THREE.IcosahedronGeometry(0.42,0),new THREE.MeshStandardMaterial({color:0xffd56b,emissive:0xcc9900,emissiveIntensity:1.0,roughness:.3}));
   else mesh=new THREE.Mesh(new THREE.OctahedronGeometry(0.32,0), new THREE.MeshStandardMaterial({color:0xff4d6d,emissive:0xff2244,emissiveIntensity:.6,roughness:.4}));
   mesh.position.set(x,0.6,z); mesh.castShadow=true; scene.add(mesh); pickups.push({obj:mesh,kind,spin:Math.random()*Math.PI*2});
 }
@@ -1613,6 +1712,15 @@ window.buyUpgrade = function(type){
       if (audioCtxStarted) sfx.poly.triggerAttackRelease(["A4", "C5", "E5"], "4n");
       floatText(player.pos, '+1 MIN SHAPESHIFT', '#b07cff', 24);
       showToast('Shapeshift time added — press C to vanish.', '#b07cff');
+    } else showToast('Not enough gold!', '#ff7a7a');
+  }
+  else if (type === 8 && !player.lootMagnet) {
+    const cost = 300;
+    if (player.gold >= cost) {
+      player.gold -= cost; player.lootMagnet = true;
+      if (audioCtxStarted) sfx.poly.triggerAttackRelease(["E5", "G5", "B5"], "4n");
+      floatText(player.pos, 'LOOT MAGNET!', '#ffd56b', 24);
+      showToast('Loot Magnet acquired — coins & hearts now fly to you!', '#ffd56b');
     } else showToast('Not enough gold!', '#ff7a7a');
   }
   markDirty(); updateHUD();
@@ -1791,7 +1899,7 @@ function primaryAttack() {
     const to = e.pos.clone().sub(player.pos); to.y=0; to.normalize();
     if (fwd.dot(to)<arc) continue;
     
-    const dmg = player.atk + Math.round(Math.random()*8);
+    const dmg = (player.atk + Math.round(Math.random()*8)) * (player.buffDmg>0?2:1);
     e.hp-=dmg; e.flash=0.15; e.obj.position.addScaledVector(to, 1.2 * wScale);
     if (audioCtxStarted) sfx.hit.triggerAttackRelease("C2", "8n");
     floatText(e.pos,'-'+dmg,'#ffffff',20);
@@ -1802,7 +1910,7 @@ function primaryAttack() {
     const b = B.b; if (!b || b.dead) continue;
     if (Math.hypot(b.pos.x-player.pos.x, b.pos.z-player.pos.z) < reach + b.scale*0.9){
       const to=new THREE.Vector3(b.pos.x-player.pos.x,0,b.pos.z-player.pos.z).normalize();
-      if (fwd.dot(to)>=arc){ B.dmgFn(player.atk + Math.round(Math.random()*8)); if(audioCtxStarted) sfx.hit.triggerAttackRelease("C2","8n"); }
+      if (fwd.dot(to)>=arc){ B.dmgFn((player.atk + Math.round(Math.random()*8)) * (player.buffDmg>0?2:1)); if(audioCtxStarted) sfx.hit.triggerAttackRelease("C2","8n"); }
     }
   }
 }
@@ -1832,7 +1940,7 @@ function secondaryAttack(){
     dir = groundPt.sub(muzzle).normalize();
   }
   const mc = currentMagic();   // bolt color from equipped magic skin (or tier)
-  shootBolt(false, muzzle.clone().addScaledVector(dir,1), dir, player.magAtk, mc.color, mc.glow, tier.speed);
+  shootBolt(false, muzzle.clone().addScaledVector(dir,1), dir, player.magAtk * (player.buffDmg>0?2:1), mc.color, mc.glow, tier.speed);
 }
 
 function fireCannon(){
@@ -1902,10 +2010,15 @@ function killEnemy(e){
   if (e.dead) return; e.dead=true;
   if (e.warnRing){ scene.remove(e.warnRing); e.warnRing=null; }   // burrower telegraph cleanup
   if (audioCtxStarted) sfx.hit.triggerAttackRelease("E1", "8n");
-  gainXp(e.xp); player.gold+=e.gold; player.kills++; markDirty();
+  const goldGain = (worldEvent && worldEvent.type==='bloodmoon') ? Math.round(e.gold*1.5) : e.gold;   // blood moon pays +50%
+  gainXp(e.xp); player.gold+=goldGain; player.kills++; logKill(e.type); markDirty();
+  if (e.type==='goldslime'){ for(let i=0;i<6;i++){ const a=i/6*Math.PI*2; spawnPickup(e.pos.x+Math.cos(a)*1.6, e.pos.z+Math.sin(a)*1.6, 'gold'); } floatText(e.pos,'💰 JACKPOT +'+goldGain+'g','#ffd24a',26); showToast('💰 Golden Wanderer caught!','#ffd24a'); }
   if (e.type === 'toxic') createPuddle(e.pos);
   spawnPickup(e.pos.x,e.pos.z,'gold');
   if (Math.random()<0.3) spawnPickup(e.pos.x+1,e.pos.z,'health');
+  // elites can drop a temporary power-up
+  const isElite = (e.type==='mimic' || e.type==='burrower' || e.type==='brute' || e.type==='frostling');
+  if (isElite && Math.random()<0.35){ const k=['buff_dmg','buff_speed','buff_shield'][Math.floor(Math.random()*3)]; spawnPickup(e.pos.x-1, e.pos.z+1, k); }
   floatText(e.pos,'+'+e.xp+' XP','#8be0ff',18);
   e.obj.userData.dying=0.0001;
 }
@@ -1922,6 +2035,7 @@ function gainXp(a){
 
 function hurtPlayer(dmg){
   if (player.invuln>0||!player.alive) return;
+  if (player.buffShield>0){ floatText(player.pos,'BLOCKED','#ffd56b',18); return; }   // 🛡 power-up absorbs the hit
   if (audioCtxStarted) sfx.hit.triggerAttackRelease("A1", "8n");
   player.hp-=dmg; player.invuln=0.6; player.regenCd=4.0; floatText(player.pos,'-'+dmg,'#ff5555',24);   // hits delay out-of-combat regen
   if (player.hp<=0){ player.hp=0; die(); }
@@ -1934,9 +2048,11 @@ function persistDeathPenalty(){
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       version:1,
       profile:{ coins:0, owned:cosmetics.owned, equipped:cosmetics.equipped, settings },
-      character:{ level:1, xp:0, xpNext:100, maxHp:100, atk:12, magAtk:10, speed:10, tunnels:3, binoculars:false, shiftTime:0 },
+      character:{ level:1, xp:0, xpNext:100, maxHp:100, atk:12, magAtk:10, speed:10, tunnels:3, binoculars:false, shiftTime:0, lootMagnet:false },
       upgrades:{ wepIdx:0, magIdx:0, tunIdx:0, shipIdx:0 },
-      campaign:{ worldUnlocked:1, bossesBeaten:[], missionState:null }
+      campaign:{ worldUnlocked:1, bossesBeaten:[], missionState:null },
+      bestiary:{ slain: bestiary.slain },   // the codex is knowledge — death doesn't erase it
+      freeBest:{ kills: freeBest.kills, time: freeBest.time }   // records survive death too
     }));
     _saveDirty = false;
   } catch(_){}
@@ -1944,13 +2060,20 @@ function persistDeathPenalty(){
 function die(){
   player.alive=false; if (player.shifted){ player.shifted=false; updateShiftVisual(); }
   setReticle(false); if (document.pointerLockElement === canvas) document.exitPointerLock();
+  // Free-Play run record (Stage 19) — checked before the penalty save so the new best is persisted with it
+  let bestLine = '';
+  if (gameMode==='free' && freeRun){
+    const rk = player.kills - freeRun.kills0, rt = freeRun.time;
+    if (rk > freeBest.kills){ freeBest = { kills:rk, time:rt }; bestLine = `  🏅 NEW BEST: ${rk} slain · ${fmtTime(rt)} survived!`; }
+    else bestLine = `  This run: ${rk} slain · ${fmtTime(rt)}  (best: ${freeBest.kills})`;
+  }
   persistDeathPenalty();                                             // death = lose everything but skins (unless you revive)
   const canRevive = player.gold >= 500;
   $('btnRevive').style.display = canRevive ? '' : 'none';
   $('gameOverNote').textContent = canRevive
     ? 'Revive for 500 coins to keep your run — or Give Up and lose everything except your skins.'
     : 'Not enough coins to revive (need 500). Give Up and lose everything except your skins.';
-  $('gameOverStats').textContent = `Level ${player.level} · ${player.kills} Slain · ${player.gold} Gold`;
+  $('gameOverStats').textContent = `Level ${player.level} · ${player.kills} Slain · ${player.gold} Gold` + bestLine;
   $('gameOverScreen').classList.remove('hidden');
 }
 function revivePlayer(){
@@ -2006,6 +2129,7 @@ function toggleShip(){
 
 const floatersEl=document.getElementById('floaters'); const tmpVec=new THREE.Vector3();
 function floatText(worldPos,text,color,size){
+  if (settings.showDmg===false && typeof text==='string' && text.startsWith('-')) return;   // accessibility: hide damage numbers
   const el=document.createElement('div'); el.className='floater'; el.textContent=text; el.style.color=color; el.style.fontSize=(size||18)+'px'; floatersEl.appendChild(el);
   el._wp=worldPos.clone(); el._wp.y+=2.2; projectFloater(el); setTimeout(()=>el.remove(),1000);
 }
@@ -2028,8 +2152,16 @@ function updateHUD(){
   $('uTun').textContent = nT ? nT.name : 'MAX'; $('cTun').textContent = nT ? nT.cost+'g' : '-';
   $('uShip').textContent = nS ? nS.name : 'MAX'; $('cShip').textContent = nS ? nS.cost+'g' : '-';
   if ($('cBinoc')) $('cBinoc').textContent = player.binoculars ? 'OWNED' : '150g';
+  if ($('cMagnet')) $('cMagnet').textContent = player.lootMagnet ? 'OWNED' : '300g';
   if ($('shiftBank')) $('shiftBank').textContent = Math.ceil(player.shiftTime)+'s';
   const si=$('shiftInd'); if (si){ if (player.shifted){ si.style.display='block'; si.textContent='🦎 SHAPESHIFTED · '+Math.ceil(player.shiftTime)+'s'; } else si.style.display='none'; }
+  const bi=$('buffInd'); if (bi){
+    const parts=[];
+    if (player.buffDmg>0) parts.push('⚔ '+Math.ceil(player.buffDmg)+'s');
+    if (player.buffSpeed>0) parts.push('💨 '+Math.ceil(player.buffSpeed)+'s');
+    if (player.buffShield>0) parts.push('🛡 '+Math.ceil(player.buffShield)+'s');
+    if (parts.length){ bi.style.display='block'; bi.textContent=parts.join('  ·  '); } else bi.style.display='none';
+  }
 }
 
 function drawMap() {
@@ -2039,9 +2171,12 @@ function drawMap() {
     const toY = (wz) => (wz + WORLD) * scale;
     const now = performance.now();
 
-    // backdrop + grid
+    // backdrop tinted by the current biome (Stage 10)
+    const wcur = WORLDS[Math.min(campaign.index, WORLDS.length-1)];
+    const bcol = new THREE.Color((gameMode==='mission' && wcur && wcur.biome) ? wcur.biome.bg : WORLDS[0].biome.bg);
+    const tint = (k)=>`rgb(${Math.round(bcol.r*255*k)},${Math.round(bcol.g*255*k)},${Math.round(bcol.b*255*k)})`;
     const bg = ctx.createRadialGradient(W/2, W/2, 20, W/2, W/2, W*0.62);
-    bg.addColorStop(0, '#16202e'); bg.addColorStop(1, '#0a0e16');
+    bg.addColorStop(0, tint(0.42)); bg.addColorStop(1, tint(0.16));
     ctx.fillStyle = bg; ctx.fillRect(0, 0, W, W);
     ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
     for (let i=0;i<=8;i++){ const p=i*40; ctx.beginPath();ctx.moveTo(p,0);ctx.lineTo(p,W);ctx.stroke(); ctx.beginPath();ctx.moveTo(0,p);ctx.lineTo(W,p);ctx.stroke(); }
@@ -2056,6 +2191,12 @@ function drawMap() {
     // water features
     ctx.fillStyle = '#1a5ca4'; ctx.beginPath(); ctx.arc(toX(LAKE.x), toY(LAKE.z), LAKE.r*scale, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = '#3a5a3a'; ctx.beginPath(); ctx.arc(toX(ISLAND.x), toY(ISLAND.z), ISLAND.r*scale, 0, Math.PI*2); ctx.fill();
+
+    // biome hazards (lava/ice) at their true spots
+    for (const h of hazards){
+        ctx.fillStyle = h.dps>0 ? 'rgba(255,68,0,0.45)' : 'rgba(159,214,255,0.45)';
+        ctx.beginPath(); ctx.arc(toX(h.x), toY(h.z), Math.max(2.5, h.r*scale), 0, Math.PI*2); ctx.fill();
+    }
 
     // mission nodes (pulsing = active, check = cleared)
     ctx.textAlign='center'; ctx.textBaseline='middle';
@@ -2079,6 +2220,28 @@ function drawMap() {
                : (typeof firelord!=='undefined'&&firelord&&!firelord.dead)?firelord
                : (typeof frostwarden!=='undefined'&&frostwarden&&!frostwarden.dead)?frostwarden : null;
     if (boss){ ctx.fillStyle='#ff3b3b'; ctx.shadowColor='#ff0000'; ctx.shadowBlur=12; ctx.font=(16+Math.sin(now*0.006)*3).toFixed(0)+'px Arial'; ctx.fillText('☠', toX(boss.pos.x), toY(boss.pos.z)); ctx.shadowBlur=0; }
+
+    // open portal
+    if (typeof portal!=='undefined' && portal){
+        ctx.fillStyle='#c79bff'; ctx.shadowColor='#a060ff'; ctx.shadowBlur=12;
+        ctx.font=(15+Math.sin(now*0.006)*2).toFixed(0)+'px Arial'; ctx.fillText('🌀', toX(portal.pos.x), toY(portal.pos.z)); ctx.shadowBlur=0;
+    }
+
+    // active objective: gold halo on the current target + a dotted guide line from the player
+    const me = player.onShip ? ship.pos : player.pos;
+    let tgt = null;
+    if (gameMode==='mission'){
+        if (typeof portal!=='undefined' && portal) tgt = portal.pos;
+        else if (boss) tgt = boss.pos;
+        else { let bd=Infinity; for (const ob of obelisks){ if (ob.state!=='cleansed'){ const d=Math.hypot(ob.x-me.x, ob.z-me.z); if (d<bd){ bd=d; tgt={x:ob.x, z:ob.z}; } } } }
+    }
+    if (tgt){
+        const txp=toX(tgt.x), typ=toY(tgt.z);
+        ctx.save(); ctx.setLineDash([3,4]); ctx.strokeStyle='rgba(255,213,107,0.55)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.moveTo(toX(me.x), toY(me.z)); ctx.lineTo(txp, typ); ctx.stroke();
+        ctx.setLineDash([]); ctx.strokeStyle='#ffd56b'; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.arc(txp, typ, 9+Math.sin(now*0.005)*2, 0, Math.PI*2); ctx.stroke(); ctx.restore();
+    }
 
     // player heading arrow
     const ppos = player.onShip ? ship.pos : player.pos;
@@ -2136,6 +2299,8 @@ function update(dt){
   if (player.alive && player.regenCd<=0 && player.hp>0 && player.hp<player.maxHp) player.hp=Math.min(player.maxHp, player.hp + player.maxHp*0.035*dt);   // out-of-combat regen
   if (player.shifted){ player.shiftTime-=dt; if (player.shiftTime<=0){ player.shiftTime=0; player.shifted=false; updateShiftVisual(); showToast('Shapeshift ended.', '#b07cff'); } }   // spend banked time only while active
   player.chillCd = Math.max(0, player.chillCd - dt);   // Frost Warden deep-freeze slow
+  player.buffDmg=Math.max(0,player.buffDmg-dt); player.buffSpeed=Math.max(0,player.buffSpeed-dt); player.buffShield=Math.max(0,player.buffShield-dt);   // power-up timers
+  if (gameMode==='free' && freeRun) freeRun.time += dt;   // Free-Play survival clock
   ship.fireCd=Math.max(0,ship.fireCd-dt); ship.dmgCd=Math.max(0,ship.dmgCd-dt); ship.invuln=Math.max(0,ship.invuln-dt);
   
   if (ship.invuln > 0) { ship.obj.userData.hull.material.emissive.setHex(0x00aaff); ship.obj.userData.hull.material.emissiveIntensity = 0.5 + Math.sin(performance.now()*0.01)*0.5; } 
@@ -2191,7 +2356,7 @@ function update(dt){
     if (player.inTree) { player.obj.position.y += (3.5 - player.obj.position.y) * dt * 8; player.obj.position.x = player.treePos.x; player.obj.position.z = player.treePos.z; player.pos.copy(player.obj.position); player.walkPhase *= 0.8; setPrompt('Press [E] to jump down'); } 
     else {
        player.obj.position.y += (0 - player.obj.position.y) * dt * 8; if(player.obj.position.y < 0.01) player.obj.position.y = 0;
-       let speed = player.chillCd>0 ? player.speed*0.55 : player.speed;   // chilled by the Frost Warden
+       let speed = (player.chillCd>0 ? player.speed*0.55 : player.speed) * (player.buffSpeed>0?1.5:1);   // chill slow / haste buff
        if (keys['ShiftLeft'] && player.dashCd<=0 && move.lengthSq()>0){ player.dashCd=1.2; player.invuln=0.25; player.obj.position.addScaledVector(move.clone().normalize(), 5.0); floatText(player.pos,'DASH','#8be0ff',16); }
        if (move.lengthSq()>0){ move.normalize(); player.facing=Math.atan2(move.x,move.z); player.obj.position.addScaledVector(move, speed*dt); player.walkPhase+=dt*12; } else player.walkPhase*=0.8;
        let cur=player.obj.rotation.y, diff=((player.facing-cur+Math.PI)%(Math.PI*2))-Math.PI; player.obj.rotation.y=cur+diff*Math.min(1,dt*14);
@@ -2499,11 +2664,12 @@ function update(dt){
   }
   if (warp){
     warp.t += dt; const f=$('transFlash');
+    const fMax = settings.reducedMotion ? 0.55 : 1;   // accessibility: softer warp flash
     if (warp.phase==='in'){
-      f.style.opacity = Math.min(1, warp.t/0.4).toFixed(3);
+      f.style.opacity = (Math.min(1, warp.t/0.4)*fMax).toFixed(3);
       if (warp.t >= 0.4){ doWorldTransition(); removePortal(); warp.phase='out'; warp.t=0; showToast('✨ The world transforms...', '#c79bff'); }
     } else {
-      f.style.opacity = Math.max(0, 1 - warp.t/0.9).toFixed(3);
+      f.style.opacity = (Math.max(0, 1 - warp.t/0.9)*fMax).toFixed(3);
       if (warp.t >= 0.9){ f.style.opacity=0; warp=null; }
     }
   }
@@ -2564,7 +2730,14 @@ function update(dt){
       if (nearestT && minDist < 15) { target = new THREE.Vector3(nearestT.x, 0, nearestT.z); distToTarget = minDist; if (distToTarget < nearestT.r + e.scale + 0.5) { attackingTunnel = true; if (e.atkTimer <= 0) { e.atkTimer = 1.0; nearestT.hp -= e.atk; floatText(target, '-'+e.atk, '#ffaa00', 16); } } }
     }
 
-    if (!attackingTunnel && player.alive && player.shifted) {
+    if (e.type==='goldslime'){
+      // loot-goblin: always flees the player, sparkles, never fights
+      const away=e.pos.clone().sub(player.pos); away.y=0;
+      if (away.lengthSq()>0.0001){ away.normalize(); e.obj.position.addScaledVector(away, e.speed*dt); e.obj.rotation.y=Math.atan2(away.x,away.z); }
+      e.obj.userData.body.material.emissiveIntensity = 0.7 + Math.sin(e.phase*2)*0.4;
+      if (Math.random()<dt*4) floatText(e.pos, '✨', '#ffd24a', 12);
+    }
+    else if (!attackingTunnel && player.alive && player.shifted) {
       // You're hidden: enemies lose your trail — back away if you're close, otherwise mill about
       if (distToTarget < 14){ const away=e.pos.clone().sub(target); away.y=0; if(away.lengthSq()>0.0001){ away.normalize(); e.obj.position.addScaledVector(away, e.speed*dt*0.7); e.obj.rotation.y=Math.atan2(away.x,away.z); } }
       else { e.obj.rotation.y += Math.sin(e.phase*0.2)*dt; }
@@ -2589,7 +2762,7 @@ function update(dt){
     if (showBar){ e.hpBar.position.set(e.obj.position.x, e.obj.position.y + e.scale*1.9 + 0.8, e.obj.position.z); e.hpBar.quaternion.copy(camera.quaternion); const ratio=Math.max(0,e.hp/e.maxHp), bw=e.hpBar.userData.W, fill=e.hpBar.userData.fill; fill.scale.x=ratio; fill.position.x=-bw*(1-ratio)/2; fill.material.color.setHex(e.type==='mimic' ? 0xff2244 : (ratio>0.5?0x6fcf45:(ratio>0.25?0xffd24a:0xff3b3b))); }
 
     const dist3D = Math.hypot(e.pos.x - player.pos.x, (e.obj.position.y||0) - player.obj.position.y, e.pos.z - player.pos.z);
-    if (!player.onShip && !player.shifted && player.alive && dist3D < 1.4+e.scale*0.5 && e.touchCd<=0 && e.type !== 'shooter' && e.type !== 'water'){
+    if (!player.onShip && !player.shifted && player.alive && dist3D < 1.4+e.scale*0.5 && e.touchCd<=0 && e.type !== 'shooter' && e.type !== 'water' && e.type !== 'goldslime'){
       hurtPlayer(e.atk); e.touchCd=0.8; if (player.inTree && e.type === 'stalker') { player.inTree = false; showToast("Knocked out of the tree!", "#ff5555"); }
     }
     for (const o of enemies){ if (o===e||o.dead) continue; const dx=e.pos.x-o.pos.x, dz=e.pos.z-o.pos.z, dd=Math.hypot(dx,dz), min=e.scale+o.scale; if (dd>0.001 && dd<min){ const push=(min-dd)/dd*0.5*dt*8; e.obj.position.x+=dx*push; e.obj.position.z+=dz*push; } }
@@ -2651,13 +2824,18 @@ function update(dt){
     if (hit||pr.life<=0||oob){ if(pr.aoe&&!hit&&pr.life<=0&&!pr.gravity) explode(pr.obj.position.clone(),pr.dmg,pr.aoeR, pr.isEnemy, pr.isCannon); scene.remove(pr.obj); projectiles.splice(i,1); }
   }
 
-  const collectCenter = player.onShip ? ship.pos : player.pos; const pullRadius = player.onShip ? 7.0 : 4.5, grabRadius = player.onShip ? 3.0 : 1.4;
+  const collectCenter = player.onShip ? ship.pos : player.pos;
+  const pullRadius = player.lootMagnet ? 20.0 : (player.onShip ? 7.0 : 4.5), grabRadius = player.onShip ? 3.0 : 1.4;
+  const pullSpeed = player.lootMagnet ? 10 : 6;   // magnet vacuums harder
   for (let i=pickups.length-1;i>=0;i--){
     const p=pickups[i]; p.spin+=dt*3; p.obj.rotation.z=p.spin; p.obj.rotation.y=p.spin; p.obj.position.y=0.6+Math.sin(p.spin)*0.15;
     const d=Math.hypot(p.obj.position.x-collectCenter.x, p.obj.position.z-collectCenter.z);
-    if (d < pullRadius) { p.obj.position.x+=(collectCenter.x-p.obj.position.x)*Math.min(1,dt*6); p.obj.position.z+=(collectCenter.z-p.obj.position.z)*Math.min(1,dt*6); }
+    if (d < pullRadius) { p.obj.position.x+=(collectCenter.x-p.obj.position.x)*Math.min(1,dt*pullSpeed); p.obj.position.z+=(collectCenter.z-p.obj.position.z)*Math.min(1,dt*pullSpeed); }
     if (d < grabRadius) {
       if (p.kind==='gold'){ const g=10+Math.floor(Math.random()*15); player.gold+=g; markDirty(); if (audioCtxStarted) sfx.coin.triggerAttackRelease("B5", "16n"); floatText(player.pos,'+'+g+'g','#ffd24a',16); }
+      else if (p.kind==='buff_dmg'){ player.buffDmg=12; if (audioCtxStarted) sfx.poly.triggerAttackRelease(["C5","E5"],"8n"); floatText(player.pos,'⚔ RAGE ×2 DMG!','#ff5533',20); showToast('⚔ Rage — double damage for 12s!','#ff5533'); }
+      else if (p.kind==='buff_speed'){ player.buffSpeed=12; if (audioCtxStarted) sfx.poly.triggerAttackRelease(["D5","G5"],"8n"); floatText(player.pos,'💨 HASTE!','#33e0ff',20); showToast('💨 Haste — +50% speed for 12s!','#33e0ff'); }
+      else if (p.kind==='buff_shield'){ player.buffShield=8; if (audioCtxStarted) sfx.poly.triggerAttackRelease(["E5","A5"],"8n"); floatText(player.pos,'🛡 SHIELD!','#ffd56b',20); showToast('🛡 Shield — immune for 8s!','#ffd56b'); }
       else { const h=Math.round(player.maxHp*0.3); player.hp=Math.min(player.maxHp,player.hp+h); if (audioCtxStarted) sfx.heal.triggerAttackRelease("E5", "8n"); floatText(player.pos,'+'+h+' HP','#ff8a9d',16); }
       scene.remove(p.obj); pickups.splice(i,1);
     }
@@ -2665,12 +2843,14 @@ function update(dt){
 
   // During a boss fight, throttle the regular adds so you can focus the boss
   const bossActive = (leviathan&&!leviathan.dead)||(robot&&!robot.dead)||(firelord&&!firelord.dead)||(frostwarden&&!frostwarden.dead);
+  const surge = !!(worldEvent && worldEvent.type==='bloodmoon');   // blood moon: faster, bigger waves
   spawnTimer-=dt;
-  if (spawnTimer<=0 && enemies.length < (bossActive?16:50)){
-    spawnWave(bossActive ? 4 : waveSize);
+  if (spawnTimer<=0 && enemies.length < (bossActive?16:(surge?60:50))){
+    spawnWave(bossActive ? 4 : (surge ? waveSize+3 : waveSize));
     if(!bossActive) waveSize=Math.min(20,waveSize+1);
-    spawnTimer = bossActive ? 7.0 : (7.0 - Math.min(3, player.level*0.1));
+    spawnTimer = bossActive ? 7.0 : (7.0 - Math.min(3, player.level*0.1)) * (surge?0.45:1);
   }
+  updateWorldEvents(dt, bossActive);   // Stage 17: blood moon / golden wanderer scheduler
 
   if (player.binocActive && !player.inTree){ player.binocActive=false; $('binocOverlay').classList.add('hidden'); }   // safety: dropped from tree
   const focus = player.onShip ? ship.pos : player.pos; const cx=Math.sin(camYaw)*Math.cos(camPitch), cz=Math.cos(camYaw)*Math.cos(camPitch), cy=Math.sin(camPitch);
@@ -2707,7 +2887,7 @@ addEventListener('resize',resize); resize();
 // ============================================================
 const SAVE_KEY = 'emberfall_save_v1';
 let _saveDirty = false, _saveTimer = 0;
-function defaultSettings(){ return { musicVol: 1.0, sfxVol: 1.0, muted: false }; }
+function defaultSettings(){ return { musicVol: 1.0, sfxVol: 1.0, muted: false, showDmg: true, reducedMotion: false }; }
 let settings = defaultSettings();                 // wired to audio/UI in Stage 2
 let cosmetics = { owned:{character:['default'],weapon:['default'],magic:['default']},   // populated in Stage 3
                   equipped:{character:'default',weapon:'default',magic:'default'} };
@@ -2720,9 +2900,11 @@ function buildSaveObject(){
     version: 1,
     profile: { coins: player.gold, owned: cosmetics.owned, equipped: cosmetics.equipped, settings },
     character: { level:player.level, xp:player.xp, xpNext:player.xpNext, maxHp:player.maxHp,
-                 atk:player.atk, magAtk:player.magAtk, speed:player.speed, tunnels:player.tunnels, binoculars:player.binoculars, shiftTime:player.shiftTime },
+                 atk:player.atk, magAtk:player.magAtk, speed:player.speed, tunnels:player.tunnels, binoculars:player.binoculars, shiftTime:player.shiftTime, lootMagnet:player.lootMagnet },
     upgrades: { wepIdx, magIdx, tunIdx, shipIdx },
-    campaign: { worldUnlocked: campaign.index+1, bossesBeaten: campaign.bossesBeaten.slice(), missionState:null }
+    campaign: { worldUnlocked: campaign.index+1, bossesBeaten: campaign.bossesBeaten.slice(), missionState:null },
+    bestiary: { slain: bestiary.slain },
+    freeBest: { kills: freeBest.kills, time: freeBest.time }
   };
 }
 function applySave(d){
@@ -2741,6 +2923,9 @@ function applySave(d){
     player.atk=_num(ch.atk,player.atk); player.magAtk=_num(ch.magAtk,player.magAtk);
     player.speed=_num(ch.speed,player.speed); player.tunnels=_num(ch.tunnels,player.tunnels);
     player.binoculars = !!ch.binoculars;
+    player.lootMagnet = !!ch.lootMagnet;
+    if (d.bestiary && d.bestiary.slain) bestiary.slain = d.bestiary.slain;
+    if (d.freeBest) freeBest = { kills:_num(d.freeBest.kills,0), time:_num(d.freeBest.time,0) };
     player.shiftTime = _num(ch.shiftTime, 0); player.shifted = false;
     wepIdx=_idx(up.wepIdx,weaponTiers.length); magIdx=_idx(up.magIdx,magicTiers.length);
     tunIdx=_idx(up.tunIdx,tunnelTiers.length); shipIdx=_idx(up.shipIdx,shipTiers.length);
@@ -2757,7 +2942,7 @@ function resetForNewStory(){
   // Full wipe — fresh character, economy, upgrades and campaign. Purchased skins (owned + equipped) are kept.
   player.level=1; player.xp=0; player.xpNext=100; player.maxHp=100; player.hp=100;
   player.atk=12; player.magAtk=10; player.speed=10; player.gold=0; player.kills=0;
-  player.tunnels=3; player.binoculars=false; player.binocActive=false;
+  player.tunnels=3; player.binoculars=false; player.binocActive=false; player.lootMagnet=false;
   player.shiftTime=0; player.shifted=false; updateShiftVisual();
   wepIdx=0; magIdx=0; tunIdx=0; shipIdx=0;
   campaign.bossesBeaten=[]; campaign.index=0;
@@ -2789,11 +2974,15 @@ loadGame();   // boot: restore profile if a save exists, else clean defaults
 applyCosmetics();
 updateHUD();
 
+// Free-Play run record (Stage 19) — best kills/time survive everything except Reset Progress
+let freeRun = null, freeBest = { kills:0, time:0 };
+function fmtTime(s){ const m=Math.floor(s/60); return m+':'+String(Math.floor(s%60)).padStart(2,'0'); }
 function startGame(mode) {
   enterFullscreen();        // we're inside the Play-button gesture, so the browser permits it
   initAudio();
   hideAllMenus();
   setupGameMode(mode);
+  freeRun = (mode==='free') ? { kills0: player.kills, time:0 } : null;
   started=true; clock.getDelta(); spawnWave(6); spawnMimics(10);
   if (!isTouch) { try { canvas.requestPointerLock(); } catch(_){} }
   showToast('Slay the shadows!','#ffd56b'); 
@@ -2802,7 +2991,7 @@ function startGame(mode) {
 // ============================================================
 //  MENU SHELL (Stage 2)
 // ============================================================
-const MENU_SCREENS = ['overlay','modeScreen','settingsScreen','howtoScreen','shopScreen','gameOverScreen'];
+const MENU_SCREENS = ['overlay','modeScreen','settingsScreen','howtoScreen','bestiaryScreen','shopScreen','gameOverScreen'];
 function hideAllMenus(){ MENU_SCREENS.forEach(s=>{ const el=$(s); if(el) el.classList.add('hidden'); }); }
 function showScreen(id){ MENU_SCREENS.forEach(s=>{ const el=$(s); if(el) el.classList.toggle('hidden', s!==id); }); }
 
@@ -2813,6 +3002,7 @@ function refreshHome(){
   const save = hasSave();
   $('btnContinue').style.display = save ? '' : 'none';
   $('saveNote').textContent = save ? 'Progress is saved on this device.' : 'Sign-in/cloud save coming soon — progress saves on this device.';
+  const fb=$('freeBestNote'); if (fb){ if (freeBest.kills>0){ fb.style.display='block'; fb.textContent='🏅 Best: '+freeBest.kills+' slain · '+fmtTime(freeBest.time); } else fb.style.display='none'; }
 }
 
 // Home buttons
@@ -2837,6 +3027,8 @@ $('btnModeBack').onclick = ()=> showScreen('overlay');
 function syncSettingsUI(){
   $('setMusic').value = settings.musicVol; $('setSfx').value = settings.sfxVol; $('setMute').checked = !!settings.muted;
   if($('pMusic')){ $('pMusic').value = settings.musicVol; $('pSfx').value = settings.sfxVol; $('pMute').checked = !!settings.muted; }
+  if($('setDmgNums')) $('setDmgNums').checked = settings.showDmg !== false;
+  if($('setMotion'))  $('setMotion').checked  = !!settings.reducedMotion;
 }
 function bindAudioControl(musicId, sfxId, muteId){
   $(musicId).oninput = (e)=>{ settings.musicVol = parseFloat(e.target.value); applyAudioSettings(); syncSettingsUI(); saveGame(); };
@@ -2845,12 +3037,41 @@ function bindAudioControl(musicId, sfxId, muteId){
 }
 bindAudioControl('setMusic','setSfx','setMute');
 bindAudioControl('pMusic','pSfx','pMute');
+$('setDmgNums').onchange = (e)=>{ settings.showDmg = e.target.checked; saveGame(); };
+$('setMotion').onchange = (e)=>{
+  settings.reducedMotion = e.target.checked; saveGame();
+  if (settings.reducedMotion) clearAmbient();
+  else if (started && gameMode==='mission') setAmbientParticles(currentBiome().particle);   // restore this world's weather
+};
 $('btnFullscreen').onclick = ()=>{ if(!document.fullscreenElement){ document.documentElement.requestFullscreen().catch(()=>{}); } else { document.exitFullscreen(); } };
 $('btnReset').onclick = ()=>{ if (confirm('Reset ALL progress?\nThis permanently deletes your coins, upgrades, skins, and campaign.')) resetProgress(); };
 $('btnSettingsBack').onclick = ()=> showScreen('overlay');
 
 // How to Play
 $('btnHowtoBack').onclick = ()=> showScreen('overlay');
+
+// Bestiary — reachable from Home and from the pause menu (Back returns to where you came from)
+let bestiaryReturn = 'overlay';
+function renderBestiary(){
+  const grid = $('bestiaryGrid'); grid.innerHTML='';
+  let found = 0;
+  for (const b of BESTIARY){
+    const n = bestiary.slain[b.id]||0, known = n>0; if (known) found++;
+    const card = document.createElement('div');
+    card.style.cssText = 'background:rgba(255,255,255,.05); border:1px solid '+(known?(b.boss?'#ff5e62':'#8be0ff44'):'rgba(255,255,255,.12)')+'; border-radius:10px; padding:10px; text-align:center; min-height:96px;';
+    card.innerHTML = known
+      ? `<div style="font-size:26px;">${b.emoji}</div><div style="font-weight:bold; font-size:13px; color:${b.boss?'#ff8a8d':'#8be0ff'};">${b.name}</div><div style="font-size:11px; opacity:.75; line-height:1.35; margin-top:3px;">${b.desc}</div><div style="font-size:11px; color:#ffd56b; margin-top:4px;">☠ ${n} slain</div>`
+      : `<div style="font-size:26px; opacity:.35;">❔</div><div style="font-weight:bold; font-size:13px; opacity:.4;">???</div><div style="font-size:11px; opacity:.3; margin-top:3px;">Defeat one to log it.</div>`;
+    grid.appendChild(card);
+  }
+  $('bestiaryCount').textContent = found+' / '+BESTIARY.length+' discovered';
+}
+$('btnBestiary').onclick = ()=>{ bestiaryReturn='overlay'; renderBestiary(); showScreen('bestiaryScreen'); };
+$('pauseBestiaryBtn').onclick = ()=>{ bestiaryReturn='pause'; renderBestiary(); $('pauseMenu').classList.add('hidden'); $('bestiaryScreen').classList.remove('hidden'); };
+$('btnBestiaryBack').onclick = ()=>{
+  if (bestiaryReturn==='pause'){ $('bestiaryScreen').classList.add('hidden'); $('pauseMenu').classList.remove('hidden'); }
+  else showScreen('overlay');
+};
 
 // Shop (cosmetic skins — coins only)
 let shopCat = 'character', shopReturn = 'overlay';   // shopReturn: 'overlay' (main menu) or 'game' (in-run)

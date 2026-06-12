@@ -60,7 +60,8 @@
   @keyframes floatUp { from { transform: translateY(0); opacity:1; } to { transform: translateY(-50px); opacity:0; } }
 
   /* OVERLAY SCREENS - FIXED TO ALLOW SCROLLING ON SMALL HEIGHTS */
-  .overlay-screen { position: fixed; inset: 0; display:flex; flex-direction:column; align-items:center; z-index:10; text-align:center; padding: max(30px, env(safe-area-inset-top)) 20px; overflow-y: auto; pointer-events: auto;}
+  .overlay-screen { position: fixed; inset: 0; display:flex; flex-direction:column; align-items:center; z-index:10; text-align:center; padding: max(30px, env(safe-area-inset-top)) 20px; overflow-y: auto; pointer-events: auto;
+    background: linear-gradient(160deg, rgba(10,12,20,.95), rgba(5,7,14,.975)); }   /* dark default so menus are readable over the 3D world (ID screens override) */
   .overlay-screen.hidden { display:none !important; }
   .overlay-screen::before, .overlay-screen::after { content: ''; margin: auto; } /* Centering trick that allows scrolling */
   .overlay-screen > * { flex-shrink: 0; }
@@ -197,6 +198,10 @@
              background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; font-size: 15px; }
   .pause-settings { margin-bottom: 18px; }
   .set-row input[type=range] { flex: 1; accent-color: #ffb347; }
+  .diff-row { display:flex; gap:8px; justify-content:center; margin-bottom:14px; }
+  .diff-pill { pointer-events:auto; cursor:pointer; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.18); color:#fff; padding:6px 14px; border-radius:20px; font-weight:bold; font-size:13px; transition:filter .1s, transform .1s; }
+  .diff-pill:hover { filter:brightness(1.2); }
+  .diff-pill.active { background:linear-gradient(135deg,#ff7a18,#ff3b3b); border-color:#fff; }
   .set-row input[type=checkbox] { width: 20px; height: 20px; accent-color: #ffb347; }
 
   /* game over screen */
@@ -276,6 +281,7 @@
   <div class="upg-btn" onclick="buyUpgrade(6)"><span><b>[6]</b> Binoculars <span style="opacity:.7;font-size:12px;">(scout from trees · press V)</span></span> <span class="cost" id="cBinoc">150g</span></div>
   <div class="upg-btn" onclick="buyUpgrade(7)" style="border-color:#8b5cf6;"><span><b>[7]</b> Shapeshift +1 min <span style="opacity:.7;font-size:12px;">(hide · press C · <span id="shiftBank">0s</span> left)</span></span> <span class="cost" id="cShift">500g</span></div>
   <div class="upg-btn" onclick="buyUpgrade(8)" style="border-color:#ffd56b;"><span><b>[8]</b> Loot Magnet <span style="opacity:.7;font-size:12px;">(coins & hearts fly to you)</span></span> <span class="cost" id="cMagnet">300g</span></div>
+  <div class="upg-btn" onclick="buyUpgrade(9)" style="border-color:#c9a06a;"><span><b>[9]</b> Horse Armor: <span id="uHorse">Leather Barding</span> <span style="opacity:.7;font-size:12px;">(tougher · spiked tier kicks for damage)</span></span> <span class="cost" id="cHorse">200g</span></div>
   <div class="upg-btn" id="upgSkinsBtn" style="justify-content:center; border-color:#8b5cf6; color:#c9a0ff;"><span><b>🎨</b> Buy / Equip Skins</span></div>
 </div>
 
@@ -287,6 +293,7 @@
 <div id="shiftInd" style="display:none; position:fixed; top:74px; left:50%; transform:translateX(-50%); background:rgba(40,20,60,.7); border:1px solid #b07cff; color:#d9c2ff; font-weight:bold; font-size:14px; padding:5px 14px; border-radius:16px; z-index:88; pointer-events:none;">🦎 SHAPESHIFTED</div>
 <div id="buffInd" style="display:none; position:fixed; top:104px; left:50%; transform:translateX(-50%); background:rgba(50,35,10,.7); border:1px solid #ffd56b; color:#ffe9b0; font-weight:bold; font-size:13px; padding:4px 12px; border-radius:14px; z-index:88; pointer-events:none;"></div>
 <div id="eventInd" style="display:none; position:fixed; top:132px; left:50%; transform:translateX(-50%); background:rgba(60,10,16,.72); border:1px solid #ff4455; color:#ffb3bb; font-weight:bold; font-size:13px; padding:4px 12px; border-radius:14px; z-index:88; pointer-events:none;"></div>
+<div id="horseBar" style="display:none; position:fixed; top:160px; left:50%; transform:translateX(-50%); width:200px; height:16px; background:rgba(0,0,0,.5); border:1px solid #c9a06a; border-radius:8px; z-index:88; overflow:hidden; pointer-events:none;"><div id="horseFill" style="height:100%; width:100%; background:linear-gradient(90deg,#7a4a1a,#caa46a); transition:width .15s;"></div><div style="position:absolute; inset:0; text-align:center; font-size:11px; line-height:16px; font-weight:bold; text-shadow:0 1px 2px #000;">🐴 HORSE</div></div>
 <div id="reticle"></div>
 
 <div id="touch">
@@ -306,6 +313,7 @@
     <!-- row 2: scout / stealth / menus -->
     <div id="bBinoc" class="tbtn" style="border-color:#8be0ff;">🔭</div>
     <div id="bShift" class="tbtn" style="border-color:#b07cff;">🦎</div>
+    <div id="bHorse" class="tbtn" style="border-color:#c9a06a;">🐴</div>
     <div id="bMap" class="tbtn" style="border-color:#4f9dff;">🗺️</div>
     <div id="bShop" class="tbtn" style="background: rgba(60,40,20,0.8); border-color:#ffd56b;">🛒</div>
   </div>
@@ -375,6 +383,8 @@
 <!-- MODE SELECT -->
 <div id="modeScreen" class="overlay-screen hidden" style="z-index:300;">
   <h2 class="menu-title">Choose Mode</h2>
+  <div style="margin-bottom:8px; font-size:13px; opacity:.8;">Difficulty</div>
+  <div id="diffPills" class="diff-row"></div>
   <div class="menu-buttons">
     <button class="btn menu-btn" id="btnContinue">▶ Continue Story</button>
     <button class="btn menu-btn btn-alt" id="btnNewStory">✨ New Story</button>
@@ -392,6 +402,7 @@
   <label class="set-row">🔇 Mute All <input type="checkbox" id="setMute"></label>
   <label class="set-row">🔢 Damage Numbers <input type="checkbox" id="setDmgNums"></label>
   <label class="set-row">🌿 Reduced Motion <span style="opacity:.6;font-size:12px;">(no particles, softer flash)</span> <input type="checkbox" id="setMotion"></label>
+  <div class="set-row" style="justify-content:space-between;">⚔️ Difficulty <span id="diffPillsSettings" class="diff-row" style="margin:0;"></span></div>
   <div class="menu-buttons">
     <button class="btn menu-btn btn-alt" id="btnFullscreen">⛶ Toggle Fullscreen</button>
     <button class="btn menu-btn btn-quit" id="btnReset">🗑️ Reset Progress</button>
@@ -880,7 +891,7 @@ function updateHazards(dt){
     if (!onFoot) continue;
     if (Math.hypot(player.pos.x-h.x, player.pos.z-h.z) < h.r){
       if (h.dps>0 && player.buffShield<=0){
-        player.hp -= h.dps*dt; player.regenCd = 4;
+        player.hp -= h.dps*dt*diffMult(); player.regenCd = 4;   // hazard DPS scales with difficulty
         if (hazardMsgCd<=0){ floatText(player.pos, '-'+Math.round(h.dps*0.6), '#ff7733', 18); hazardMsgCd = 0.5; }
         if (player.hp<=0){ player.hp=0; die(); }
       }
@@ -1056,6 +1067,8 @@ function doWorldTransition(){
   campaign.worldRadius = cleared.expandTo || campaign.worldRadius;   // expand (animates in update)
   for (const ob of obelisks){ if(ob.healLight) scene.remove(ob.healLight); scene.remove(ob.obj); const wi=walls.indexOf(ob.wall); if(wi>-1) walls.splice(wi,1); }
   obelisks.length = 0;
+  // drop any unrevealed mission-decoy mimics from the old world (so they don't show the wrong world's disguise)
+  for (const en of enemies){ if (en.type==='mimic' && !en.revealed && en.mapDecoy && !en.dead){ en.dead=true; en.obj.userData.dying = 0.0001; } }
   const next = WORLDS[Math.min(campaign.index, WORLDS.length-1)];
   if (next && next.setup && !next.comingSoon && !campaign.bossesBeaten.includes(next.boss)) next.setup();
   startBiomeMorph(next && next.biome, 1.5);   // cross-fade the palette to the new world (visible as the flash clears)
@@ -1290,16 +1303,18 @@ const hero = buildHero(); scene.add(hero);
 const player = {
   obj: hero, pos: new THREE.Vector3(0,0,0), facing: 0,
   hp: 100, maxHp: 100, xp: 0, xpNext: 100, level: 1,
-  atk: 12, magAtk: 10, gold: 0, kills: 0, speed: 10,
+  atk: 12, magAtk: 10, gold: 0, kills: 0, speed: 10,   // ENEMY_ATK_MULT below scales their damage (Stage 24)
   attackTimer: 0, attackCooldown: 0, shootCooldown: 0,
   dashCd: 0, invuln: 0, alive: true, walkPhase: 0, regenCd: 0,
   tunnels: 3, tunnelCd: 0, onShip: false,
   inTree: false, treePos: null, underground: false,
   binoculars: false, binocActive: false,
   shiftTime: 0, shifted: false, chillCd: 0, lootMagnet: false,
-  buffDmg: 0, buffSpeed: 0, buffShield: 0   // temp power-up timers (never baked into base stats)
+  buffDmg: 0, buffSpeed: 0, buffShield: 0,   // temp power-up timers (never baked into base stats)
+  mounted: false, horseArmor: 0   // riding the horse (Stage 22) + barding tier 0–3 (Stage 23)
 };
 const PLAYER_R = 0.6;
+const ENEMY_ATK_MULT = 1.35;   // Stage 24 — regular-enemy damage scale (bosses scaled at their own literals)
 
 function buildShip() {
   const g=new THREE.Group();
@@ -1417,10 +1432,15 @@ function buildMimic(scale, disguiseType){
     }
   } else if (disguiseType === 'cave'){ disguise = buildCaveVisual(Math.random()*Math.PI*2); }
   else if (disguiseType === 'mission'){
-    // Mimic a mission node — matches the current world (obelisk / reactor / vent)
+    // Mimic a mission node — matches the current world (obelisk / reactor / vent / pylon)
     disguise = new THREE.Group();
     const k = (gameMode==='mission') ? campaign.index : 0;
-    if (k>=2){
+    if (k>=3){   // Frostspire — frozen pylon
+      const ice=new THREE.MeshStandardMaterial({color:0x9fd6ff, emissive:0x2b6fae, emissiveIntensity:0.5, roughness:0.2, metalness:0.1, flatShading:true, transparent:true, opacity:0.92});
+      const shard=new THREE.Mesh(new THREE.ConeGeometry(2.2,10,5), ice); shard.position.y=5; shard.castShadow=true;
+      const core=new THREE.Mesh(new THREE.IcosahedronGeometry(1.3,0), new THREE.MeshStandardMaterial({color:0xbfeaff, emissive:0x66ccff, emissiveIntensity:1.1, flatShading:true})); core.position.y=6;
+      disguise.add(shard, core);
+    } else if (k===2){   // Emberpeak — volcanic vent
       const rock=new THREE.MeshStandardMaterial({color:0x33272a, roughness:0.9, flatShading:true});
       const cone=new THREE.Mesh(new THREE.CylinderGeometry(1.2,3.2,5,7), rock); cone.position.y=2.5; cone.castShadow=true;
       const core=new THREE.Mesh(new THREE.IcosahedronGeometry(1.5,0), new THREE.MeshStandardMaterial({color:0xff6622, emissive:0xff3300, emissiveIntensity:1.2, flatShading:true})); core.position.y=5;
@@ -1507,6 +1527,7 @@ function spawnEnemy(type, x, z){
   }
   else { e.scale=1; e.hp=25*powerMult; e.atk=8; e.speed=4.2; e.xp=25; e.gold=10; e.color=0x6fcf45; e.type='slime'; }
 
+  e.atk = Math.round(e.atk * ENEMY_ATK_MULT);   // Stage 24 rebalance — regular enemies hit harder (covers touch + their bolts)
   e.hp = Math.round(e.hp); e.maxHp=e.hp;
   e.obj = (e.type==='mimic') ? buildMimic(e.scale, e.disguise) : (e.type==='burrower') ? buildBurrower(e.scale, e.color) : buildSlime(e.type, e.scale, e.color);
   e.obj.position.copy(e.pos); scene.add(e.obj); enemies.push(e); return e;
@@ -1580,7 +1601,7 @@ function buildCorridor(ax, az, bx, bz){
 }
 
 function digTunnel() {
-  if (player.onShip || player.inTree || player.underground || !player.alive || player.tunnels<=0 || player.tunnelCd>0 || isWater(player.pos.x,player.pos.z)) return;
+  if (player.mounted || player.onShip || player.inTree || player.underground || !player.alive || player.tunnels<=0 || player.tunnelCd>0 || isWater(player.pos.x,player.pos.z)) return;
   player.tunnels--; player.tunnelCd=1.5;
   
   const tier = tunnelTiers[tunIdx]; const x=player.pos.x, z=player.pos.z, r=tier.r;
@@ -1602,7 +1623,7 @@ function digTunnel() {
 }
 
 function toggleUnderground(){
-  if (!started || !player.alive || paused) return;
+  if (!started || !player.alive || paused || player.mounted) return;
   if (player.underground){
     let best=null, bd=Infinity; for (const t of activeTunnels){ const d=Math.hypot(player.pos.x-t.x, player.pos.z-t.z); if (d<bd){ bd=d; best=t; } }
     if (best && bd < best.r+2){ player.underground=false; player.obj.position.set(best.x, 0, best.z); player.pos.copy(player.obj.position); showToast('Climbed to the surface','#d8b070'); } else showToast('Stand on a glowing shaft to climb up','#ffd56b');
@@ -1714,6 +1735,18 @@ window.buyUpgrade = function(type){
       showToast('Shapeshift time added — press C to vanish.', '#b07cff');
     } else showToast('Not enough gold!', '#ff7a7a');
   }
+  else if (type === 9) {
+    const tier = player.horseArmor||0; const costs=[200,500,900];
+    if (tier>=3){ showToast('Horse armor is maxed.', '#ffd56b'); }
+    else if (player.gold >= costs[tier]) {
+      player.gold -= costs[tier]; player.horseArmor = tier+1;
+      if (horse){ applyHorseArmor(); horse.hp = horse.maxHp; }
+      const names=['Leather Barding','Iron Barding','Spiked War-Barding'];
+      if (audioCtxStarted) sfx.poly.triggerAttackRelease(["C4","E4","G4"], "4n");
+      floatText(player.pos, names[tier]+'!', '#c9a06a', 24);
+      showToast('🐴 '+names[tier]+' equipped'+(tier+1>=3?' — kick now bites!':'')+'.', '#c9a06a');
+    } else showToast('Not enough gold!', '#ff7a7a');
+  }
   else if (type === 8 && !player.lootMagnet) {
     const cost = 300;
     if (player.gold >= cost) {
@@ -1731,7 +1764,7 @@ function updateShiftVisual(){
   hero.traverse(o=>{ if(o.material){ const mats=Array.isArray(o.material)?o.material:[o.material]; mats.forEach(m=>{ m.transparent = player.shifted; m.opacity = op; m.needsUpdate=true; }); } });
 }
 function toggleShapeshift(){
-  if (!started || !player.alive || paused) return;
+  if (!started || !player.alive || paused || player.mounted) return;
   if (player.shifted){ player.shifted=false; updateShiftVisual(); showToast('Shapeshift off.', '#b07cff'); return; }
   if (player.shiftTime<=0){ showToast('No shapeshift time left — buy more in the shop (TAB).', '#ff7a7a'); return; }
   player.shifted=true; updateShiftVisual();
@@ -1785,12 +1818,13 @@ addEventListener('keydown', e=>{
   if (e.code==='KeyR') cleanseObelisk();
   if (e.code==='KeyE') toggleTree();
   if (e.code==='KeyV') toggleBinoculars();
+  if (e.code==='KeyH') toggleMount();
   if (e.code==='KeyC') toggleShapeshift();
 });
 addEventListener('keyup', e=>{ keys[e.code]=false; });
 
 function toggleTree(){
-  if (!started || !player.alive || paused) return;
+  if (!started || !player.alive || paused || player.mounted) return;
   if (player.inTree) { player.inTree = false; if(player.binocActive){ player.binocActive=false; $('binocOverlay').classList.add('hidden'); } showToast("Jumped down from tree", "#ccc"); }
   else if (!player.onShip && !player.underground) {
     for (const t of trees) { if (Math.hypot(player.pos.x - t.x, player.pos.z - t.z) < 2.5) { player.inTree = true; player.treePos = t; player.pos.set(t.x, 0, t.z); showToast("Climbed tree! Safe from ground foes.", "#8be0ff"); break; } }
@@ -1850,7 +1884,7 @@ if (isTouch){
     el.addEventListener('touchend', e=>{ e.preventDefault(); stop(); }, {passive:false}); el.addEventListener('touchcancel', stop);
   }
   hold('bAtk', primaryAttack, true); hold('bMag', secondaryAttack, true); hold('bDash', ()=>{ keys['ShiftLeft']=true; setTimeout(()=>keys['ShiftLeft']=false, 60); });
-  hold('bDig', digTunnel); hold('bTun', toggleUnderground); hold('bShip', toggleShip); hold('bTree', toggleTree); hold('bShop', toggleShop); hold('bPause', togglePause); hold('bBinoc', toggleBinoculars); hold('bShift', toggleShapeshift);
+  hold('bDig', digTunnel); hold('bTun', toggleUnderground); hold('bShip', toggleShip); hold('bTree', toggleTree); hold('bShop', toggleShop); hold('bPause', togglePause); hold('bBinoc', toggleBinoculars); hold('bShift', toggleShapeshift); hold('bHorse', toggleMount);
   hold('bMap', toggleMap); hold('bCleanse', cleanseObelisk);
 }
 
@@ -1883,6 +1917,7 @@ function faceNearestEnemy(maxDist){
 
 function primaryAttack() {
   if (!started || !player.alive || paused) return;
+  if (player.mounted) return horseKick();
   if (player.onShip) return fireCannon();
   if (player.attackCooldown>0) return;
   if (isTouch) faceNearestEnemy(4.5);
@@ -1923,6 +1958,7 @@ function shootBolt(isEnemy=false, startPos, dirVec, dmg, color, glow, speed, rad
 }
 
 function secondaryAttack(){
+  if (player.mounted) return horseKick();
   if (!started || !player.alive || player.onShip || paused) return;
   const tier = magicTiers[magIdx];
   if (player.shootCooldown>0) return;
@@ -2033,9 +2069,12 @@ function gainXp(a){
   }
 }
 
+const DIFF_MULT = { easy:0.7, medium:1.0, hard:1.4 };
+function diffMult(){ return DIFF_MULT[settings.difficulty] || 1; }   // Stage 25 — global incoming-damage scale
 function hurtPlayer(dmg){
   if (player.invuln>0||!player.alive) return;
   if (player.buffShield>0){ floatText(player.pos,'BLOCKED','#ffd56b',18); return; }   // 🛡 power-up absorbs the hit
+  dmg = Math.round(dmg * diffMult());                                // difficulty scales all incoming damage
   if (audioCtxStarted) sfx.hit.triggerAttackRelease("A1", "8n");
   player.hp-=dmg; player.invuln=0.6; player.regenCd=4.0; floatText(player.pos,'-'+dmg,'#ff5555',24);   // hits delay out-of-combat regen
   if (player.hp<=0){ player.hp=0; die(); }
@@ -2049,7 +2088,7 @@ function persistDeathPenalty(){
       version:1,
       profile:{ coins:0, owned:cosmetics.owned, equipped:cosmetics.equipped, settings },
       character:{ level:1, xp:0, xpNext:100, maxHp:100, atk:12, magAtk:10, speed:10, tunnels:3, binoculars:false, shiftTime:0, lootMagnet:false },
-      upgrades:{ wepIdx:0, magIdx:0, tunIdx:0, shipIdx:0 },
+      upgrades:{ wepIdx:0, magIdx:0, tunIdx:0, shipIdx:0, horseArmor:0 },
       campaign:{ worldUnlocked:1, bossesBeaten:[], missionState:null },
       bestiary:{ slain: bestiary.slain },   // the codex is knowledge — death doesn't erase it
       freeBest:{ kills: freeBest.kills, time: freeBest.time }   // records survive death too
@@ -2059,12 +2098,13 @@ function persistDeathPenalty(){
 }
 function die(){
   player.alive=false; if (player.shifted){ player.shifted=false; updateShiftVisual(); }
+  if (player.mounted){ player.mounted=false; if(horse) horse.state='roam'; player.obj.position.y=0; }
   setReticle(false); if (document.pointerLockElement === canvas) document.exitPointerLock();
   // Free-Play run record (Stage 19) — checked before the penalty save so the new best is persisted with it
   let bestLine = '';
   if (gameMode==='free' && freeRun){
     const rk = player.kills - freeRun.kills0, rt = freeRun.time;
-    if (rk > freeBest.kills){ freeBest = { kills:rk, time:rt }; bestLine = `  🏅 NEW BEST: ${rk} slain · ${fmtTime(rt)} survived!`; }
+    if (rk > freeBest.kills){ freeBest = { kills:rk, time:rt, diff:settings.difficulty }; bestLine = `  🏅 NEW BEST: ${rk} slain · ${fmtTime(rt)} survived!`; }
     else bestLine = `  This run: ${rk} slain · ${fmtTime(rt)}  (best: ${freeBest.kills})`;
   }
   persistDeathPenalty();                                             // death = lose everything but skins (unless you revive)
@@ -2094,6 +2134,7 @@ function giveUp(){
 
 function damageShip(dmg){
   if (ship.destroyed || ship.invuln > 0) return;
+  dmg = dmg * diffMult();                       // difficulty scales incoming ship damage too
   ship.hp -= dmg; ship.dmgCd = 3.0; floatText(ship.pos.clone().add(new THREE.Vector3(0,2.5,0)), '-'+Math.round(dmg), '#ff8844', 20);
   if (ship.hp <= 0){ ship.hp = 0; destroyShip(); }
 }
@@ -2112,7 +2153,7 @@ function repairCost(){
 }
 
 function toggleShip(){
-  if (!started||!player.alive||paused||player.inTree||player.underground) return;
+  if (!started||!player.alive||paused||player.inTree||player.underground||player.mounted) return;
   if (!player.onShip){
     if (ship.destroyed){ showToast('The ship is wrecked — wait for a new one','#ff7a7a'); return; }
     if (Math.hypot(player.pos.x-ship.pos.x, player.pos.z-ship.pos.z) < 9){ player.onShip=true; hero.visible=false; showToast('⚓ Aboard! Use [W/A/S/D] to steer.','#8be0ff'); }
@@ -2125,6 +2166,109 @@ function toggleShip(){
       player.pos.copy(player.obj.position); showToast('Back on land','#d8d8d8');
     } else showToast('Sail closer to land to disembark','#ffd56b');
   }
+}
+
+// ===== The Horse (Stage 22) — roams; mount to go fast; kick instead of attack; only wolves can hurt it =====
+let horse = null;
+function buildHorse(){
+  const g=new THREE.Group();
+  const hide=new THREE.MeshStandardMaterial({color:0x6b4a2b, roughness:.85, flatShading:true});
+  const dark=new THREE.MeshStandardMaterial({color:0x3a2616, roughness:.9, flatShading:true});
+  const torso=new THREE.Mesh(new THREE.BoxGeometry(1.0,1.2,2.6), hide); torso.position.y=1.7; torso.castShadow=true; g.add(torso);
+  const neck=new THREE.Mesh(new THREE.BoxGeometry(0.6,1.3,0.7), hide); neck.position.set(0,2.5,1.5); neck.rotation.x=-0.5; g.add(neck);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(0.55,0.6,1.1), hide); head.position.set(0,3.0,2.2); head.rotation.x=-0.2; g.add(head);
+  for(const dx of [-0.18,0.18]){ const ear=new THREE.Mesh(new THREE.ConeGeometry(0.12,0.3,4), hide); ear.position.set(dx,3.35,2.0); g.add(ear); }
+  const mane=new THREE.Mesh(new THREE.BoxGeometry(0.15,1.2,0.9), dark); mane.position.set(0,2.7,1.5); mane.rotation.x=-0.5; g.add(mane);
+  const legGeo=new THREE.BoxGeometry(0.26,1.5,0.26); const legs=[];
+  for(const lx of [-0.35,0.35]) for(const lz of [-0.9,0.9]){ const leg=new THREE.Mesh(legGeo, dark); leg.position.set(lx,0.75,lz); leg.castShadow=true; g.add(leg); legs.push(leg); }
+  const tail=new THREE.Mesh(new THREE.BoxGeometry(0.2,1.0,0.2), dark); tail.position.set(0,1.6,-1.5); tail.rotation.x=0.6; g.add(tail);
+  const saddle=new THREE.Mesh(new THREE.BoxGeometry(1.1,0.3,1.2), new THREE.MeshStandardMaterial({color:0x5a3a1a, roughness:.6})); saddle.position.set(0,2.45,0.1); g.add(saddle);
+  g.userData={ torso, legs, armorParts:[] };
+  return g;
+}
+const HORSE_HP = [120, 180, 260, 360];   // by armor tier (Stage 23)
+function applyHorseArmor(){
+  if (!horse) return;
+  for (const p of horse.obj.userData.armorParts) horse.obj.remove(p);
+  horse.obj.userData.armorParts.length = 0;
+  const t = player.horseArmor||0;
+  horse.maxHp = HORSE_HP[t] || 120;
+  if (t<=0) return;
+  const parts = horse.obj.userData.armorParts;
+  const add=(m)=>{ horse.obj.add(m); parts.push(m); };
+  const col = t===1?0x6b4a2b : t===2?0x8a8f99 : 0x3a3f4a;
+  const mat = new THREE.MeshStandardMaterial({color:col, metalness:t>=2?0.7:0.2, roughness:0.5, flatShading:true});
+  const plate=new THREE.Mesh(new THREE.BoxGeometry(1.18,1.05,2.45), mat); plate.position.set(0,1.7,0); plate.castShadow=true; add(plate);
+  const neckG=new THREE.Mesh(new THREE.BoxGeometry(0.68,1.3,0.78), mat); neckG.position.set(0,2.5,1.5); neckG.rotation.x=-0.5; add(neckG);
+  if (t>=2){ const ch=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.66,0.7), mat); ch.position.set(0,3.0,2.25); ch.rotation.x=-0.2; add(ch); }   // chanfron (face plate)
+  if (t>=3){   // spikes
+    const spikeMat=new THREE.MeshStandardMaterial({color:0xcfd4da, metalness:.85, roughness:.25, flatShading:true});
+    for(let i=0;i<5;i++){ const sp=new THREE.Mesh(new THREE.ConeGeometry(0.13,0.55,4), spikeMat); sp.position.set(0,2.55,-0.9+i*0.5); add(sp); }
+    for(const dx of [-0.62,0.62]){ const ss=new THREE.Mesh(new THREE.ConeGeometry(0.2,0.7,4), spikeMat); ss.position.set(dx,2.0,0.5); ss.rotation.z = dx<0?0.9:-0.9; add(ss); }
+  }
+}
+function worldR(){ return (gameMode==='mission' ? campaign.curRadius : WORLD) - 12; }
+function placeHorseAway(){
+  let x=60,z=60,tries=0, R=worldR();
+  do{ const a=Math.random()*Math.PI*2, r=40+Math.random()*Math.max(20,R-40); x=Math.cos(a)*r; z=Math.sin(a)*r; tries++; }
+  while((isWater(x,z) || Math.hypot(x-player.pos.x,z-player.pos.z)<30) && tries<40);
+  horse.pos.set(x,0,z); horse.obj.position.set(x,0,z); horse.obj.visible=true;
+}
+function spawnHorse(){
+  if (horse){ scene.remove(horse.obj); }
+  const obj=buildHorse(); scene.add(obj);
+  horse={ obj, pos:new THREE.Vector3(), hp:120, maxHp:120, facing:0, state:'roam', wanderT:0, wTgt:new THREE.Vector3(), kickCd:0, respawnTimer:0, legPhase:0 };
+  applyHorseArmor(); horse.hp=horse.maxHp;   // armor sets maxHp + visuals
+  placeHorseAway();
+}
+function respawnHorse(){ horse.hp=horse.maxHp; horse.state='roam'; placeHorseAway(); showToast('🐴 A wild horse appears in the distance.', '#c9a06a'); }
+function updateHorse(dt){
+  if (!horse) return;
+  horse.kickCd=Math.max(0,horse.kickCd-dt);
+  if (horse.state==='fled'){ horse.respawnTimer-=dt; if(horse.respawnTimer<=0) respawnHorse(); return; }
+  if (horse.state==='ridden') return;   // movement handled in the mounted branch
+  // roam toward random points
+  horse.wanderT-=dt;
+  if (horse.wanderT<=0){ const a=Math.random()*Math.PI*2, r=10+Math.random()*25; let tx=horse.pos.x+Math.cos(a)*r, tz=horse.pos.z+Math.sin(a)*r; const R=worldR(); const dd=Math.hypot(tx,tz); if(dd>R){ tx=tx/dd*R; tz=tz/dd*R; } horse.wTgt.set(tx,0,tz); horse.wanderT=3+Math.random()*4; }
+  const to=horse.wTgt.clone().sub(horse.pos); to.y=0; const d=to.length();
+  if (d>1.5){ to.normalize(); const nx=horse.pos.x+to.x*3.0*dt, nz=horse.pos.z+to.z*3.0*dt; if(!isWater(nx,nz)){ horse.pos.x=nx; horse.pos.z=nz; horse.facing=Math.atan2(to.x,to.z); horse.legPhase+=dt*6; } else horse.wanderT=0; }
+  horse.obj.position.set(horse.pos.x,0,horse.pos.z);
+  const cur=horse.obj.rotation.y, diff=((horse.facing-cur+Math.PI)%(Math.PI*2))-Math.PI; horse.obj.rotation.y=cur+diff*Math.min(1,dt*6);
+  if (started && player.alive && !player.mounted && !player.onShip && !player.inTree && !player.underground && Math.hypot(player.pos.x-horse.pos.x,player.pos.z-horse.pos.z)<4.5) setPrompt('Press [H] / 🐴 to mount');
+}
+function toggleMount(){
+  if (!started || !player.alive || paused) return;
+  if (player.mounted){ dismount(); return; }
+  if (player.onShip || player.inTree || player.underground){ showToast('Can’t mount from here.', '#ffd56b'); return; }
+  if (!horse || horse.state!=='roam'){ showToast('No horse nearby right now.', '#ffd56b'); return; }
+  if (Math.hypot(player.pos.x-horse.pos.x,player.pos.z-horse.pos.z)<4.5){ player.mounted=true; horse.state='ridden'; player.facing=horse.facing; if(audioCtxStarted) sfx.poly.triggerAttackRelease(["G3","C4"],"8n"); showToast('🐴 Mounted! Attack = KICK · [H] to dismount.', '#c9a06a'); }
+  else showToast('Get closer to the horse to mount.', '#ffd56b');
+}
+function dismount(){
+  if (!player.mounted) return;
+  player.mounted=false; if(horse) horse.state='roam';
+  const off=new THREE.Vector3(Math.cos(player.facing+1.4),0,Math.sin(player.facing+1.4)).multiplyScalar(2.2);
+  player.obj.position.set(player.pos.x+off.x,0,player.pos.z+off.z); player.pos.copy(player.obj.position);
+  showToast('Dismounted.', '#ccc');
+}
+function horseKick(){
+  if (!horse || !player.mounted || horse.kickCd>0) return;
+  horse.kickCd=2.0;
+  if (audioCtxStarted) sfx.hit.triggerAttackRelease("C2","8n");
+  addEffect(horse.pos.clone().add(new THREE.Vector3(0,1,0)), 7, 0xffffff);
+  floatText(player.pos,'KICK!','#ffffff',20);
+  const kickDmg = (player.horseArmor>=3) ? 12 : 0;   // spiked barding (Stage 23) makes the kick bite
+  for (const e of enemies){ if (e.dead||untargetable(e)) continue; const dx=e.pos.x-horse.pos.x, dz=e.pos.z-horse.pos.z, d=Math.hypot(dx,dz); if (d<8 && d>0.1){ e.obj.position.x=horse.pos.x+dx/d*15; e.obj.position.z=horse.pos.z+dz/d*15; e.pos.copy(e.obj.position); if(kickDmg>0){ e.hp-=kickDmg; e.flash=0.15; if(e.hp<=0) killEnemy(e); } } }
+}
+function damageHorse(dmg){
+  if (!horse || horse.state!=='ridden') return;
+  const d=dmg*diffMult(); horse.hp-=d; floatText(horse.pos.clone().add(new THREE.Vector3(0,2.6,0)),'-'+Math.round(d),'#ff8855',18);
+  if (horse.hp<=0){ horse.hp=0; buckOff(); }
+}
+function buckOff(){
+  player.mounted=false; horse.state='fled'; horse.respawnTimer=25; horse.obj.visible=false;
+  player.obj.position.set(player.pos.x,0,player.pos.z); player.invuln=Math.max(player.invuln,1.5);
+  showToast('🐴 Your horse was overwhelmed and bolted! It will return.', '#ff7a7a');
 }
 
 const floatersEl=document.getElementById('floaters'); const tmpVec=new THREE.Vector3();
@@ -2153,8 +2297,10 @@ function updateHUD(){
   $('uShip').textContent = nS ? nS.name : 'MAX'; $('cShip').textContent = nS ? nS.cost+'g' : '-';
   if ($('cBinoc')) $('cBinoc').textContent = player.binoculars ? 'OWNED' : '150g';
   if ($('cMagnet')) $('cMagnet').textContent = player.lootMagnet ? 'OWNED' : '300g';
+  if ($('cHorse')){ const ht=player.horseArmor||0; const names=['Leather Barding','Iron Barding','Spiked War-Barding']; $('cHorse').textContent = ht>=3?'MAX':[200,500,900][ht]+'g'; if($('uHorse')) $('uHorse').textContent = ht>=3?'Spiked (max)':names[ht]; }
   if ($('shiftBank')) $('shiftBank').textContent = Math.ceil(player.shiftTime)+'s';
   const si=$('shiftInd'); if (si){ if (player.shifted){ si.style.display='block'; si.textContent='🦎 SHAPESHIFTED · '+Math.ceil(player.shiftTime)+'s'; } else si.style.display='none'; }
+  const hb=$('horseBar'); if (hb){ if (player.mounted && horse){ hb.style.display='block'; $('horseFill').style.width=Math.max(0,horse.hp/horse.maxHp*100)+'%'; } else hb.style.display='none'; }
   const bi=$('buffInd'); if (bi){
     const parts=[];
     if (player.buffDmg>0) parts.push('⚔ '+Math.ceil(player.buffDmg)+'s');
@@ -2233,7 +2379,12 @@ function drawMap() {
     if (gameMode==='mission'){
         if (typeof portal!=='undefined' && portal) tgt = portal.pos;
         else if (boss) tgt = boss.pos;
-        else { let bd=Infinity; for (const ob of obelisks){ if (ob.state!=='cleansed'){ const d=Math.hypot(ob.x-me.x, ob.z-me.z); if (d<bd){ bd=d; tgt={x:ob.x, z:ob.z}; } } } }
+        else {
+            // nearest mission target — REAL uncleansed nodes AND unrevealed decoys (so the line can lead you to a fake; finding the real ones is the challenge)
+            let bd=Infinity;
+            for (const ob of obelisks){ if (ob.state!=='cleansed'){ const d=Math.hypot(ob.x-me.x, ob.z-me.z); if (d<bd){ bd=d; tgt={x:ob.x, z:ob.z}; } } }
+            for (const en of enemies){ if (en.type==='mimic' && !en.revealed && en.mapDecoy && !en.dead){ const d=Math.hypot(en.pos.x-me.x, en.pos.z-me.z); if (d<bd){ bd=d; tgt={x:en.pos.x, z:en.pos.z}; } } }
+        }
     }
     if (tgt){
         const txp=toX(tgt.x), typ=toY(tgt.z);
@@ -2328,7 +2479,18 @@ function update(dt){
     if (touchInput.fwd !== 0 || touchInput.right !== 0){ move.addScaledVector(f, -touchInput.fwd); move.addScaledVector(r, touchInput.right); }
   }
 
-  if (player.onShip){
+  if (player.mounted && horse){
+    const sp = player.speed * 1.6 * (player.buffSpeed>0?1.5:1);
+    if (move.lengthSq()>0){ move.normalize(); horse.facing=Math.atan2(move.x,move.z); horse.pos.addScaledVector(move, sp*dt); horse.legPhase+=dt*14; }
+    for (const b of walls) resolveBox(horse.pos, 1.0, b); resolveWaterBoundary(horse.pos, 1.2, false);
+    const lim=WORLD-2; horse.pos.x=Math.max(-lim,Math.min(lim,horse.pos.x)); horse.pos.z=Math.max(-lim,Math.min(lim,horse.pos.z));
+    if (gameMode==='mission'){ const dd=Math.hypot(horse.pos.x,horse.pos.z); if(dd>campaign.curRadius){ horse.pos.x=horse.pos.x/dd*campaign.curRadius; horse.pos.z=horse.pos.z/dd*campaign.curRadius; } }
+    horse.obj.position.set(horse.pos.x,0,horse.pos.z);
+    const cur=horse.obj.rotation.y, diff=((horse.facing-cur+Math.PI)%(Math.PI*2))-Math.PI; horse.obj.rotation.y=cur+diff*Math.min(1,dt*12);
+    player.pos.copy(horse.pos); player.facing=horse.facing;
+    player.obj.position.set(horse.pos.x, 2.0, horse.pos.z); player.obj.rotation.y=horse.obj.rotation.y;
+    setPrompt('🐴 Riding — attack = KICK · [H] dismount');
+  } else if (player.onShip){
     if (move.lengthSq()>0){
       move.normalize(); ship.facing=Math.atan2(move.x,move.z); ship.pos.addScaledVector(move, 12*dt);
       // Dreadnought-only dash: quick burst + brief shield to dodge slams
@@ -2431,7 +2593,7 @@ function update(dt){
           for(let i=-1; i<=1; i++) {
               const dir = aimPt.clone().sub(muzzle).normalize();
               dir.applyAxisAngle(new THREE.Vector3(0,1,0), i * 0.18);
-              shootBolt(true, muzzle.clone(), dir, 60, 0x00ffff, 0x00aaff, 32, 1.6, 2.2);
+              shootBolt(true, muzzle.clone(), dir, 100, 0x00ffff, 0x00aaff, 32, 1.6, 2.2);   // Stage 24: 60→100
           }
       }
 
@@ -2451,7 +2613,7 @@ function update(dt){
               addEffect(new THREE.Vector3(sp.x,0.5,sp.z), 13, 0x00ffff);
               if (audioCtxStarted) sfx.cannon.triggerAttackRelease("C1", "2n");
               const d = Math.hypot(player.pos.x - sp.x, player.pos.z - sp.z);
-              if (d < 9.5) { if (player.onShip) damageShip(120); else hurtPlayer(70); }
+              if (d < 9.5) { if (player.onShip) damageShip(200); else hurtPlayer(115); }   // Stage 24: 120→200 / 70→115
           }
           if (leviathan.slamLunge <= 0) leviathan.obj.rotation.x = 0;
       } else if (leviathan.slamWindup > 0) {
@@ -2493,7 +2655,7 @@ function update(dt){
       if (audioCtxStarted) sfx.magic.triggerAttackRelease("C3","8n");
       const muzzle = robot.pos.clone().add(new THREE.Vector3(0,13.4,0));
       const aim = new THREE.Vector3(player.pos.x, player.inTree?3.5:1.2, player.pos.z);
-      for (let i=-1;i<=1;i++){ const dir=aim.clone().sub(muzzle).normalize(); dir.applyAxisAngle(new THREE.Vector3(0,1,0), i*0.14); shootBolt(true, muzzle.clone(), dir, 22, 0xff3322, 0xaa1100, 30, 1.2, 2.2); }
+      for (let i=-1;i<=1;i++){ const dir=aim.clone().sub(muzzle).normalize(); dir.applyAxisAngle(new THREE.Vector3(0,1,0), i*0.14); shootBolt(true, muzzle.clone(), dir, 36, 0xff3322, 0xaa1100, 30, 1.2, 2.2); }   // Stage 24: 22→36
     }
 
     robot.smashCd -= dt;
@@ -2505,7 +2667,7 @@ function update(dt){
         robot.smashed = true; const sp=robot.smashPoint;
         addEffect(new THREE.Vector3(sp.x,0.5,sp.z), 11, 0xff8833);
         if (audioCtxStarted) sfx.cannon.triggerAttackRelease("C1","2n");
-        if (Math.hypot(player.pos.x-sp.x, player.pos.z-sp.z) < 9 && !player.onShip) hurtPlayer(35);
+        if (Math.hypot(player.pos.x-sp.x, player.pos.z-sp.z) < 9 && !player.onShip) hurtPlayer(58);   // Stage 24: 35→58
       }
       if (robot.smashLunge<=0) robot.obj.userData.armR.rotation.x = 0;
     } else if (robot.smashWindup>0){
@@ -2540,7 +2702,7 @@ function update(dt){
       firelord.shootCd = 2.6; if(audioCtxStarted) sfx.magic.triggerAttackRelease("A2","8n");
       const muzzle = firelord.pos.clone().add(new THREE.Vector3(0,7,0));
       const aim = new THREE.Vector3(player.pos.x, player.inTree?3.5:1.2, player.pos.z);
-      for (let i=-2;i<=2;i++){ const dir=aim.clone().sub(muzzle).normalize(); dir.applyAxisAngle(new THREE.Vector3(0,1,0), i*0.16); shootBolt(true, muzzle.clone(), dir, 18, 0xff7722, 0xaa3300, 28, 1.0, 2.4); }
+      for (let i=-2;i<=2;i++){ const dir=aim.clone().sub(muzzle).normalize(); dir.applyAxisAngle(new THREE.Vector3(0,1,0), i*0.16); shootBolt(true, muzzle.clone(), dir, 30, 0xff7722, 0xaa3300, 28, 1.0, 2.4); }   // Stage 24: 18→30
     }
 
     firelord.eruptCd -= dt;
@@ -2552,7 +2714,7 @@ function update(dt){
           firelord.erupted = true;
           for (const sp of firelord.eruptPoints){
             addEffect(new THREE.Vector3(sp.x,0.5,sp.z), 10, 0xff5522);
-            if (Math.hypot(player.pos.x-sp.x, player.pos.z-sp.z) < 5 && !player.onShip) hurtPlayer(40);
+            if (Math.hypot(player.pos.x-sp.x, player.pos.z-sp.z) < 5 && !player.onShip) hurtPlayer(65);   // Stage 24: 40→65
           }
           if (audioCtxStarted) sfx.cannon.triggerAttackRelease("C1","2n");
         }
@@ -2588,7 +2750,7 @@ function update(dt){
       frostwarden.shootCd = 2.8; if(audioCtxStarted) sfx.magic.triggerAttackRelease("E3","8n");
       const muzzle = frostwarden.pos.clone().add(new THREE.Vector3(0,11,0));
       const aim = new THREE.Vector3(player.pos.x, player.inTree?3.5:1.2, player.pos.z);
-      for (let i=-2;i<=2;i++){ const dir=aim.clone().sub(muzzle).normalize(); dir.applyAxisAngle(new THREE.Vector3(0,1,0), i*0.15); shootBolt(true, muzzle.clone(), dir, 18, 0x9fd6ff, 0x3a8fd0, 30, 0.9, 2.4); }
+      for (let i=-2;i<=2;i++){ const dir=aim.clone().sub(muzzle).normalize(); dir.applyAxisAngle(new THREE.Vector3(0,1,0), i*0.15); shootBolt(true, muzzle.clone(), dir, 30, 0x9fd6ff, 0x3a8fd0, 30, 0.9, 2.4); }   // Stage 24: 18→30
     }
 
     // Deep-freeze AoE — telegraphed rings, then burst damage + chill/slow
@@ -2601,7 +2763,7 @@ function update(dt){
           frostwarden.frozen = true;
           for (const sp of frostwarden.freezePoints){
             addEffect(new THREE.Vector3(sp.x,0.5,sp.z), 10, 0x88ccff);
-            if (Math.hypot(player.pos.x-sp.x, player.pos.z-sp.z) < 5.5 && !player.onShip){ hurtPlayer(34); player.chillCd = 2.5; floatText(player.pos,'CHILLED','#9fd6ff',18); }
+            if (Math.hypot(player.pos.x-sp.x, player.pos.z-sp.z) < 5.5 && !player.onShip){ hurtPlayer(55); player.chillCd = 2.5; floatText(player.pos,'CHILLED','#9fd6ff',18); }   // Stage 24: 34→55
           }
           if (audioCtxStarted) sfx.cannon.triggerAttackRelease("C2","2n");
         }
@@ -2650,6 +2812,7 @@ function update(dt){
 
   updateBiomeMorph(dt);   // Stage 11: cross-fade sky/fog/light during a world transition
   updateHazards(dt);      // Stage 12: lava/ice biome hazard zones
+  updateHorse(dt);        // Stage 22: roaming/ridden horse
   updateAmbient(dt);      // Stage 15: snow/ember/dust ambient particles
 
   // --- Portal ceremony: animate the portal, detect entry, run the warp flash ---
@@ -2762,8 +2925,10 @@ function update(dt){
     if (showBar){ e.hpBar.position.set(e.obj.position.x, e.obj.position.y + e.scale*1.9 + 0.8, e.obj.position.z); e.hpBar.quaternion.copy(camera.quaternion); const ratio=Math.max(0,e.hp/e.maxHp), bw=e.hpBar.userData.W, fill=e.hpBar.userData.fill; fill.scale.x=ratio; fill.position.x=-bw*(1-ratio)/2; fill.material.color.setHex(e.type==='mimic' ? 0xff2244 : (ratio>0.5?0x6fcf45:(ratio>0.25?0xffd24a:0xff3b3b))); }
 
     const dist3D = Math.hypot(e.pos.x - player.pos.x, (e.obj.position.y||0) - player.obj.position.y, e.pos.z - player.pos.z);
-    if (!player.onShip && !player.shifted && player.alive && dist3D < 1.4+e.scale*0.5 && e.touchCd<=0 && e.type !== 'shooter' && e.type !== 'water' && e.type !== 'goldslime'){
-      hurtPlayer(e.atk); e.touchCd=0.8; if (player.inTree && e.type === 'stalker') { player.inTree = false; showToast("Knocked out of the tree!", "#ff5555"); }
+    const touchDist = player.mounted ? Math.hypot(e.pos.x-player.pos.x, e.pos.z-player.pos.z) : dist3D;
+    if (!player.onShip && !player.shifted && player.alive && touchDist < 1.4+e.scale*0.5+(player.mounted?0.9:0) && e.touchCd<=0 && e.type !== 'shooter' && e.type !== 'water' && e.type !== 'goldslime'){
+      if (player.mounted && (e.type==='wolf'||e.type==='frostwolf')){ damageHorse(e.atk); e.touchCd=0.8; }   // only wolves can hurt the horse
+      else { hurtPlayer(e.atk); e.touchCd=0.8; if (player.inTree && e.type === 'stalker') { player.inTree = false; showToast("Knocked out of the tree!", "#ff5555"); } }
     }
     for (const o of enemies){ if (o===e||o.dead) continue; const dx=e.pos.x-o.pos.x, dz=e.pos.z-o.pos.z, dd=Math.hypot(dx,dz), min=e.scale+o.scale; if (dd>0.001 && dd<min){ const push=(min-dd)/dd*0.5*dt*8; e.obj.position.x+=dx*push; e.obj.position.z+=dz*push; } }
   }
@@ -2887,7 +3052,7 @@ addEventListener('resize',resize); resize();
 // ============================================================
 const SAVE_KEY = 'emberfall_save_v1';
 let _saveDirty = false, _saveTimer = 0;
-function defaultSettings(){ return { musicVol: 1.0, sfxVol: 1.0, muted: false, showDmg: true, reducedMotion: false }; }
+function defaultSettings(){ return { musicVol: 1.0, sfxVol: 1.0, muted: false, showDmg: true, reducedMotion: false, difficulty: 'medium' }; }
 let settings = defaultSettings();                 // wired to audio/UI in Stage 2
 let cosmetics = { owned:{character:['default'],weapon:['default'],magic:['default']},   // populated in Stage 3
                   equipped:{character:'default',weapon:'default',magic:'default'} };
@@ -2901,7 +3066,7 @@ function buildSaveObject(){
     profile: { coins: player.gold, owned: cosmetics.owned, equipped: cosmetics.equipped, settings },
     character: { level:player.level, xp:player.xp, xpNext:player.xpNext, maxHp:player.maxHp,
                  atk:player.atk, magAtk:player.magAtk, speed:player.speed, tunnels:player.tunnels, binoculars:player.binoculars, shiftTime:player.shiftTime, lootMagnet:player.lootMagnet },
-    upgrades: { wepIdx, magIdx, tunIdx, shipIdx },
+    upgrades: { wepIdx, magIdx, tunIdx, shipIdx, horseArmor: player.horseArmor },
     campaign: { worldUnlocked: campaign.index+1, bossesBeaten: campaign.bossesBeaten.slice(), missionState:null },
     bestiary: { slain: bestiary.slain },
     freeBest: { kills: freeBest.kills, time: freeBest.time }
@@ -2929,6 +3094,7 @@ function applySave(d){
     player.shiftTime = _num(ch.shiftTime, 0); player.shifted = false;
     wepIdx=_idx(up.wepIdx,weaponTiers.length); magIdx=_idx(up.magIdx,magicTiers.length);
     tunIdx=_idx(up.tunIdx,tunnelTiers.length); shipIdx=_idx(up.shipIdx,shipTiers.length);
+    player.horseArmor = Math.max(0, Math.min(3, up.horseArmor|0));
     // re-derive visuals / derived state from saved tiers
     applyCosmetics();   // re-derive hero/blade visuals from saved tiers + equipped skins
     ship.maxHp=shipTiers[shipIdx].maxHp; ship.hp=ship.maxHp; ship.destroyed=false; ship.obj.visible=true; updateShipVisuals();
@@ -2944,7 +3110,7 @@ function resetForNewStory(){
   player.atk=12; player.magAtk=10; player.speed=10; player.gold=0; player.kills=0;
   player.tunnels=3; player.binoculars=false; player.binocActive=false; player.lootMagnet=false;
   player.shiftTime=0; player.shifted=false; updateShiftVisual();
-  wepIdx=0; magIdx=0; tunIdx=0; shipIdx=0;
+  wepIdx=0; magIdx=0; tunIdx=0; shipIdx=0; player.horseArmor=0;
   campaign.bossesBeaten=[]; campaign.index=0;
   campaign.worldRadius=WORLDS[0].radius; campaign.curRadius=WORLDS[0].radius;
   applyCosmetics();
@@ -2983,7 +3149,7 @@ function startGame(mode) {
   hideAllMenus();
   setupGameMode(mode);
   freeRun = (mode==='free') ? { kills0: player.kills, time:0 } : null;
-  started=true; clock.getDelta(); spawnWave(6); spawnMimics(10);
+  started=true; clock.getDelta(); spawnWave(6); spawnMimics(10); spawnHorse();
   if (!isTouch) { try { canvas.requestPointerLock(); } catch(_){} }
   showToast('Slay the shadows!','#ffd56b'); 
 }
@@ -3002,11 +3168,11 @@ function refreshHome(){
   const save = hasSave();
   $('btnContinue').style.display = save ? '' : 'none';
   $('saveNote').textContent = save ? 'Progress is saved on this device.' : 'Sign-in/cloud save coming soon — progress saves on this device.';
-  const fb=$('freeBestNote'); if (fb){ if (freeBest.kills>0){ fb.style.display='block'; fb.textContent='🏅 Best: '+freeBest.kills+' slain · '+fmtTime(freeBest.time); } else fb.style.display='none'; }
+  const fb=$('freeBestNote'); if (fb){ if (freeBest.kills>0){ fb.style.display='block'; fb.textContent='🏅 Best: '+freeBest.kills+' slain · '+fmtTime(freeBest.time)+(freeBest.diff?' ('+freeBest.diff+')':''); } else fb.style.display='none'; }
 }
 
 // Home buttons
-$('btnPlay').onclick     = ()=>{ refreshHome(); showScreen('modeScreen'); };
+$('btnPlay').onclick     = ()=>{ refreshHome(); renderDiffPills(); showScreen('modeScreen'); };
 $('btnShop').onclick     = ()=>{ shopReturn='overlay'; shopCat='character'; renderShop(); showScreen('shopScreen'); };
 $('btnSettings').onclick = ()=>{ syncSettingsUI(); showScreen('settingsScreen'); };
 $('btnHowto').onclick    = ()=> showScreen('howtoScreen');
@@ -3029,6 +3195,7 @@ function syncSettingsUI(){
   if($('pMusic')){ $('pMusic').value = settings.musicVol; $('pSfx').value = settings.sfxVol; $('pMute').checked = !!settings.muted; }
   if($('setDmgNums')) $('setDmgNums').checked = settings.showDmg !== false;
   if($('setMotion'))  $('setMotion').checked  = !!settings.reducedMotion;
+  if(typeof renderDiffPills==='function') renderDiffPills();
 }
 function bindAudioControl(musicId, sfxId, muteId){
   $(musicId).oninput = (e)=>{ settings.musicVol = parseFloat(e.target.value); applyAudioSettings(); syncSettingsUI(); saveGame(); };
@@ -3037,6 +3204,20 @@ function bindAudioControl(musicId, sfxId, muteId){
 }
 bindAudioControl('setMusic','setSfx','setMute');
 bindAudioControl('pMusic','pSfx','pMute');
+// Difficulty pills (Stage 25) — rendered into both the mode screen and Settings; selection persists
+function renderDiffPills(){
+  const opts = [['easy','🙂 Easy'],['medium','😐 Medium'],['hard','💀 Hard']];
+  for (const containerId of ['diffPills','diffPillsSettings']){
+    const c = $(containerId); if (!c) continue; c.innerHTML='';
+    for (const [val,label] of opts){
+      const b = document.createElement('button');
+      b.className = 'diff-pill'+(settings.difficulty===val?' active':''); b.textContent = label;
+      b.onclick = ()=>{ settings.difficulty = val; saveGame(); renderDiffPills(); };
+      c.appendChild(b);
+    }
+  }
+}
+renderDiffPills();
 $('setDmgNums').onchange = (e)=>{ settings.showDmg = e.target.checked; saveGame(); };
 $('setMotion').onchange = (e)=>{
   settings.reducedMotion = e.target.checked; saveGame();

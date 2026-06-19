@@ -1462,6 +1462,20 @@ function buildMimic(scale, disguiseType){
       disguise.add(mesh);
     }
   }
+  else if (disguiseType === 'bush'){
+    disguise = new THREE.Group();
+    const leafMat = new THREE.MeshStandardMaterial({color:0x2f6b3a, flatShading:true, roughness:1});
+    for (let i=0;i<5;i++){ const s=0.9+Math.random()*0.7; const b=new THREE.Mesh(new THREE.IcosahedronGeometry(s,0), leafMat); const a=Math.random()*Math.PI*2, r=Math.random()*0.9; b.position.set(Math.cos(a)*r, 0.7+Math.random()*0.5, Math.sin(a)*r); b.castShadow=true; disguise.add(b); }
+  }
+  else if (disguiseType === 'house'){
+    disguise = new THREE.Group();
+    const wallMat = new THREE.MeshStandardMaterial({color:0x9c7a52, roughness:.9, flatShading:true});
+    const roofMat = new THREE.MeshStandardMaterial({color:0x6b3a26, roughness:.9, flatShading:true});
+    const body = new THREE.Mesh(new THREE.BoxGeometry(3.4,2.8,3.4), wallMat); body.position.y=1.4; body.castShadow=true;
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(2.9,1.8,4), roofMat); roof.position.y=3.7; roof.rotation.y=Math.PI/4; roof.castShadow=true;
+    const door = new THREE.Mesh(new THREE.BoxGeometry(0.9,1.6,0.12), roofMat); door.position.set(0,0.8,1.72);
+    disguise.add(body, roof, door);
+  }
   else {
     disguise = new THREE.Group();
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.45,2.2,6), new THREE.MeshStandardMaterial({color:0x6b4a2b, roughness:1}));
@@ -1524,11 +1538,12 @@ function spawnEnemy(type, x, z){
   else if (type==='burrower') { e.scale=1.4; e.hp=110*powerMult; e.atk=24; e.speed=5.6; e.xp=75; e.gold=36; e.color=0xc89b5a; e.burrowState='under'; e.burrowTimer=2.0+Math.random()*1.5; e.warnRing=null; }   // Wastes sand-worm: burrows, telegraphs, erupts
   else if (type==='goldslime') { e.scale=1.3; e.hp=90*powerMult; e.atk=0; e.speed=7.2; e.xp=60; e.gold=200; e.color=0xffd24a; }   // event loot-goblin: flees, never attacks, big payout
   else if (type==='mimic') {
-    // Hide as scenery (mostly trees/rocks, occasionally a cave) — and in the campaign, sometimes as a fake mission node.
+    // Hide as almost anything in the world — trees, rocks, bushes, houses, caves, and (in the campaign) fake mission nodes.
     const inMission = (gameMode==='mission' && campaign.index < WORLDS.length);
-    const pool = inMission ? ['tree','tree','rock','rock','cave','mission'] : ['tree','tree','rock','rock','cave'];
+    const pool = inMission ? ['tree','rock','bush','house','cave','mission','mission'] : ['tree','tree','rock','rock','bush','house','cave'];
     e.disguise = pool[Math.floor(Math.random()*pool.length)]; e.revealed=false; e.color=0x3a0f2a;
     if (e.disguise==='cave'){ e.scale=2.6; e.hp=900*powerMult; e.atk=30; e.speed=4.2; e.xp=300; e.gold=250; }
+    else if (e.disguise==='house'){ e.scale=2.2; e.hp=800*powerMult; e.atk=30; e.speed=4.0; e.xp=260; e.gold=220; }
     else if (e.disguise==='mission'){ e.scale=1.9; e.hp=700*powerMult; e.atk=28; e.speed=4.6; e.xp=220; e.gold=180; e.mapDecoy=true; }
     else { e.scale=1.7; e.hp=550*powerMult; e.atk=26; e.speed=5.0; e.xp=160; e.gold=130; }
   }
@@ -2396,18 +2411,13 @@ function drawMap() {
         ctx.font=(15+Math.sin(now*0.006)*2).toFixed(0)+'px Arial'; ctx.fillText('🌀', toX(portal.pos.x), toY(portal.pos.z)); ctx.shadowBlur=0;
     }
 
-    // active objective: gold halo on the current target + a dotted guide line from the player
+    // active objective halo + guide line — ONLY for the boss or the portal.
+    // Mission nodes deliberately get NO line: finding the real obelisks (vs. decoys) is the challenge.
     const me = player.onShip ? ship.pos : player.pos;
     let tgt = null;
     if (gameMode==='mission'){
         if (typeof portal!=='undefined' && portal) tgt = portal.pos;
         else if (boss) tgt = boss.pos;
-        else {
-            // nearest mission target — REAL uncleansed nodes AND unrevealed decoys (so the line can lead you to a fake; finding the real ones is the challenge)
-            let bd=Infinity;
-            for (const ob of obelisks){ if (ob.state!=='cleansed'){ const d=Math.hypot(ob.x-me.x, ob.z-me.z); if (d<bd){ bd=d; tgt={x:ob.x, z:ob.z}; } } }
-            for (const en of enemies){ if (en.type==='mimic' && !en.revealed && en.mapDecoy && !en.dead){ const d=Math.hypot(en.pos.x-me.x, en.pos.z-me.z); if (d<bd){ bd=d; tgt={x:en.pos.x, z:en.pos.z}; } } }
-        }
     }
     if (tgt){
         const txp=toX(tgt.x), typ=toY(tgt.z);
@@ -2512,7 +2522,7 @@ function update(dt){
     const cur=horse.obj.rotation.y, diff=((horse.facing-cur+Math.PI)%(Math.PI*2))-Math.PI; horse.obj.rotation.y=cur+diff*Math.min(1,dt*12);
     player.pos.copy(horse.pos); player.facing=horse.facing;
     player.obj.position.set(horse.pos.x, 2.0, horse.pos.z); player.obj.rotation.y=horse.obj.rotation.y;
-    setPrompt('🐴 Riding — attack = KICK · [H] dismount');
+    setPrompt('');   // no persistent prompt while riding (hint shown once on mount; HP bar shows you're mounted)
   } else if (player.onShip){
     if (move.lengthSq()>0){
       move.normalize(); ship.facing=Math.atan2(move.x,move.z); ship.pos.addScaledVector(move, 12*dt);

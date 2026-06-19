@@ -890,7 +890,9 @@ function updateHazards(dt){
     if (h.disc) h.disc.material.opacity = 0.42 + Math.abs(Math.sin(now*0.003 + h.x))*0.22;
     if (!onFoot) continue;
     if (Math.hypot(player.pos.x-h.x, player.pos.z-h.z) < h.r){
-      if (h.dps>0 && player.buffShield<=0){
+      if (h.dps>0 && player.buffShield<=0 && player.mounted && horse){
+        horse.hp -= h.dps*dt*diffMult(); if (horse.hp<=0){ horse.hp=0; buckOff(); }   // mounted: lava burns the horse
+      } else if (h.dps>0 && player.buffShield<=0){
         player.hp -= h.dps*dt*diffMult(); player.regenCd = 4;   // hazard DPS scales with difficulty
         if (hazardMsgCd<=0){ floatText(player.pos, '-'+Math.round(h.dps*0.6), '#ff7733', 18); hazardMsgCd = 0.5; }
         if (player.hp<=0){ player.hp=0; die(); }
@@ -965,10 +967,11 @@ function currentBiome(){ return (gameMode==='mission') ? WORLDS[Math.min(campaig
 function startWorldEvent(type){
   if (worldEvent) return;
   if (type==='bloodmoon'){
-    worldEvent = { type:'bloodmoon', t:40 };
+    worldEvent = { type:'bloodmoon', t:40, surgeT:0 };
     startBiomeMorph({ bg:0x401018, fog:0x401018, hemi:0xff8888 }, 1.5);
     showToast('🌕 BLOOD MOON — the horde surges! (+50% gold)', '#ff4455');
     if (audioCtxStarted) sfx.poly.triggerAttackRelease(["C2","Eb2","G2"], "1n");
+    spawnSurge(16);   // immediate wave around the player
   } else {
     const a=Math.random()*Math.PI*2, r=30+Math.random()*20;
     let x=player.pos.x+Math.cos(a)*r, z=player.pos.z+Math.sin(a)*r, tries=0;
@@ -994,6 +997,10 @@ function endWorldEvent(){
 function updateWorldEvents(dt, bossActive){
   if (worldEvent){
     worldEvent.t -= dt;
+    if (worldEvent.type==='bloodmoon' && player.alive){   // keep the horde coming near the player throughout
+      worldEvent.surgeT -= dt;
+      if (worldEvent.surgeT<=0 && enemies.length<75){ spawnSurge(7); worldEvent.surgeT=1.3; }
+    }
     if (worldEvent.type==='goldelite' && worldEvent.e && worldEvent.e.dead && worldEvent.t > 0.5) worldEvent.t = 0.5;   // caught it — wrap up
     if (worldEvent.t <= 0) endWorldEvent();
   } else if (started && !paused && player.alive && !bossActive && !campaign.awaitingPortal){
@@ -1533,7 +1540,7 @@ function spawnEnemy(type, x, z){
   e.obj.position.copy(e.pos); scene.add(e.obj); enemies.push(e); return e;
 }
 
-function spawnWave(n, forcePos=null){
+function enemyPool(){
   const pwr = player.level + wepIdx*3 + magIdx*3;
   let pool = ['slime'];
   if (pwr > 4) pool.push('brute', 'shooter', 'wolf');
@@ -1542,7 +1549,21 @@ function spawnWave(n, forcePos=null){
   if (gameMode === 'mission' && campaign.index >= 1) pool.push('drone', 'drone', 'shooter', 'burrower');   // The Wastes: robotic foes + sand-worms
   if (gameMode === 'mission' && campaign.index >= 2) pool.push('imp', 'imp', 'drone');          // Emberpeak: fire foes
   if (gameMode === 'mission' && campaign.index >= 3) pool.push('frostwolf', 'frostwolf', 'frostling');   // Frostspire: frozen foes
-  
+  return pool;
+}
+// Blood-Moon surge: spawn a ring of foes CLOSE to the player so the horde actually descends on you
+function spawnSurge(n){
+  const pool = enemyPool().filter(t=>t!=='mimic');   // no slow scenery-ambush mimics during a surge
+  const R = (gameMode==='mission' ? campaign.curRadius : WORLD) - 4;
+  for (let i=0;i<n;i++){
+    let x,z,tries=0;
+    do { const a=Math.random()*Math.PI*2, r=16+Math.random()*16; x=player.pos.x+Math.cos(a)*r; z=player.pos.z+Math.sin(a)*r; tries++; }
+    while ((isWater(x,z) || Math.hypot(x,z)>R) && tries<25);
+    spawnEnemy(pool[Math.floor(Math.random()*pool.length)], x, z);
+  }
+}
+function spawnWave(n, forcePos=null){
+  const pool = enemyPool();
   for (let i=0;i<n;i++){
     let x,z,tries=0, type;
     if (forcePos) {
@@ -2072,7 +2093,9 @@ function gainXp(a){
 const DIFF_MULT = { easy:0.7, medium:1.0, hard:1.4 };
 function diffMult(){ return DIFF_MULT[settings.difficulty] || 1; }   // Stage 25 — global incoming-damage scale
 function hurtPlayer(dmg){
-  if (player.invuln>0||!player.alive) return;
+  if (!player.alive) return;
+  if (player.mounted && horse){ damageHorse(dmg); return; }          // while mounted the horse soaks ALL damage — the rider is safe
+  if (player.invuln>0) return;
   if (player.buffShield>0){ floatText(player.pos,'BLOCKED','#ffd56b',18); return; }   // 🛡 power-up absorbs the hit
   dmg = Math.round(dmg * diffMult());                                // difficulty scales all incoming damage
   if (audioCtxStarted) sfx.hit.triggerAttackRelease("A1", "8n");
@@ -2927,8 +2950,8 @@ function update(dt){
     const dist3D = Math.hypot(e.pos.x - player.pos.x, (e.obj.position.y||0) - player.obj.position.y, e.pos.z - player.pos.z);
     const touchDist = player.mounted ? Math.hypot(e.pos.x-player.pos.x, e.pos.z-player.pos.z) : dist3D;
     if (!player.onShip && !player.shifted && player.alive && touchDist < 1.4+e.scale*0.5+(player.mounted?0.9:0) && e.touchCd<=0 && e.type !== 'shooter' && e.type !== 'water' && e.type !== 'goldslime'){
-      if (player.mounted && (e.type==='wolf'||e.type==='frostwolf')){ damageHorse(e.atk); e.touchCd=0.8; }   // only wolves can hurt the horse
-      else { hurtPlayer(e.atk); e.touchCd=0.8; if (player.inTree && e.type === 'stalker') { player.inTree = false; showToast("Knocked out of the tree!", "#ff5555"); } }
+      hurtPlayer(e.atk); e.touchCd=0.8;   // hurtPlayer redirects to the horse when mounted (every foe can wound the horse)
+      if (!player.mounted && player.inTree && e.type === 'stalker') { player.inTree = false; showToast("Knocked out of the tree!", "#ff5555"); }
     }
     for (const o of enemies){ if (o===e||o.dead) continue; const dx=e.pos.x-o.pos.x, dz=e.pos.z-o.pos.z, dd=Math.hypot(dx,dz), min=e.scale+o.scale; if (dd>0.001 && dd<min){ const push=(min-dd)/dd*0.5*dt*8; e.obj.position.x+=dx*push; e.obj.position.z+=dz*push; } }
   }
@@ -3008,14 +3031,13 @@ function update(dt){
 
   // During a boss fight, throttle the regular adds so you can focus the boss
   const bossActive = (leviathan&&!leviathan.dead)||(robot&&!robot.dead)||(firelord&&!firelord.dead)||(frostwarden&&!frostwarden.dead);
-  const surge = !!(worldEvent && worldEvent.type==='bloodmoon');   // blood moon: faster, bigger waves
-  spawnTimer-=dt;
-  if (spawnTimer<=0 && enemies.length < (bossActive?16:(surge?60:50))){
-    spawnWave(bossActive ? 4 : (surge ? waveSize+3 : waveSize));
+  spawnTimer-=dt;   // normal ambient spawns (the Blood-Moon surge is driven separately in updateWorldEvents)
+  if (spawnTimer<=0 && enemies.length < (bossActive?16:50)){
+    spawnWave(bossActive ? 4 : waveSize);
     if(!bossActive) waveSize=Math.min(20,waveSize+1);
-    spawnTimer = bossActive ? 7.0 : (7.0 - Math.min(3, player.level*0.1)) * (surge?0.45:1);
+    spawnTimer = bossActive ? 7.0 : (7.0 - Math.min(3, player.level*0.1));
   }
-  updateWorldEvents(dt, bossActive);   // Stage 17: blood moon / golden wanderer scheduler
+  updateWorldEvents(dt, bossActive);   // Stage 17: blood moon / golden wanderer scheduler (+ surge spawning)
 
   if (player.binocActive && !player.inTree){ player.binocActive=false; $('binocOverlay').classList.add('hidden'); }   // safety: dropped from tree
   const focus = player.onShip ? ship.pos : player.pos; const cx=Math.sin(camYaw)*Math.cos(camPitch), cz=Math.cos(camYaw)*Math.cos(camPitch), cy=Math.sin(camPitch);

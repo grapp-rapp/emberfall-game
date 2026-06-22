@@ -11,6 +11,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <meta name="author" content="Noam Rapp" />
 <meta name="copyright" content="© 2026 Noam Rapp. All Rights Reserved." />
+<meta name="description" content="A 3D action-RPG — cleanse the cursed worlds, slay the bosses, and save Emberfall." />
+<meta name="theme-color" content="#0a0e16" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="manifest" href="./manifest.json" />
+<link rel="icon" type="image/svg+xml" href="./icon.svg" />
+<link rel="apple-touch-icon" href="./icon.svg" />
+<script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('./sw.js').catch(function(){});});}</script>
 <title>Emberfall™ — by Noam Rapp</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -464,9 +473,9 @@
 </div>
 
 <script type="importmap">
-{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+{ "imports": { "three": "./three.module.js" } }
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<script src="./tone.js"></script>
 
 <script type="module">
 import * as THREE from 'three';

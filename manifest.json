@@ -3,19 +3,17 @@
   "short_name": "Emberfall",
   "description": "A 3D action-RPG — cleanse the cursed worlds, slay the bosses, and save Emberfall.",
   "id": "/",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "/",
+  "scope": "/",
   "display": "fullscreen",
-  "display_override": ["fullscreen", "standalone"],
   "orientation": "landscape",
   "background_color": "#0a0e16",
   "theme_color": "#0a0e16",
   "categories": ["games"],
   "lang": "en",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    { "src": "https://emberfall-game.vercel.app/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "https://emberfall-game.vercel.app/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "https://emberfall-game.vercel.app/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

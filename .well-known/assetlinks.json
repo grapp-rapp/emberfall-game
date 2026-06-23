@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.noamrapp.emberfall",
+        "sha256_cert_fingerprints": ["08:31:37:9A:57:21:D6:E3:56:0C:6B:80:1D:AD:5C:FF:F2:3D:F7:1E:ED:AB:24:2B:50:2B:B9:D2:3F:5D:ED:07"]
+      }
+    }]
